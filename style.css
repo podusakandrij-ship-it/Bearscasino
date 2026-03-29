@@ -324,11 +324,14 @@ input[type=range]::-webkit-slider-thumb {
     backdrop-filter:blur(16px);
 }
 .case-roulette {
-    width:100%;height:110px;overflow:hidden;position:relative;
+    width:100%;height:116px;overflow:hidden;position:relative;
     border-top:2px solid var(--accent);border-bottom:2px solid var(--accent);
-    background:rgba(0,0,0,.4);margin:20px 0;
+    background:rgba(0,0,0,.5);margin:20px 0;
 }
-#case-scroll { display:flex;position:absolute;left:0;top:0;height:110px;will-change:transform; }
+#case-scroll {
+    display:flex;position:absolute;left:0;top:0;height:116px;
+    align-items:center;will-change:transform;
+}
 .case-item { min-width:90px;max-width:90px;height:110px;display:flex;align-items:center;justify-content:center;font-size:46px; }
 
 /* АДМІН */

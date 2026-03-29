@@ -217,10 +217,10 @@ window.equip=id=>{s.p=s.inv.find(i=>i.id===id);save();renderInv();ren();};
 
 // КОЛЕСО
 const WHEEL_SEGS=[
-    {label:'0x',      color:'#c0392b', m:0,    isPet:false, start:0,   end:216},
-    {label:'1.4x',    color:'#27ae60', m:1.4,  isPet:false, start:216, end:306},
-    {label:'1.6x',    color:'#2980b9', m:1.6,  isPet:false, start:306, end:348},
-    {label:'🗑️ Пет', color:'#8b5cf6', m:999,  isPet:true,  start:348, end:360},
+    {label:'0x',      color:'#c0392b', m:0,   isPet:false, start:0,   end:144},
+    {label:'1.4x',    color:'#27ae60', m:1.4, isPet:false, start:144, end:252},
+    {label:'1.6x',    color:'#2980b9', m:1.6, isPet:false, start:252, end:324},
+    {label:'🗑️ Пет', color:'#8b5cf6', m:999, isPet:true,  start:324, end:360},
 ];
 let wheelAngle=0,wheelSpinning=false;
 
@@ -444,7 +444,7 @@ window.play=()=>{
     } else if(g==='wheel'){
         if(wheelSpinning) return;
         let p=Math.random()*100,m;
-        if(p<60)m=0; else if(p<85)m=1.4; else if(p<97)m=1.6; else m=999;
+        if(p<40)m=0; else if(p<70)m=1.4; else if(p<90)m=1.6; else m=999;
         spinWheel(m,()=>{
             if(m===999){
                 const trash={n:'Смітник',s:'🗑️',r:'Легендарний',m:1.35,w:0,c:'#f43f5e',id:Date.now(),lvl:1};
@@ -512,7 +512,6 @@ function buildClownUI(){
         }
     }
     const mult = CLOWN_MULTS[round];
-    const canCashout = round > 0 && alive && clownState.roundWon;
     el.innerHTML=`<div class="clown-game">
         <div class="clown-header">
             <span style="color:#8d99ae;font-size:12px;font-weight:700">РАУНД ${round+1}/4</span>
@@ -520,7 +519,6 @@ function buildClownUI(){
         </div>
         <div class="clown-doors">${doorsHtml}</div>
         <div style="font-size:11px;color:#8d99ae;text-align:center;margin-top:8px">Оберіть двері без 🤡</div>
-        ${canCashout?`<button class="btn" style="background:var(--success);margin-top:10px;padding:11px;font-size:13px" onclick="clownCashout()">💰 ЗАБРАТИ x${CLOWN_MULTS[round-1]}</button>`:''}
     </div>`;
 }
 
@@ -652,6 +650,72 @@ function startBalloon(bt){
 }
 
 // КЕЙСИ
+// Рідкість → колір рамки
+const RARITY_GLOW = {
+    'Звичайний':   '#94a3b8',
+    'Незвичайний': '#3b82f6',
+    'Рідкісний':   '#a855f7',
+    'Епічний':     '#f59e0b',
+    'Легендарний': '#f43f5e',
+    'Міфічний':    '#bf40bf',
+    'Смехуятина':  '#ff6b35',
+};
+
+function drawPetCard(canvas, pet){
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0,0,W,H);
+    const glow = RARITY_GLOW[pet.r] || '#94a3b8';
+
+    // Фон карточки
+    const bg = ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0, '#1a1f2e');
+    bg.addColorStop(1, '#0d1117');
+    ctx.fillStyle = bg;
+    roundRect(ctx, 0, 0, W, H, 12);
+    ctx.fill();
+
+    // Glow рамка
+    ctx.strokeStyle = glow;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 8;
+    roundRect(ctx, 1, 1, W-2, H-2, 12);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Емодзі пета
+    ctx.font = `${Math.floor(H*0.45)}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(pet.s, W/2, H*0.42);
+
+    // Назва
+    ctx.font = `bold ${Math.floor(H*0.13)}px system-ui`;
+    ctx.fillStyle = '#fff';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(pet.n.length>8 ? pet.n.slice(0,8)+'…' : pet.n, W/2, H*0.78);
+
+    // Рідкість
+    ctx.font = `bold ${Math.floor(H*0.1)}px system-ui`;
+    ctx.fillStyle = glow;
+    ctx.fillText(pet.r, W/2, H*0.92);
+}
+
+function roundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+    ctx.lineTo(x+w, y+h-r);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+    ctx.lineTo(x+r, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+    ctx.lineTo(x, y+r);
+    ctx.quadraticCurveTo(x, y, x+r, y);
+    ctx.closePath();
+}
+
 window.buyCase=k=>{
     const c=CASES[k];
     if(s.b<c.p) return alert('Мало BB!');
@@ -659,20 +723,48 @@ window.buyCase=k=>{
     document.getElementById('case-modal').style.display='flex';
     let rand=Math.random()*100,win,cur=0;
     for(let p of c.drop){cur+=p.w;if(rand<=cur){win={...p};break;}}
-    let scr=document.getElementById('case-scroll');
+
+    const CARD_W=90, CARD_H=110, COUNT=55, WIN_IDX=40;
     let pool=[];for(let key in CASES)pool.push(...CASES[key].drop);
-    let h='';for(let i=0;i<55;i++){
-        let it=(i===40)?win:pool[Math.floor(Math.random()*pool.length)];
-        h+=`<div class="case-item">${it.s}</div>`;
+
+    const scr=document.getElementById('case-scroll');
+    scr.innerHTML='';
+    scr.style.transition='none';
+    scr.style.left='0px';
+
+    // Будуємо canvas-картки
+    const items=[];
+    for(let i=0;i<COUNT;i++){
+        items.push(i===WIN_IDX ? win : pool[Math.floor(Math.random()*pool.length)]);
     }
-    scr.innerHTML=h;scr.style.transition='0s';scr.style.left='0px';
+    items.forEach(pet=>{
+        const cv=document.createElement('canvas');
+        cv.width=CARD_W-6; cv.height=CARD_H-6;
+        cv.style.cssText=`display:block;margin:3px;border-radius:12px;flex-shrink:0`;
+        scr.appendChild(cv);
+        drawPetCard(cv, pet);
+    });
+
     setTimeout(()=>{
-        scr.style.transition='5s cubic-bezier(0.1,0,0.1,1)';
-        scr.style.left=`-${40*90-(window.innerWidth/2-45)}px`;
+        scr.style.transition='5s cubic-bezier(0.05,0,0.1,1)';
+        scr.style.left=`-${WIN_IDX*CARD_W-(window.innerWidth/2-CARD_W/2)}px`;
     },50);
+
+    // Результат
+    const resEl=document.getElementById('case-res');
+    const closeEl=document.getElementById('case-close');
     setTimeout(()=>{
-        document.getElementById('case-res').innerHTML=`<span style="color:${win.c}">${win.s} ${win.n}</span>`;
-        document.getElementById('case-close').style.display='block';
+        // Малюємо великий canvas результату
+        const bigCv=document.createElement('canvas');
+        bigCv.width=160;bigCv.height=196;
+        bigCv.style.cssText='border-radius:16px;display:block;margin:0 auto 10px';
+        drawPetCard(bigCv, win);
+        resEl.innerHTML='';
+        resEl.appendChild(bigCv);
+        const label=document.createElement('div');
+        label.innerHTML=`<span style="color:${RARITY_GLOW[win.r]||'#fff'};font-size:20px;font-weight:900">${win.n}</span><br><small style="color:#8d99ae">${win.r} · x${win.m.toFixed(3)}</small>`;
+        resEl.appendChild(label);
+        closeEl.style.display='block';
         win.id=Date.now();win.lvl=1;s.inv.push(win);save();
     },5600);
 };
@@ -800,15 +892,24 @@ window.mathB=(id,type)=>{
     else ref.set(v);
     setTimeout(loadAdmin,500);
 };
+// Пети які можна видати лише через адмінку (не в кейсах)
+const ADMIN_ONLY_PETS = [
+    {n:'Клоун',   s:'🤡', r:'Смехуятина', m:1.67, c:'#ff6b35'},
+    {n:'Гігачад', s:'🗿', r:'Міфічний',   m:5.20, c:'#bf40bf'},
+    {n:'Смітник', s:'🗑️', r:'Легендарний',m:1.35, c:'#f43f5e'},
+];
+
 window.adminGivePet=tid=>{
+    // Збираємо всіх петів: з кейсів + адмін-only
     let unique=[],seen=new Set();
-    for(let k in CASES)CASES[k].drop.forEach(p=>{if(!seen.has(p.n)){unique.push(p);seen.add(p.n);}});
-    let list=unique.map((p,i)=>`${i}: ${p.s} ${p.n}`).join('\n');
+    for(let k in CASES) CASES[k].drop.forEach(p=>{if(!seen.has(p.n)){unique.push(p);seen.add(p.n);}});
+    ADMIN_ONLY_PETS.forEach(p=>{if(!seen.has(p.n)){unique.push(p);seen.add(p.n);}});
+    let list=unique.map((p,i)=>`${i}: ${p.s} ${p.n} (${p.r})`).join('\n');
     let ch=prompt(list);
     if(ch!==null&&unique[ch]){
         let p={...unique[ch],id:Date.now(),lvl:1};
         db.ref('players/'+tid+'/inv').once('value',sn=>{let inv=sn.val()||[];inv.push(p);db.ref('players/'+tid+'/inv').set(inv);});
-        alert('Видано!');
+        alert(`Видано: ${unique[ch].s} ${unique[ch].n}!`);
     }
 };
 
