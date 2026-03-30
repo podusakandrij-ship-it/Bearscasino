@@ -216,55 +216,93 @@ function renderInv(){
 window.equip=id=>{s.p=s.inv.find(i=>i.id===id);save();renderInv();ren();};
 
 // КОЛЕСО
+// Колесо: стрілка вгорі = 270° у координатах canvas (або -90°)
+// Сегменти задаємо як частки від кола (0–360), де 0 = верх (12 год)
+// 0x=50%, 1.4x=25%, 1.6x=20%, Смітник=5%  (нові шанси)
 const WHEEL_SEGS=[
-    {label:'0x',      color:'#c0392b', m:0,   isPet:false, start:0,   end:144},
-    {label:'1.4x',    color:'#27ae60', m:1.4, isPet:false, start:144, end:252},
-    {label:'1.6x',    color:'#2980b9', m:1.6, isPet:false, start:252, end:324},
-    {label:'🗑️ Пет', color:'#8b5cf6', m:999, isPet:true,  start:324, end:360},
+    {label:'0x',      color:'#c0392b', m:0,   start:0,   end:180},  // 50%
+    {label:'1.4x',    color:'#27ae60', m:1.4, start:180, end:270},  // 25%
+    {label:'1.6x',    color:'#2980b9', m:1.6, start:270, end:342},  // 20%
+    {label:'🗑️',     color:'#8b5cf6', m:999, start:342, end:360},  // 5%
 ];
-let wheelAngle=0,wheelSpinning=false;
+let wheelAngle=0, wheelSpinning=false;
 
-function drawWheel(angle){
+function drawWheel(rotDeg){
     const canvas=document.getElementById('wheel-canvas');
     if(!canvas) return;
-    const ctx=canvas.getContext('2d'),cx=110,cy=110,r=100;
+    const ctx=canvas.getContext('2d'), cx=110, cy=110, r=100;
     ctx.clearRect(0,0,220,220);
+
     WHEEL_SEGS.forEach(seg=>{
-        const sa=(seg.start+angle-90)*Math.PI/180;
-        const ea=(seg.end  +angle-90)*Math.PI/180;
-        ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,sa,ea);ctx.closePath();
-        ctx.fillStyle=seg.color;ctx.fill();
-        ctx.strokeStyle='rgba(0,0,0,0.55)';ctx.lineWidth=2;ctx.stroke();
-        const mid=((seg.start+seg.end)/2+angle-90)*Math.PI/180;
+        // Конвертуємо градуси сегменту + поточне обертання у радіани
+        // Відраховуємо від верху (-90°)
+        const sa = (seg.start + rotDeg - 90) * Math.PI/180;
+        const ea = (seg.end   + rotDeg - 90) * Math.PI/180;
+
+        ctx.beginPath();
+        ctx.moveTo(cx,cy);
+        ctx.arc(cx,cy,r,sa,ea);
+        ctx.closePath();
+        ctx.fillStyle = seg.color;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Текст у середині сегменту
+        const midAngle = (seg.start + seg.end)/2 + rotDeg - 90;
+        const midRad = midAngle * Math.PI/180;
+        const tx = cx + Math.cos(midRad)*r*0.65;
+        const ty = cy + Math.sin(midRad)*r*0.65;
         ctx.save();
-        ctx.translate(cx+Math.cos(mid)*r*.65,cy+Math.sin(mid)*r*.65);
-        ctx.rotate(mid+Math.PI/2);
-        ctx.fillStyle='#fff';ctx.font='bold 13px system-ui';
-        ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.fillText(seg.label,0,0);
+        ctx.translate(tx,ty);
+        ctx.rotate(midRad + Math.PI/2);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 13px system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(seg.label, 0, 0);
         ctx.restore();
     });
-    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
-    ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=4;ctx.stroke();
-    ctx.beginPath();ctx.arc(cx,cy,18,0,Math.PI*2);
-    ctx.fillStyle='#0d1117';ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=2;ctx.stroke();
+
+    // Зовнішня рамка
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=3; ctx.stroke();
+
+    // Центр
+    ctx.beginPath(); ctx.arc(cx,cy,16,0,Math.PI*2);
+    ctx.fillStyle='#060810'; ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=2; ctx.stroke();
 }
-function spinWheel(resultM,onDone){
+
+function spinWheel(resultM, onDone){
     if(wheelSpinning) return;
-    wheelSpinning=true;
-    const seg=WHEEL_SEGS.find(s=>s.m===resultM);
-    const midDeg=(seg.start+seg.end)/2;
-    const extra=((360-midDeg)%360);
-    const total=7*360+extra;
-    const t0=performance.now(),dur=4500,a0=wheelAngle;
-    function easeOut(t){return 1-Math.pow(1-t,4);}
+    wheelSpinning = true;
+
+    const seg = WHEEL_SEGS.find(s=>s.m===resultM);
+    // Середина сегменту (в градусах від верху)
+    const segMid = (seg.start + seg.end) / 2;
+    // Щоб segMid потрапив під стрілку (верх = 0°),
+    // треба повернути колесо так що rotDeg ≡ -segMid (mod 360)
+    // Тобто finalRot = 360 - segMid + випадковий офсет у межах сегменту
+    const halfArc = (seg.end - seg.start) / 2;
+    const randOff = (Math.random() - 0.5) * halfArc * 0.7;
+    const landAt  = segMid + randOff; // точка в сегменті де зупинимось
+    const finalRot = (360 - landAt % 360 + 360) % 360;
+
+    const spins   = 6;
+    const totalRot = spins * 360 + finalRot - (wheelAngle % 360);
+    const a0  = wheelAngle;
+    const t0  = performance.now();
+    const dur = 4500;
+
+    function easeOut(t){ return 1 - Math.pow(1-t, 4); }
     function frame(now){
-        const t=Math.min((now-t0)/dur,1);
-        wheelAngle=a0+total*easeOut(t);
-        drawWheel(wheelAngle%360);
-        if(t<1) requestAnimationFrame(frame);
-        else{wheelAngle=wheelAngle%360;wheelSpinning=false;onDone();}
+        const t = Math.min((now-t0)/dur, 1);
+        wheelAngle = a0 + totalRot * easeOut(t);
+        drawWheel(wheelAngle % 360);
+        if(t < 1) requestAnimationFrame(frame);
+        else { wheelAngle = wheelAngle%360; wheelSpinning=false; onDone(); }
     }
     requestAnimationFrame(frame);
 }
@@ -438,13 +476,30 @@ window.play=()=>{
     if(g==='balloon'&&balloonState&&balloonState.alive) return alert('Спочатку завершуй гру!');
     document.getElementById('g-stat').innerText='⏳ Очікування...';
     if(g==='f50'){
-        const w=Math.random()>.5; res(w,bt,1.55,w?'Виграв!':'Програв');
+        // Анімація монети
+        const stat=document.getElementById('g-stat');
+        const sides=['⬛','⬜'];
+        let ticks=0;
+        stat.innerHTML=`<div id="coin-anim" style="font-size:48px;display:inline-block">🪙</div>`;
+        const iv=setInterval(()=>{
+            const coin=document.getElementById('coin-anim');
+            if(coin){
+                coin.innerText=sides[ticks%2];
+                coin.style.transform=`rotateY(${ticks*60}deg) scale(${0.8+Math.abs(Math.sin(ticks*0.5))*0.4})`;
+            }
+            if(++ticks>14){
+                clearInterval(iv);
+                const w=Math.random()>.5;
+                if(coin) coin.style.transform='scale(1)';
+                setTimeout(()=>res(w,bt,1.55,w?'Орел! Переміг!':'Решка! Програв!'),100);
+            }
+        },80);
     } else if(g==='dice'){
         rollDiceAnim(r=>res(r===selN_val,bt,2.05,`Випало ${r}`));
     } else if(g==='wheel'){
         if(wheelSpinning) return;
         let p=Math.random()*100,m;
-        if(p<40)m=0; else if(p<70)m=1.4; else if(p<90)m=1.6; else m=999;
+        if(p<50)m=0; else if(p<75)m=1.4; else if(p<95)m=1.6; else m=999;
         spinWheel(m,()=>{
             if(m===999){
                 const trash={n:'Смітник',s:'🗑️',r:'Легендарний',m:1.35,w:0,c:'#f43f5e',id:Date.now(),lvl:1};
@@ -512,6 +567,8 @@ function buildClownUI(){
         }
     }
     const mult = CLOWN_MULTS[round];
+    const prevMult = round > 0 ? CLOWN_MULTS[round-1] : null;
+    const canCashout = round > 0 && alive && clownState.betweenRounds;
     el.innerHTML=`<div class="clown-game">
         <div class="clown-header">
             <span style="color:#8d99ae;font-size:12px;font-weight:700">РАУНД ${round+1}/4</span>
@@ -519,11 +576,13 @@ function buildClownUI(){
         </div>
         <div class="clown-doors">${doorsHtml}</div>
         <div style="font-size:11px;color:#8d99ae;text-align:center;margin-top:8px">Оберіть двері без 🤡</div>
+        ${canCashout?`<button class="btn" style="background:var(--success);margin-top:10px;padding:11px;font-size:13px" onclick="clownCashout()">💰 ЗАБРАТИ x${prevMult}</button>`:''}
     </div>`;
 }
 
 window.clownPick = idx => {
     if(!clownState||!clownState.alive) return;
+    clownState.betweenRounds = false;
     const {round, bet} = clownState;
     const totalDoors = 5 - round;
     const clownDoor = Math.floor(Math.random()*totalDoors);
@@ -551,8 +610,10 @@ window.clownPick = idx => {
         } else {
             clownState.round++;
             clownState.doors = {};
-            clownState.roundWon = false;
+            clownState.betweenRounds = true;
             buildClownUI();
+            // Після короткої паузи прибираємо betweenRounds щоб кнопки дверей активувались
+            // (залишаємо кнопку "забрати" але двері теж клікабельні)
         }
     }
 };
@@ -569,7 +630,7 @@ window.clownCashout = () => {
 };
 
 function startClown(bt){
-    clownState={bet:bt, round:0, alive:true, roundWon:false, doors:{}};
+    clownState={bet:bt, round:0, alive:true, betweenRounds:false, doors:{}};
     document.getElementById('g-stat').innerHTML=`<span style="color:#f59e0b">🚪 Обирай двері без клоуна!</span>`;
     buildClownUI();
 }
