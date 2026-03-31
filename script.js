@@ -52,6 +52,262 @@ let s = {b:0,x:0,r:1,name:myName,p:null,inv:[],v:4.0};
 let currentShopTab='cases', currentAdminTab='balance';
 let adminInvUserId=null, adminInvUserName='';
 
+// ============================================================
+// ТЕМИ
+// ============================================================
+const THEMES = {
+    gold: {
+        name:'🏆 Золото',
+        vars:{
+            '--accent':'#f59e0b','--accent2':'#fbbf24',
+            '--bg':'#050710','--glass':'rgba(10,13,28,0.82)',
+            '--border':'rgba(245,158,11,0.15)','--border2':'rgba(255,255,255,0.06)',
+            '--text':'#e2d9c8','--nav-bg':'rgba(5,7,16,0.96)',
+            '--header-bg':'rgba(5,7,16,0.95)','--btn-text':'#000',
+        }
+    },
+    blue: {
+        name:'💎 Сапфір',
+        vars:{
+            '--accent':'#58a6ff','--accent2':'#93c5fd',
+            '--bg':'#030812','--glass':'rgba(8,14,30,0.85)',
+            '--border':'rgba(88,166,255,0.15)','--border2':'rgba(255,255,255,0.06)',
+            '--text':'#c9d9f0','--nav-bg':'rgba(3,8,18,0.96)',
+            '--header-bg':'rgba(3,8,18,0.95)','--btn-text':'#fff',
+        }
+    },
+    purple: {
+        name:'🔮 Аметист',
+        vars:{
+            '--accent':'#a855f7','--accent2':'#c084fc',
+            '--bg':'#070510','--glass':'rgba(15,8,28,0.85)',
+            '--border':'rgba(168,85,247,0.15)','--border2':'rgba(255,255,255,0.06)',
+            '--text':'#ddd0f0','--nav-bg':'rgba(7,5,16,0.96)',
+            '--header-bg':'rgba(7,5,16,0.95)','--btn-text':'#fff',
+        }
+    },
+    green: {
+        name:'🌿 Смарагд',
+        vars:{
+            '--accent':'#22c55e','--accent2':'#4ade80',
+            '--bg':'#030c06','--glass':'rgba(5,18,10,0.85)',
+            '--border':'rgba(34,197,94,0.15)','--border2':'rgba(255,255,255,0.06)',
+            '--text':'#d0ecd8','--nav-bg':'rgba(3,12,6,0.96)',
+            '--header-bg':'rgba(3,12,6,0.95)','--btn-text':'#000',
+        }
+    },
+    red: {
+        name:'🔥 Рубін',
+        vars:{
+            '--accent':'#ef4444','--accent2':'#f87171',
+            '--bg':'#0c0303','--glass':'rgba(22,5,5,0.85)',
+            '--border':'rgba(239,68,68,0.15)','--border2':'rgba(255,255,255,0.06)',
+            '--text':'#f0d0d0','--nav-bg':'rgba(12,3,3,0.96)',
+            '--header-bg':'rgba(12,3,3,0.95)','--btn-text':'#fff',
+        }
+    },
+};
+
+// ============================================================
+// ПЕРЕКЛАДИ
+// ============================================================
+const LANGS = {
+    uk:{
+        gameName:'BEARS CASINO',
+        chooseGame:'ОБЕРИ ГРУ',
+        bet:'СТАВКА',
+        betBtn:'ЗРОБИТИ СТАВКУ',
+        waiting:'⏳ Очікування...',
+        win:'Переміг!', lose:'Програв!',
+        shop:'📦 Кейси', market:'🛒 Ринок',
+        inv:'🎒 МОЇ ПЕТИ', top:'🏆 ЛІДЕРИ', admin:'⚡ АДМІН',
+        settings:'⚙️ Налаштування',
+        theme:'Тема', language:'Мова',
+        noBonus:'Немає пета', choosePet:'Обери пета',
+        bonus:'БОНУС', lvl:'LVL',
+        equip:'Взяти', equipped:'✅',
+        sell:'🏪', invEmpty:'Інвентар порожній',
+        invEmptySub:'Відкривай кейси в магазині!',
+        loading:'Завантаження...', marketEmpty:'На ринку порожньо',
+        spin:'🎰 Крутимо...', take:'💰 ЗАБРАТИ',
+        gameStart:T('gameStart'),
+        clownStart:T('clownStart'),
+        balloonStart:T('balloonStart'),
+        chosen:'ВИБРАНЕ ЧИСЛО',
+        roundOf:'РАУНД', of:'/',
+        prize:'Приз:', minesBoom:'Бум! Міна!',
+        clownBoom:'За тією дверью був клоун!',
+        allRounds:'Виграв всі 4 раунди!',
+        balloonBoom:'Кулька луснула!',
+        petLvlUp:'+0.005',
+        g_f50:'⚖️ 50/50 (x1.55)',
+        g_dice:'🎲 Кубик (x2.05)',
+        g_wheel:'🎡 Колесо (до x1.6 + 🗑️)',
+        g_slots:'🎰 Слоти (до x5.0)',
+        g_mines:'💣 Міни (до x4.0)',
+        g_clown:'🚪 Двері Клоуна (до x2.4)',
+        g_balloon:'🎈 Клоунський Тир (до x2.5)',
+        g_bj:'🃏 Блекджек (x2.0)',
+        saved:'✅ Збережено!',
+        apply:'Застосувати',
+    },
+    en:{
+        gameName:'BEARS CASINO',
+        chooseGame:'CHOOSE GAME',
+        bet:'BET',
+        betBtn:'PLACE BET',
+        waiting:'⏳ Waiting...',
+        win:'Won!', lose:'Lost!',
+        shop:'📦 Cases', market:'🛒 Market',
+        inv:'🎒 MY PETS', top:'🏆 LEADERS', admin:'⚡ ADMIN',
+        settings:'⚙️ Settings',
+        theme:'Theme', language:'Language',
+        noBonus:'No pet', choosePet:'Choose pet',
+        bonus:'BONUS', lvl:'LVL',
+        equip:'Equip', equipped:'✅',
+        sell:'🏪', invEmpty:'Inventory empty',
+        invEmptySub:'Open cases in the shop!',
+        loading:'Loading...', marketEmpty:'Market is empty',
+        spin:'🎰 Spinning...', take:'💰 TAKE',
+        gameStart:'⚡ Open cells!',
+        clownStart:'🚪 Choose a door without the clown!',
+        balloonStart:'🎈 Tap the balloon!',
+        chosen:'CHOSEN NUMBER',
+        roundOf:'ROUND', of:'/',
+        prize:'Prize:', minesBoom:'Boom! Mine!',
+        clownBoom:'That door had the clown!',
+        allRounds:'Won all 4 rounds!',
+        balloonBoom:'Balloon popped!',
+        petLvlUp:'+0.005',
+        g_f50:'⚖️ 50/50 (x1.55)',
+        g_dice:'🎲 Dice (x2.05)',
+        g_wheel:'🎡 Wheel (up to x1.6 + 🗑️)',
+        g_slots:'🎰 Slots (up to x5.0)',
+        g_mines:'💣 Mines (up to x4.0)',
+        g_clown:'🚪 Clown Doors (up to x2.4)',
+        g_balloon:'🎈 Clown Shoot (up to x2.5)',
+        g_bj:'🃏 Blackjack (x2.0)',
+        saved:'✅ Saved!',
+        apply:'Apply',
+    },
+    ru:{
+        gameName:'BEARS CASINO',
+        chooseGame:'ВЫБЕРИ ИГРУ',
+        bet:'СТАВКА',
+        betBtn:'СДЕЛАТЬ СТАВКУ',
+        waiting:'⏳ Ожидание...',
+        win:'Победил!', lose:'Проиграл!',
+        shop:'📦 Кейсы', market:'🛒 Рынок',
+        inv:'🎒 МОИ ПИТОМЦЫ', top:'🏆 ЛИДЕРЫ', admin:'⚡ АДМИН',
+        settings:'⚙️ Настройки',
+        theme:'Тема', language:'Язык',
+        noBonus:'Нет питомца', choosePet:'Выбери питомца',
+        bonus:'БОНУС', lvl:'УРВ',
+        equip:'Взять', equipped:'✅',
+        sell:'🏪', invEmpty:'Инвентарь пуст',
+        invEmptySub:'Открывай кейсы в магазине!',
+        loading:'Загрузка...', marketEmpty:'Рынок пуст',
+        spin:'🎰 Крутим...', take:'💰 ЗАБРАТЬ',
+        gameStart:'⚡ Открывай клетки!',
+        clownStart:'🚪 Выбирай дверь без клоуна!',
+        balloonStart:'🎈 Нажимай на шарик!',
+        chosen:'ВЫБРАННОЕ ЧИСЛО',
+        roundOf:'РАУНД', of:'/',
+        prize:'Приз:', minesBoom:'Бум! Мина!',
+        clownBoom:'За той дверью был клоун!',
+        allRounds:'Выиграл все 4 раунда!',
+        balloonBoom:'Шарик лопнул!',
+        petLvlUp:'+0.005',
+        g_f50:'⚖️ 50/50 (x1.55)',
+        g_dice:'🎲 Кубик (x2.05)',
+        g_wheel:'🎡 Колесо (до x1.6 + 🗑️)',
+        g_slots:'🎰 Слоты (до x5.0)',
+        g_mines:'💣 Мины (до x4.0)',
+        g_clown:'🚪 Двери Клоуна (до x2.4)',
+        g_balloon:'🎈 Клоунский Тир (до x2.5)',
+        g_bj:'🃏 Блекджек (x2.0)',
+        saved:'✅ Сохранено!',
+        apply:'Применить',
+    },
+};
+
+let currentLang  = localStorage.getItem('bc_lang')  || 'uk';
+let currentTheme = localStorage.getItem('bc_theme') || 'gold';
+
+function T(key){ return (LANGS[currentLang]||LANGS.uk)[key] || key; }
+
+function applyTheme(themeKey){
+    const th = THEMES[themeKey];
+    if(!th) return;
+    const root = document.documentElement;
+    Object.entries(th.vars).forEach(([k,v])=>root.style.setProperty(k,v));
+    // Shimmer color
+    const logo = document.querySelector('.logo');
+    if(logo){
+        const a=th.vars['--accent'], a2=th.vars['--accent2']||a;
+        logo.style.backgroundImage=`linear-gradient(90deg,${a},${a2},${a},${a2},${a})`;
+    }
+    currentTheme = themeKey;
+    localStorage.setItem('bc_theme', themeKey);
+}
+
+function applyLang(lang){
+    currentLang = lang;
+    localStorage.setItem('bc_lang', lang);
+    // Оновлюємо статичний текст
+    const logo=document.querySelector('.logo');
+    if(logo) logo.textContent=T('gameName');
+    const betBtn=document.querySelector('.btn[onclick="play()"]');
+    if(betBtn) betBtn.textContent=T('betBtn');
+    const gLabel=document.querySelector('.field-label');
+    if(gLabel) gLabel.textContent=T('chooseGame');
+    const betLabel=document.querySelectorAll('.field-label')[1];
+    if(betLabel) betLabel.textContent=T('bet');
+    // Game select options
+    const sel=document.getElementById('g-sel');
+    if(sel){
+        const keys=['g_f50','g_dice','g_wheel','g_slots','g_mines','g_clown','g_balloon','g_bj'];
+        [...sel.options].forEach((opt,i)=>{ if(keys[i]) opt.text=T(keys[i]); });
+    }
+    // Nav tabs
+    const navTabs=document.querySelectorAll('.nav-tab');
+    // залишаємо емодзі — вони універсальні
+}
+
+function renderSettings(){
+    const el=document.getElementById('settings-body');
+    if(!el) return;
+    const themeHtml=Object.entries(THEMES).map(([k,th])=>`
+        <div class="sett-card${currentTheme===k?' sett-active':''}" onclick="pickTheme('${k}')">
+            <span>${th.name}</span>
+            <div class="sett-dot" style="background:${th.vars['--accent']}"></div>
+        </div>`).join('');
+    const langHtml=[['uk','🇺🇦 Українська'],['en','🇬🇧 English'],['ru','🇷🇺 Русский']].map(([k,n])=>`
+        <div class="sett-card${currentLang===k?' sett-active':''}" onclick="pickLang('${k}')">
+            <span>${n}</span>
+            ${currentLang===k?'<span style="color:var(--accent)">✓</span>':''}
+        </div>`).join('');
+    el.innerHTML=`
+        <div class="glass">
+            <div class="sett-section-title">${T('theme')}</div>
+            <div class="sett-grid">${themeHtml}</div>
+        </div>
+        <div class="glass">
+            <div class="sett-section-title">${T('language')}</div>
+            <div class="sett-list">${langHtml}</div>
+        </div>`;
+}
+
+window.pickTheme=k=>{ applyTheme(k); renderSettings(); showToast(T('saved')); };
+window.pickLang=k=>{ applyLang(k); renderSettings(); showToast(T('saved')); };
+
+// Ініціалізація теми/мови при старті
+document.addEventListener('DOMContentLoaded',()=>{
+    applyTheme(currentTheme);
+    applyLang(currentLang);
+});
+
+
 // FIREBASE SYNC
 db.ref('players/'+myId).on('value', snap=>{
     let d=snap.val();
@@ -104,10 +360,11 @@ window.tab=(t,el)=>{
     document.querySelectorAll('.nav-tab').forEach(n=>n.classList.remove('active'));
     document.getElementById('v-'+t).style.display='block';
     el.classList.add('active');
-    if(t==='shop') renderShop();
-    if(t==='inv')  renderInv();
-    if(t==='top')  loadTop();
-    if(t==='admin')loadAdmin();
+    if(t==='shop')     renderShop();
+    if(t==='inv')      renderInv();
+    if(t==='top')      loadTop();
+    if(t==='admin')    loadAdmin();
+    if(t==='settings') renderSettings();
 };
 
 // МАГАЗИН
@@ -375,7 +632,7 @@ window.minesReveal=idx=>{
         const bt=minesState.bet;
         s.b-=bt;save();
         setTimeout(()=>{
-            document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bt.toFixed(2)} BB 💣</span><br><small>Бум! Міна!</small>`;
+            document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bt.toFixed(2)} BB 💣</span><br><small>${T('minesBoom')}</small>`;
             minesState=null;buildMinesGrid();
         },600);
     } else {
@@ -474,26 +731,32 @@ window.play=()=>{
     if(g==='mines'&&minesState&&minesState.alive) return alert('Спочатку завершуй гру!');
     if(g==='clown'&&clownState&&clownState.alive) return alert('Спочатку завершуй гру!');
     if(g==='balloon'&&balloonState&&balloonState.alive) return alert('Спочатку завершуй гру!');
-    document.getElementById('g-stat').innerText='⏳ Очікування...';
+    document.getElementById('g-stat').innerText=T('waiting');
     if(g==='f50'){
-        // Анімація монети
         const stat=document.getElementById('g-stat');
-        const sides=['⬛','⬜'];
+        const w=Math.random()>.5;
         let ticks=0;
-        stat.innerHTML=`<div id="coin-anim" style="font-size:48px;display:inline-block">🪙</div>`;
+        stat.innerHTML=`<div id="coin-anim" style="font-size:56px;display:inline-block;transition:transform .08s">🪙</div>`;
         const iv=setInterval(()=>{
             const coin=document.getElementById('coin-anim');
             if(coin){
-                coin.innerText=sides[ticks%2];
-                coin.style.transform=`rotateY(${ticks*60}deg) scale(${0.8+Math.abs(Math.sin(ticks*0.5))*0.4})`;
+                // Чергуємо галочку і хрест під час анімації
+                coin.innerText = ticks%2===0 ? '✅' : '❌';
+                const scale = 0.7 + Math.abs(Math.sin(ticks*0.45))*0.5;
+                const rot   = ticks%2===0 ? -15 : 15;
+                coin.style.transform=`scale(${scale}) rotate(${rot}deg)`;
             }
-            if(++ticks>14){
+            if(++ticks>16){
                 clearInterval(iv);
-                const w=Math.random()>.5;
-                if(coin) coin.style.transform='scale(1)';
-                setTimeout(()=>res(w,bt,1.55,w?'Орел! Переміг!':'Решка! Програв!'),100);
+                const coin2=document.getElementById('coin-anim');
+                if(coin2){
+                    coin2.innerText = w ? '✅' : '❌';
+                    coin2.style.transform='scale(1.2) rotate(0deg)';
+                    setTimeout(()=>{ coin2.style.transform='scale(1) rotate(0deg)'; },150);
+                }
+                setTimeout(()=>res(w,bt,1.55, w ? T('win') : T('lose')),200);
             }
-        },80);
+        },70);
     } else if(g==='dice'){
         rollDiceAnim(r=>res(r===selN_val,bt,2.05,`Випало ${r}`));
     } else if(g==='wheel'){
@@ -510,7 +773,7 @@ window.play=()=>{
         });
     } else if(g==='slots'){
         if(slotsSpinning) return;
-        document.getElementById('g-stat').innerText='🎰 Крутимо...';
+        document.getElementById('g-stat').innerText=T('spin');
         runSlots((a,b,c)=>res(slotMult(a,b,c)>0,bt,slotMult(a,b,c),`${a} ${b} ${c}`));
     } else if(g==='mines'){
         startMines(bt); return;
@@ -593,7 +856,7 @@ window.clownPick = idx => {
         buildClownUI();
         s.b -= bet; save();
         setTimeout(()=>{
-            document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bet.toFixed(2)} BB 🤡</span><br><small>За тією дверью був клоун!</small>`;
+            document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bet.toFixed(2)} BB 🤡</span><br><small>${T('clownBoom')}</small>`;
             clownState = null; buildClownUI();
         }, 800);
     } else {
@@ -604,7 +867,7 @@ window.clownPick = idx => {
             const bon = s.p?s.p.m:1;
             const win = (bet*mult - bet)*bon;
             s.b += win; s.x += Math.floor(bet/2); save(); checkPetLevelUp();
-            document.getElementById('g-stat').innerHTML=`<span style="color:var(--success)">+${win.toFixed(2)} BB 🎉</span><br><small>Виграв всі 4 раунди! x${mult}</small>`;
+            document.getElementById('g-stat').innerHTML=`<span style="color:var(--success)">+${win.toFixed(2)} BB 🎉</span><br><small>${T('allRounds')} x${mult}</small>`;
             clownState.alive=false; buildClownUI();
             setTimeout(()=>{clownState=null; buildClownUI();},1500);
         } else {
@@ -682,7 +945,7 @@ window.balloonPop = () => {
         const bt=balloonState.bet;
         s.b-=bt; save();
         setTimeout(()=>{
-            document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bt.toFixed(2)} BB 💥</span><br><small>Кулька луснула!</small>`;
+            document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bt.toFixed(2)} BB 💥</span><br><small>${T('balloonBoom')}</small>`;
             balloonState=null; buildBalloonUI();
         }, 700);
     } else {

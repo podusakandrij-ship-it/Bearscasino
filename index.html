@@ -151,6 +151,14 @@
         </div>
     </div>
 
+    <!-- НАЛАШТУВАННЯ -->
+    <div id="v-settings" class="page" style="display:none">
+        <div class="glass">
+            <h3 style="margin:0 0 16px;color:#fff">⚙️ Налаштування</h3>
+            <div id="settings-body"></div>
+        </div>
+    </div>
+
 </div>
 
 <!-- КЕЙС МОДАЛ -->
@@ -165,10 +173,11 @@
 </div>
 
 <nav>
-    <div class="nav-tab active" onclick="tab('main',this)">🎮</div>
-    <div class="nav-tab" onclick="tab('shop',this)">📦</div>
-    <div class="nav-tab" onclick="tab('inv',this)">🎒</div>
-    <div class="nav-tab" onclick="tab('top',this)">🏆</div>
+    <div class="nav-tab active" id="nav-main" onclick="tab('main',this)">🎮</div>
+    <div class="nav-tab" id="nav-shop" onclick="tab('shop',this)">📦</div>
+    <div class="nav-tab" id="nav-inv" onclick="tab('inv',this)">🎒</div>
+    <div class="nav-tab" id="nav-top" onclick="tab('top',this)">🏆</div>
+    <div class="nav-tab" id="nav-set" onclick="tab('settings',this)">⚙️</div>
     <div id="admin-tab" class="nav-tab" style="display:none" onclick="tab('admin',this)">⚡</div>
 </nav>
 

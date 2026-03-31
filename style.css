@@ -1,7 +1,7 @@
 :root {
     --bg:      #050710;
-    --accent:  #f59e0b;
-    --accent2: #fbbf24;
+    --accent:  var(--accent);
+    --accent2: var(--accent2);
     --blue:    #3b82f6;
     --glass:   rgba(10,13,28,0.82);
     --border:  rgba(245,158,11,0.15);
@@ -9,7 +9,7 @@
     --text:    #e2d9c8;
     --success: #22c55e;
     --error:   #ef4444;
-    --warning: #f59e0b;
+    --warning: var(--accent);
     --purple:  '#a855f7';
 }
 
@@ -17,7 +17,7 @@
 
 body {
     font-family:'Segoe UI',system-ui,sans-serif;
-    background:var(--bg);
+    background:var(--bg,#050710);
     color:var(--text);
     height:100vh;
     overflow:hidden;
@@ -46,7 +46,7 @@ header {
 
 .logo {
     font-weight:900;font-size:18px;letter-spacing:2px;
-    background:linear-gradient(90deg,#f59e0b,#fbbf24,#f97316,#fbbf24,#f59e0b);
+    background:linear-gradient(90deg,var(--accent),var(--accent2),#f97316,var(--accent2),var(--accent));
     background-size:200% auto;
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
     background-clip:text;
@@ -111,7 +111,7 @@ select option { background:#0d1117;color:#fff; }
 .btn {
     width:100%;padding:14px;border:none;border-radius:12px;
     background:linear-gradient(135deg,var(--accent),#f97316);
-    color:#000;font-weight:900;font-size:15px;letter-spacing:.5px;
+    color:var(--btn-text,#000);font-weight:900;font-size:15px;letter-spacing:.5px;
     cursor:pointer;transition:.15s;
     box-shadow:0 4px 20px rgba(245,158,11,.25);
 }
@@ -125,7 +125,7 @@ select option { background:#0d1117;color:#fff; }
 .btn-buy {
     padding:9px 16px;border:none;border-radius:10px;
     background:linear-gradient(135deg,var(--accent),#f97316);
-    color:#000;font-weight:900;font-size:13px;cursor:pointer;
+    color:var(--btn-text,#000);font-weight:900;font-size:13px;cursor:pointer;
     white-space:nowrap;transition:.15s;
     box-shadow:0 2px 12px rgba(245,158,11,.2);
 }
@@ -376,3 +376,53 @@ nav {
 
 /* page default */
 .page { display:block; }
+
+/* ========== SETTINGS ========== */
+.settings-grid {
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;
+}
+.set-btn {
+    padding:12px 10px;border-radius:12px;text-align:center;
+    background:rgba(255,255,255,.04);border:1px solid var(--border);
+    color:var(--text);cursor:pointer;font-size:13px;font-weight:700;
+    transition:.2s;
+}
+.set-btn:active { transform:scale(.96); }
+.set-active {
+    background:rgba(var(--accent-rgb, 245,158,11),.15)!important;
+    border-color:var(--accent)!important;
+    color:var(--accent)!important;
+    box-shadow:0 0 12px rgba(var(--accent-rgb,245,158,11),.15);
+}
+.theme-btn { font-size:13px;text-align:left;padding-left:14px; }
+
+/* Dynamic theme support for btn-text */
+.btn { color:var(--btn-text, #000); }
+.btn-buy { color:var(--btn-text, #000); }
+
+/* ========== SETTINGS ========== */
+.sett-section-title {
+    font-size:11px;font-weight:700;color:#8d8070;
+    letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;
+}
+.sett-grid {
+    display:grid;grid-template-columns:repeat(2,1fr);gap:8px;
+}
+.sett-list { display:flex;flex-direction:column;gap:8px; }
+.sett-card {
+    display:flex;justify-content:space-between;align-items:center;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;padding:12px 14px;
+    cursor:pointer;transition:.15s;font-size:13px;font-weight:600;
+}
+.sett-card:active { transform:scale(.97); }
+.sett-active {
+    border-color:var(--accent) !important;
+    background:rgba(255,255,255,.06) !important;
+    box-shadow:0 0 16px rgba(0,0,0,.2);
+}
+.sett-dot {
+    width:16px;height:16px;border-radius:50%;
+    box-shadow:0 0 8px currentColor;flex-shrink:0;
+}
