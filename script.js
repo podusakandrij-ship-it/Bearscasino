@@ -56,7 +56,6 @@ const CASES = {
 
 const ADMIN_ONLY_PETS = [
     {n:'Клоун',  s:'🤡',r:'Смехуятина', m:1.67,c:'#ff6b35'},
-    {n:'Гігачад',s:'🗿',r:'Міфічний',   m:5.20,c:'#bf40bf'},
     {n:'Смітник',s:'🗑️',r:'Легендарний',m:1.35,c:'#f43f5e'},
 ];
 
@@ -107,9 +106,24 @@ const LANGS = {
         saved:'✅ Збережено!', chosen:'ВИБРАНЕ ЧИСЛО',
         g_f50:'⚖️ 50/50 (x1.55)', g_dice:'🎲 Кубик (x2.05)',
         g_wheel:'🎡 Колесо (до x1.6)', g_slots:'🎰 Слоти (до x5.0)',
-        g_mines:'💣 Міни (до x4.0)', g_clown:'🚪 Двері Клоуна (до x2.4) 🎉',
-        g_balloon:'🎈 Клоунський Тир (до x2.5) 🎉', g_bj:'🃏 Блекджек (x2.0)',
+        g_mines:'💣 Міни (до x4.0)', g_clown:'🚪 Двері Клоуна 🎉',
+        g_balloon:'🎈 Клоунський Тир 🎉', g_bj:'🃏 Блекджек (x2.0)',
         expired:'Ця гра вже недоступна (закінчилась 2 квітня)',
+        navShop:'📦', navInv:'🎒', navTop:'🏆', navSet:'⚙️',
+        tabCases:'📦 Кейси', tabMarket:'🛒 Ринок',
+        dealer:'ДИЛЕР', you:'ВИ', hit:'ЩЕ', stand:'СТОП',
+        bonusLbl:'БОНУС', lvlLabel:'LVL',
+        adminBalance:'Баланс', adminPets:'Пети', adminInv:'Інвентар',
+        equip:'Взяти', equipped:'✅', bonusWord:'Бонус',
+        roundsAndMults:'РАУНДИ ТА МНОЖНИКИ', pressToStart:'Натисни ЗРОБИТИ СТАВКУ щоб почати',
+        popsCount:'Лопань:', bjBust:'Перебір!', bjWin:'Виграш!', bjLose:'Програш',
+        anon:'Анонім', petsCount:'Петів:', viewInv:'🎒 Переглянути', empty:'Порожньо',
+        activePet:'Активний', confirmDelete:'Видалити', given:'Видано!',
+        invCountLabel:'ПЕТІВ', balloonPopsLabel:'Лопань:',
+        back:'← Назад', petsOf:'петів',
+        noPet:'Обери пета', noPetRarity:'НЕМАЄ',
+        bonusLabel:'БОНУС', openingCase:'ВІДКРИВАЄМО...',
+        music:'Музика', musicOn:'🔊 Увімк.', musicOff:'🔇 Вимк.',
     },
     en: {
         chooseGame:'CHOOSE GAME', betLbl:'BET', betBtn:'PLACE BET',
@@ -126,9 +140,24 @@ const LANGS = {
         saved:'✅ Saved!', chosen:'CHOSEN NUMBER',
         g_f50:'⚖️ 50/50 (x1.55)', g_dice:'🎲 Dice (x2.05)',
         g_wheel:'🎡 Wheel (up to x1.6)', g_slots:'🎰 Slots (up to x5.0)',
-        g_mines:'💣 Mines (up to x4.0)', g_clown:'🚪 Clown Doors (up to x2.4) 🎉',
-        g_balloon:'🎈 Clown Shoot (up to x2.5) 🎉', g_bj:'🃏 Blackjack (x2.0)',
+        g_mines:'💣 Mines (up to x4.0)', g_clown:'🚪 Clown Doors 🎉',
+        g_balloon:'🎈 Clown Shoot 🎉', g_bj:'🃏 Blackjack (x2.0)',
         expired:'This game is no longer available (ended April 2)',
+        navShop:'📦', navInv:'🎒', navTop:'🏆', navSet:'⚙️',
+        tabCases:'📦 Cases', tabMarket:'🛒 Market',
+        dealer:'DEALER', you:'YOU', hit:'HIT', stand:'STAND',
+        bonusLbl:'BONUS', lvlLabel:'LVL',
+        adminBalance:'Balance', adminPets:'Pets', adminInv:'Inventory',
+        equip:'Equip', equipped:'✅', bonusWord:'Bonus',
+        roundsAndMults:'ROUNDS & MULTIPLIERS', pressToStart:'Press PLACE BET to start',
+        popsCount:'Pops:', bjBust:'Bust!', bjWin:'Win!', bjLose:'Loss',
+        anon:'Anonymous', petsCount:'Pets:', viewInv:'🎒 View', empty:'Empty',
+        activePet:'Active', confirmDelete:'Delete', given:'Given!',
+        invCountLabel:'PETS', balloonPopsLabel:'Pops:',
+        back:'← Back', petsOf:'pets',
+        noPet:'Choose a pet', noPetRarity:'NONE',
+        bonusLabel:'BONUS', openingCase:'OPENING...',
+        music:'Music', musicOn:'🔊 On', musicOff:'🔇 Off',
     },
     ru: {
         chooseGame:'ВЫБЕРИ ИГРУ', betLbl:'СТАВКА', betBtn:'СДЕЛАТЬ СТАВКУ',
@@ -145,9 +174,24 @@ const LANGS = {
         saved:'✅ Сохранено!', chosen:'ВЫБРАННОЕ ЧИСЛО',
         g_f50:'⚖️ 50/50 (x1.55)', g_dice:'🎲 Кубик (x2.05)',
         g_wheel:'🎡 Колесо (до x1.6)', g_slots:'🎰 Слоты (до x5.0)',
-        g_mines:'💣 Мины (до x4.0)', g_clown:'🚪 Двери Клоуна (до x2.4) 🎉',
-        g_balloon:'🎈 Клоунский Тир (до x2.5) 🎉', g_bj:'🃏 Блекджек (x2.0)',
+        g_mines:'💣 Мины (до x4.0)', g_clown:'🚪 Двери Клоуна 🎉',
+        g_balloon:'🎈 Клоунский Тир 🎉', g_bj:'🃏 Блекджек (x2.0)',
         expired:'Эта игра уже недоступна (закончилась 2 апреля)',
+        navShop:'📦', navInv:'🎒', navTop:'🏆', navSet:'⚙️',
+        tabCases:'📦 Кейсы', tabMarket:'🛒 Рынок',
+        dealer:'ДИЛЕР', you:'ВЫ', hit:'ЕЩЁ', stand:'СТОП',
+        bonusLbl:'БОНУС', lvlLabel:'УРВ',
+        adminBalance:'Баланс', adminPets:'Питомцы', adminInv:'Инвентарь',
+        equip:'Взять', equipped:'✅', bonusWord:'Бонус',
+        roundsAndMults:'РАУНДЫ И МНОЖИТЕЛИ', pressToStart:'Нажми СДЕЛАТЬ СТАВКУ чтобы начать',
+        popsCount:'Взрывов:', bjBust:'Перебор!', bjWin:'Выигрыш!', bjLose:'Проигрыш',
+        anon:'Аноним', petsCount:'Питомцев:', viewInv:'🎒 Просмотр', empty:'Пусто',
+        activePet:'Активный', confirmDelete:'Удалить', given:'Выдано!',
+        invCountLabel:'ПИТОМЦЕВ', balloonPopsLabel:'Взрывов:',
+        back:'← Назад', petsOf:'питомцев',
+        noPet:'Выбери питомца', noPetRarity:'НЕТ',
+        bonusLabel:'БОНУС', openingCase:'ОТКРЫВАЕМ...',
+        music:'Музыка', musicOn:'🔊 Вкл.', musicOff:'🔇 Выкл.',
     },
 };
 function L(k) { return (LANGS[currentLang]||LANGS.uk)[k] || k; }
@@ -155,15 +199,88 @@ function L(k) { return (LANGS[currentLang]||LANGS.uk)[k] || k; }
 function applyLang(lang) {
     currentLang = lang;
     localStorage.setItem('bc_lang', lang);
-    // оновлюємо тексти які є в DOM одразу
+
+    // Назви ігор у select
     const sel = document.getElementById('g-sel');
     if (sel) {
         const keys = ['g_f50','g_dice','g_wheel','g_slots','g_mines','g_clown','g_balloon','g_bj'];
         [...sel.options].forEach((o,i) => { if(keys[i]) o.text = L(keys[i]); });
     }
+
+    // Всі елементи з data-l атрибутом
     document.querySelectorAll('[data-l]').forEach(el => {
         el.textContent = L(el.dataset.l);
     });
+
+    // Кнопка ставки
+    const playBtn = document.getElementById('btn-play');
+    if (playBtn) playBtn.textContent = L('betBtn');
+
+    // Лейбли полів
+    const labels = document.querySelectorAll('.field-label[data-l]');
+    labels.forEach(el => el.textContent = L(el.dataset.l));
+
+    // Заголовки секцій
+    const invH = document.getElementById('inv-heading');
+    if (invH) invH.textContent = L('myPets');
+    const topH = document.getElementById('top-heading');
+    if (topH) topH.textContent = L('leaders');
+    const settH = document.getElementById('sett-heading');
+    if (settH) settH.textContent = L('settings');
+    const adminH = document.getElementById('admin-heading');
+    if (adminH) adminH.textContent = L('admin');
+
+    // Назви вкладок навігації
+    const navLabels = {
+        'nav-shop':'navShop','nav-inv':'navInv','nav-top':'navTop','nav-set':'navSet'
+    };
+    Object.entries(navLabels).forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = L(key);
+    });
+
+    // Таби магазину (якщо відображаються)
+    const shopTabs = document.querySelectorAll('.s-tab[data-l]');
+    shopTabs.forEach(el => el.textContent = L(el.dataset.l));
+
+    // Таби адмінки
+    const adminTabs = document.querySelectorAll('.a-tab[data-l]');
+    adminTabs.forEach(el => el.textContent = L(el.dataset.l));
+
+    // BJ лейбли
+    const bjDealer = document.getElementById('bj-dealer-lbl');
+    const bjYou    = document.getElementById('bj-you-lbl');
+    if (bjDealer) bjDealer.textContent = L('dealer');
+    if (bjYou)    bjYou.textContent    = L('you');
+
+    // BJ кнопки
+    const bjHit  = document.getElementById('bj-hit');
+    const bjStop = document.getElementById('bj-stop');
+    if (bjHit)  bjHit.textContent  = L('hit');
+    if (bjStop) bjStop.textContent = L('stand');
+
+    // Оновлюємо pet hud і no-pet стан
+    ren();
+
+    // Case modal title
+    const caseTitle = document.getElementById('case-title');
+    if (caseTitle) caseTitle.textContent = L('openingCase');
+
+    // Кубик — перемалювати якщо відображається
+    if (document.getElementById('ui-dice') &&
+        document.getElementById('ui-dice').style.display !== 'none') buildDiceUI();
+
+    // Налаштування — перерендерити якщо відкриті
+    if (document.getElementById('v-settings') &&
+        document.getElementById('v-settings').style.display !== 'none') renderSettings();
+
+    // Магазин — перерендерити якщо відкритий
+    if (document.getElementById('v-shop') &&
+        document.getElementById('v-shop').style.display !== 'none') renderShop();
+
+    // Інвентар
+    if (document.getElementById('v-inv') &&
+        document.getElementById('v-inv').style.display !== 'none') renderInv();
 }
 
 // ============================================================
@@ -219,6 +336,11 @@ function ren() {
     const petLvl = s.p ? (s.p.lvl||1) : 1;
     document.getElementById('xp-f').style.width =
         Math.min((s.x / (petLvl*XP_PER_LEVEL))*100, 100) + '%';
+
+    // Pet HUD бонус лейбл
+    const bonusLabelEl = document.getElementById('pet-bonus-lbl');
+    if (bonusLabelEl) bonusLabelEl.textContent = L('bonusLabel');
+
     if (s.p) {
         document.getElementById('p-img').innerText  = s.p.s;
         document.getElementById('p-name').innerText = s.p.n;
@@ -226,6 +348,11 @@ function ren() {
         document.getElementById('p-l').innerText    = s.p.lvl||1;
         const t = document.getElementById('p-rarity');
         t.innerText = s.p.r; t.style.background = s.p.c;
+    } else {
+        document.getElementById('p-img').innerText  = '🥚';
+        document.getElementById('p-name').innerText = L('noPet');
+        const t = document.getElementById('p-rarity');
+        t.innerText = L('noPetRarity'); t.style.background = '';
     }
     if (ADMINS.includes(Number(myId)))
         document.getElementById('admin-tab').style.display = 'block';
@@ -254,8 +381,8 @@ window.setShopTab = t => { currentShopTab = t; renderShop(); };
 function renderShop() {
     const list = document.getElementById('shop-list');
     const tabs = `<div class="shop-tabs">
-        <div class="s-tab ${currentShopTab==='cases'?'active':''}" onclick="setShopTab('cases')">📦 Кейси</div>
-        <div class="s-tab ${currentShopTab==='market'?'active':''}" onclick="setShopTab('market')">🛒 Ринок</div>
+        <div class="s-tab ${currentShopTab==='cases'?'active':''}" onclick="setShopTab('cases')">${L('tabCases')}</div>
+        <div class="s-tab ${currentShopTab==='market'?'active':''}" onclick="setShopTab('market')">${L('tabMarket')}</div>
     </div>`;
     if (currentShopTab === 'cases') {
         let h = tabs; const now = Date.now();
@@ -337,7 +464,7 @@ function renderInv() {
             <div style="font-size:12px;opacity:.6;margin-top:4px">${L('invEmptySub')}</div></div>`;
         return;
     }
-    let h = `<div style="font-size:11px;color:#8d99ae;font-weight:700;margin-bottom:10px;letter-spacing:.5px">${s.inv.length} ПЕТІВ</div>`;
+    let h = `<div style="font-size:11px;color:#8d99ae;font-weight:700;margin-bottom:10px;letter-spacing:.5px">${s.inv.length} ${L('invCountLabel')}</div>`;
     s.inv.forEach(p => {
         const eq = s.p && s.p.id===p.id;
         h += `<div class="pet-card${eq?' pet-eq':''}">
@@ -345,14 +472,14 @@ function renderInv() {
             <div class="pet-emo">${p.s}</div>
             <div class="pet-info">
                 <div class="pet-badge" style="background:${p.c}25;color:${p.c};border:1px solid ${p.c}50">${p.r}</div>
-                <div class="pet-name">${p.n}${eq?`<span class="pet-active-tag">✦ АКТИВНИЙ</span>`:''}</div>
+                <div class="pet-name">${p.n}${eq?`<span class="pet-active-tag">✦ ${L('activePet')}</span>`:''}</div>
                 <div class="pet-stats">
-                    <span>Бонус <b style="color:${p.c}">x${p.m.toFixed(3)}</b></span>
+                    <span>${L('bonusWord')} <b style="color:${p.c}">x${p.m.toFixed(3)}</b></span>
                     <span style="margin-left:10px">LVL <b style="color:#eee">${p.lvl||1}</b></span>
                 </div>
             </div>
             <div class="pet-btns">
-                <button class="pb-equip${eq?' pb-eq':''}" onclick="equip(${p.id})">${eq?'✅':'Взяти'}</button>
+                <button class="pb-equip${eq?' pb-eq':''}" onclick="equip(${p.id})">${eq?L('equipped'):L('equip')}</button>
                 <button class="pb-sell" onclick="listOnMarket(${p.id})">🏪</button>
             </div>
         </div>`;
@@ -598,13 +725,13 @@ function buildClownUI() {
     if (!el) return;
     if (!clownState) {
         el.innerHTML = `<div class="clown-info">
-            <div style="font-size:13px;font-weight:700;color:#8d99ae;margin-bottom:10px">РАУНДИ ТА МНОЖНИКИ</div>
+            <div style="font-size:13px;font-weight:700;color:#8d99ae;margin-bottom:10px">${L('roundsAndMults')}</div>
             <div class="clown-rounds-info">
                 ${CLOWN_MULTS.map((m,i)=>`<div class="clown-ri">
-                    <span>Раунд ${i+1}</span><b style="color:var(--accent)">x${m}</b><small>${5-i} дверей</small>
+                    <span>${L('round')} ${i+1}</span><b style="color:var(--accent)">x${m}</b><small>${5-i} дверей</small>
                 </div>`).join('')}
             </div>
-            <div style="font-size:11px;color:#8d99ae;margin-top:10px;text-align:center">Натисни ЗРОБИТИ СТАВКУ щоб почати</div>
+            <div style="font-size:11px;color:#8d99ae;margin-top:10px;text-align:center">${L('pressToStart')}</div>
         </div>`;
         return;
     }
@@ -702,7 +829,7 @@ function buildBalloonUI() {
         <div id="balloon-el" class="balloon-ball${!alive?' balloon-burst':''}"
              style="width:${size}px;height:${size}px;background:radial-gradient(circle at 35% 35%,${col}cc,${col});${alive?'cursor:pointer':''}"
              ${alive?'onclick="balloonPop()"':''}>${alive?'👆':'💥'}</div>
-        <div style="font-size:11px;color:#8d99ae;margin-top:8px">Лопань: ${pops}</div>
+        <div style="font-size:11px;color:#8d99ae;margin-top:8px">${L('balloonPopsLabel')} ${pops}</div>
         ${alive&&pops>0?`<button class="btn" style="background:var(--success);margin-top:10px;padding:11px;font-size:13px" onclick="balloonCashout()">${L('take')} x${mult}</button>`:''}
     </div>`;
 }
@@ -918,14 +1045,14 @@ function reBJ(){
     const card=n=>`<div class="bj-card">${n}</div>`;
     document.getElementById('bj-pc').innerHTML=bj.p.map(card).join('');
     document.getElementById('bj-dc').innerHTML=bj.d.map(card).join('');
-    if(bj.p.reduce((a,b)=>a+b,0)>21){res(false,bj.bt,0,'Перебір!');endBJ();}
+    if(bj.p.reduce((a,b)=>a+b,0)>21){res(false,bj.bt,0,L('bjBust'));endBJ();}
 }
 window.bjDo=a=>{
     if(a==='hit'){ bj.p.push(dr()); reBJ(); }
     else {
         while(bj.d.reduce((a,b)=>a+b,0)<17) bj.d.push(dr()); reBJ();
         const ps=bj.p.reduce((a,b)=>a+b,0), ds=bj.d.reduce((a,b)=>a+b,0);
-        const w=ds>21||ps>ds; res(w,bj.bt,2,w?'Виграш!':'Програш'); endBJ();
+        const w=ds>21||ps>ds; res(w,bj.bt,2,w?L('bjWin'):L('bjLose')); endBJ();
     }
 };
 function endBJ(){ document.getElementById('bj-ctrl').style.display='none'; }
@@ -953,14 +1080,14 @@ function loadAdmin(){
     if(currentAdminTab==='inv'&&adminInvUserId){loadAdminUserInv(adminInvUserId,adminInvUserName);return;}
     db.ref('players').once('value',snap=>{
         let tabs=`<div class="admin-tabs">
-            <div class="a-tab ${currentAdminTab==='balance'?'active':''}" onclick="setAdminTab('balance')">💰 Баланс</div>
-            <div class="a-tab ${currentAdminTab==='pets'?'active':''}" onclick="setAdminTab('pets')">🐾 Пети</div>
-            <div class="a-tab ${currentAdminTab==='inv'?'active':''}" onclick="setAdminTab('inv')">🎒 Інвентар</div>
+            <div class="a-tab ${currentAdminTab==='balance'?'active':''}" onclick="setAdminTab('balance')">💰 ${L('adminBalance')}</div>
+            <div class="a-tab ${currentAdminTab==='pets'?'active':''}" onclick="setAdminTab('pets')">🐾 ${L('adminPets')}</div>
+            <div class="a-tab ${currentAdminTab==='inv'?'active':''}" onclick="setAdminTab('inv')">🎒 ${L('adminInv')}</div>
         </div>`;
         let h=tabs;
         snap.forEach(c=>{
             const p=c.val(),uid=c.key;
-            h+=`<div class="admin-card"><b>${p.name||'Анонім'}</b> <small style="color:#8d99ae">${(p.b||0).toFixed(2)} BB</small>`;
+            h+=`<div class="admin-card"><b>${p.name||L('anon')}</b> <small style="color:#8d99ae">${(p.b||0).toFixed(2)} BB</small>`;
             if(currentAdminTab==='balance'){
                 h+=`<div class="admin-ctrl-grid">
                     <button class="btn-ctrl b-add" onclick="mathB('${uid}','add')">+ Додати</button>
@@ -970,8 +1097,8 @@ function loadAdmin(){
             } else if(currentAdminTab==='pets'){
                 h+=`<button class="btn" style="padding:8px;font-size:12px;margin-top:8px;background:#8b5cf6" onclick="adminGivePet('${uid}')">🎁 Подарувати пета</button>`;
             } else {
-                h+=`<br><small style="color:#8d99ae">Петів: ${(p.inv||[]).length}</small>
-                <button class="btn" style="padding:8px;font-size:12px;margin-top:8px;background:#1c4a8a" onclick="openAdminInv('${uid}','${(p.name||'Анонім').replace(/'/g,"\\'")}')">🎒 Переглянути</button>`;
+                h+=`<br><small style="color:#8d99ae">${L('petsCount')} ${(p.inv||[]).length}</small>
+                <button class="btn" style="padding:8px;font-size:12px;margin-top:8px;background:#1c4a8a" onclick="openAdminInv('${uid}','${(p.name||L('anon')).replace(/'/g,"\\'")}')"> ${L('viewInv')}</button>`;
             }
             h+=`</div>`;
         });
@@ -988,11 +1115,11 @@ function loadAdminUserInv(uid,name){
             <div class="a-tab active">🎒</div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-            <button class="btn-s" onclick="adminInvUserId=null;loadAdmin()" style="font-size:15px;padding:8px 14px">← Назад</button>
-            <div><b>${name}</b> <small style="color:#8d99ae">(${inv.length} петів)</small></div>
+            <button class="btn-s" onclick="adminInvUserId=null;loadAdmin()" style="font-size:15px;padding:8px 14px">${L('back')}</button>
+            <div><b>${name}</b> <small style="color:#8d99ae">(${inv.length} ${L('petsOf')})</small></div>
         </div>`;
         if(!inv.length){
-            h+=`<div class="admin-card" style="text-align:center;color:#8d99ae;padding:20px">Порожньо</div>`;
+            h+=`<div class="admin-card" style="text-align:center;color:#8d99ae;padding:20px">${L('empty')}</div>`;
         } else {
             inv.forEach((pet,idx)=>{
                 const eq=p.p&&p.p.id===pet.id;
@@ -1000,7 +1127,7 @@ function loadAdminUserInv(uid,name){
                     <div style="display:flex;align-items:center;gap:10px">
                         <span style="font-size:28px">${pet.s}</span>
                         <div>
-                            <div style="font-weight:bold">${pet.n}${eq?' <span style="font-size:10px;background:var(--success);padding:1px 5px;border-radius:4px">Активний</span>':''}</div>
+                            <div style="font-weight:bold">${pet.n}${eq?` <span style="font-size:10px;background:var(--success);padding:1px 5px;border-radius:4px">${L('activePet')}</span>`:''}</div>
                             <div style="font-size:11px;color:${pet.c}">${pet.r} · x${pet.m.toFixed(3)} · LVL ${pet.lvl||1}</div>
                         </div>
                     </div>
@@ -1016,7 +1143,7 @@ window.adminRemovePet=(uid,idx,name)=>{
         const p=snap.val(); let inv=p.inv?[...p.inv]:[];
         const pet=inv[idx];
         if(!pet) return alert('Не знайдено!');
-        if(!confirm(`Видалити ${pet.s} ${pet.n} у ${name}?`)) return;
+        if(!confirm(`${L('confirmDelete')} ${pet.s} ${pet.n}?`)) return;
         if(p.p&&p.p.id===pet.id) db.ref('players/'+uid+'/p').set(null);
         inv.splice(idx,1);
         db.ref('players/'+uid+'/inv').set(inv).then(()=>loadAdminUserInv(uid,name));
@@ -1041,7 +1168,7 @@ window.adminGivePet=tid=>{
         db.ref('players/'+tid+'/inv').once('value',sn=>{
             const inv=sn.val()||[]; inv.push(p); db.ref('players/'+tid+'/inv').set(inv);
         });
-        alert(`Видано: ${unique[ch].s} ${unique[ch].n}!`);
+        alert(`${L('given')} ${unique[ch].s} ${unique[ch].n}`);
     }
 };
 
@@ -1077,5 +1204,63 @@ window.pickLang=k=>{applyLang(k);renderSettings();showToast(L('saved'));};
 // ============================================================
 // СТАРТ
 // ============================================================
+// ============================================================
+// МУЗИКА
+// ============================================================
+// MUSIC_URL береться з music.js (base64 вбудований трек)
+const MUSIC_URL = typeof MUSIC_B64 !== 'undefined' ? MUSIC_B64 : '';
+
+let musicEnabled = localStorage.getItem('bc_music') !== 'false';
+let bgAudio = null;
+
+function initMusic() {
+    if (!bgAudio) {
+        bgAudio = new Audio(MUSIC_URL);
+        bgAudio.loop   = true;
+        bgAudio.volume = 0.35;
+    }
+    if (musicEnabled) {
+        bgAudio.play().catch(() => {
+            // Автоплей заблоковано браузером — чекаємо першого кліку
+            document.addEventListener('click', () => {
+                if (musicEnabled && bgAudio.paused) bgAudio.play();
+            }, { once: true });
+        });
+    }
+}
+
+window.toggleMusic = () => {
+    musicEnabled = !musicEnabled;
+    localStorage.setItem('bc_music', musicEnabled);
+    if (musicEnabled) {
+        if (!bgAudio) initMusic();
+        else bgAudio.play().catch(()=>{});
+    } else {
+        if (bgAudio) bgAudio.pause();
+    }
+    renderSettings();
+    showToast(musicEnabled ? L('musicOn') : L('musicOff'));
+};
+
+// Оновлюємо renderSettings щоб показував кнопку музики
+const _origRenderSettings = renderSettings;
+renderSettings = function() {
+    _origRenderSettings();
+    const el = document.getElementById('settings-body');
+    if (!el) return;
+    // Додаємо секцію музики
+    const musicSection = document.createElement('div');
+    musicSection.className = 'glass';
+    musicSection.innerHTML = `
+        <div class="sett-section-title">${L('music')}</div>
+        <div class="sett-card${musicEnabled?' sett-active':''}" onclick="toggleMusic()" style="justify-content:space-between">
+            <span>${musicEnabled ? L('musicOn') : L('musicOff')}</span>
+            <div style="font-size:22px">${musicEnabled ? '🔊' : '🔇'}</div>
+        </div>`;
+    el.appendChild(musicSection);
+};
+
+initMusic();
+
 applyTheme(currentTheme);
 updUI();
