@@ -451,68 +451,195 @@ const PET_KEY_MAP = {
 };
 
 // Canvas pet card renderer (for case roulette and result)
-function drawPetCard(canvas, pet) {
-  const ctx=canvas.getContext('2d'), W=canvas.width, H=canvas.height;
-  ctx.clearRect(0,0,W,H);
-  const glow=RARITY_GLOW[pet.r]||'#94a3b8';
-  // Background
-  const bg=ctx.createLinearGradient(0,0,0,H);
-  bg.addColorStop(0,'#1a1f2e'); bg.addColorStop(1,'#0d1117');
-  ctx.fillStyle=bg; roundRect(ctx,0,0,W,H,12); ctx.fill();
-  // Glow border
-  ctx.strokeStyle=glow; ctx.lineWidth=2; ctx.shadowColor=glow; ctx.shadowBlur=8;
-  roundRect(ctx,1,1,W-2,H-2,12); ctx.stroke(); ctx.shadowBlur=0;
-  // Draw pet using draw function or emoji fallback
-  const drawKey = pet.drawKey || pet.s;
-  if (PET_DRAW[drawKey]) {
-    PET_DRAW[drawKey](ctx, W, H, 0);
-  } else {
-    ctx.font=`${Math.floor(H*.45)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(pet.s, W/2, H*.42);
-  }
-  // Name
-  ctx.font=`bold ${Math.floor(H*.13)}px system-ui`; ctx.fillStyle='#fff';
-  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
-  const displayName = pet.n.length>8 ? pet.n.slice(0,8)+'…' : pet.n;
-  ctx.fillText(displayName, W/2, H*.8);
-  // Rarity
-  ctx.font=`bold ${Math.floor(H*.1)}px system-ui`; ctx.fillStyle=glow;
-  ctx.fillText(pet.r, W/2, H*.93);
+// ============================================================
+// СИСТЕМА ВІДОБРАЖЕННЯ ПЕТІВ — CSS картки з анімацією
+// ============================================================
+// Замість поганих canvas-малюнків використовуємо красиві CSS картки
+// з великими емодзі, фонами і анімаціями
+
+// Емодзі для відображення (підтримка складених емодзі)
+function getPetEmoji(pet) {
+  const emojiMap = {
+    'moonlamb':    '🌙🐑', 'moonhare':   '🌙🐇',
+    'donutham':    '🍩🐹', 'honeybear':  '🍯🐻',
+    'phoenixegg':  '🔥🥚', 'easterghost':'👻🐰',
+  };
+  return emojiMap[pet.drawKey] || pet.s;
 }
 
-// Animated pet canvas in inventory
+// Фонові градієнти для кожної рідкості
+const RARITY_BG = {
+  'Звичайний':   'linear-gradient(135deg,#1e2433,#141820)',
+  'Незвичайний': 'linear-gradient(135deg,#0f1e35,#0a1225)',
+  'Рідкісний':   'linear-gradient(135deg,#1a0f2e,#0d0a20)',
+  'Епічний':     'linear-gradient(135deg,#2a1800,#1a0f00)',
+  'Легендарний': 'linear-gradient(135deg,#2a0a0a,#180505)',
+  'Міфічний':    'linear-gradient(135deg,#001a2a,#000f18)',
+  'Смехуятина':  'linear-gradient(135deg,#2a1000,#1a0800)',
+};
+
+// Анімації для різних рідкостей
+const RARITY_ANIM = {
+  'Звичайний':   '',
+  'Незвичайний': 'pet-float',
+  'Рідкісний':   'pet-float',
+  'Епічний':     'pet-pulse',
+  'Легендарний': 'pet-pulse',
+  'Міфічний':    'pet-glow-anim',
+  'Смехуятина':  'pet-bounce',
+};
+
+// Малюємо пета як HTML-елемент (не canvas)
+function createPetCardHTML(pet, size=80, showInfo=false) {
+  const emoji   = getPetEmoji(pet);
+  const glow    = RARITY_GLOW[pet.r] || '#94a3b8';
+  const bg      = RARITY_BG[pet.r]   || RARITY_BG['Звичайний'];
+  const anim    = RARITY_ANIM[pet.r] || '';
+  const emojiSize = Math.round(size * 0.52);
+  const particles = makeRarityParticles(pet.r, glow);
+
+  return `<div class="pet-visual" style="
+    width:${size}px;height:${size}px;
+    background:${bg};
+    border-radius:${Math.round(size*0.18)}px;
+    border:2px solid ${glow};
+    box-shadow:0 0 ${Math.round(size*.2)}px ${glow}55, inset 0 0 ${Math.round(size*.15)}px ${glow}11;
+    display:flex;align-items:center;justify-content:center;
+    position:relative;overflow:hidden;flex-shrink:0;
+  ">
+    ${particles}
+    <span style="font-size:${emojiSize}px;line-height:1;position:relative;z-index:1;${anim?`animation:${anim} 2s ease-in-out infinite`:''}">${emoji}</span>
+  </div>`;
+}
+
+// Часточки/декор для рідкісних петів
+function makeRarityParticles(rarity, color) {
+  if (['Звичайний','Незвичайний'].includes(rarity)) return '';
+  const count = rarity==='Mythic'||rarity==='Міфічний' ? 8 : 5;
+  let html = '';
+  for (let i=0; i<count; i++) {
+    const x = 10+Math.random()*80, y = 10+Math.random()*80;
+    const delay = (i*0.3).toFixed(1);
+    const size  = 2+Math.random()*3;
+    html += `<div style="
+      position:absolute;left:${x}%;top:${y}%;
+      width:${size}px;height:${size}px;
+      background:${color};border-radius:50%;
+      animation:particle-twinkle 2s ${delay}s ease-in-out infinite;
+      opacity:0;
+    "></div>`;
+  }
+  return html;
+}
+
+// Для canvas у кейс-рулетці (залишаємо canvas але з великим емодзі)
+function drawPetCard(canvas, pet) {
+  const ctx = canvas.getContext('2d');
+  const W   = canvas.width, H = canvas.height;
+  const dpr = window.devicePixelRatio || 1;
+  ctx.clearRect(0,0,W,H);
+
+  const glow = RARITY_GLOW[pet.r] || '#94a3b8';
+  const bg   = ctx.createLinearGradient(0,0,W,H);
+
+  // Фон залежно від рідкості
+  const bgColors = {
+    'Звичайний':   ['#1e2433','#141820'],
+    'Незвичайний': ['#0f1e35','#0a1225'],
+    'Рідкісний':   ['#1a0f2e','#0d0a20'],
+    'Епічний':     ['#2a1800','#1a0f00'],
+    'Легендарний': ['#2a0a0a','#180505'],
+    'Міфічний':    ['#001a2a','#000f18'],
+    'Смехуятина':  ['#2a1000','#1a0800'],
+  };
+  const [c1,c2] = bgColors[pet.r] || bgColors['Звичайний'];
+  bg.addColorStop(0,c1); bg.addColorStop(1,c2);
+  ctx.fillStyle = bg;
+  roundRect(ctx,0,0,W,H,10); ctx.fill();
+
+  // Glow border
+  ctx.shadowColor  = glow;
+  ctx.shadowBlur   = 12;
+  ctx.strokeStyle  = glow;
+  ctx.lineWidth    = 2;
+  roundRect(ctx,1,1,W-2,H-2,10); ctx.stroke();
+  ctx.shadowBlur   = 0;
+
+  // Зірочки/частинки для рідкісних
+  if (!['Звичайний','Незвичайний'].includes(pet.r)) {
+    ctx.fillStyle = glow;
+    for (let i=0; i<6; i++) {
+      const px = W*(0.1+Math.random()*0.8), py = H*(0.1+Math.random()*0.6);
+      const ps = 1.5+Math.random()*2;
+      ctx.globalAlpha = 0.4+Math.random()*0.4;
+      ctx.beginPath(); ctx.arc(px,py,ps,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ВЕЛИКЕ ЕМОДЗІ — центр картки
+  const emoji = getPetEmoji(pet);
+  const emojiSize = Math.floor(H * 0.48);
+  ctx.font = `${emojiSize}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, W/2, H*0.44);
+
+  // Назва
+  ctx.font = `bold ${Math.max(10, Math.floor(H*0.12))}px system-ui`;
+  ctx.fillStyle = '#fff';
+  ctx.textBaseline = 'alphabetic';
+  const name = pet.n.length > 9 ? pet.n.slice(0,9)+'…' : pet.n;
+  ctx.fillText(name, W/2, H*0.82);
+
+  // Рідкість
+  ctx.font = `bold ${Math.max(8, Math.floor(H*0.09))}px system-ui`;
+  ctx.fillStyle = glow;
+  ctx.fillText(pet.r, W/2, H*0.94);
+}
+
+// Анімовані картки в інвентарі — через CSS div замість canvas
 const petAnimFrames = new Map();
 
-function startPetAnim(canvasId, pet) {
-  if (petAnimFrames.has(canvasId)) cancelAnimationFrame(petAnimFrames.get(canvasId));
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W=canvas.width, H=canvas.height;
-  const glow=RARITY_GLOW[pet.r]||'#94a3b8';
-  const drawKey = pet.drawKey || pet.s;
-  const drawFn = PET_DRAW[drawKey];
-  let startT = null;
-  function frame(ts) {
-    if (!startT) startT=ts;
-    const t=(ts-startT)/1000;
-    ctx.clearRect(0,0,W,H);
-    const bg=ctx.createLinearGradient(0,0,0,H);
-    bg.addColorStop(0,'#1a1f2e'); bg.addColorStop(1,'#0d1117');
-    ctx.fillStyle=bg; roundRect(ctx,0,0,W,H,12); ctx.fill();
-    ctx.strokeStyle=glow; ctx.lineWidth=2; ctx.shadowColor=glow; ctx.shadowBlur=6;
-    roundRect(ctx,1,1,W-2,H-2,12); ctx.stroke(); ctx.shadowBlur=0;
-    if (drawFn) drawFn(ctx,W,H,t);
-    else { ctx.font=`${Math.floor(H*.55)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(pet.s,W/2,H*.5); }
-    petAnimFrames.set(canvasId, requestAnimationFrame(frame));
+function startPetAnim(containerId, pet) {
+  // Для HUD canvas — залишаємо простий canvas
+  if (containerId === 'p-hud-canvas') {
+    const canvas = document.getElementById(containerId);
+    if (!canvas) return;
+    if (petAnimFrames.has(containerId)) cancelAnimationFrame(petAnimFrames.get(containerId));
+    const ctx = canvas.getContext('2d');
+    const W=canvas.width, H=canvas.height;
+    const glow = RARITY_GLOW[pet.r]||'#94a3b8';
+    const emoji = getPetEmoji(pet);
+    let startT=null;
+    function frame(ts) {
+      if(!startT) startT=ts;
+      const t=(ts-startT)/1000;
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle='#1a1f2e'; roundRect(ctx,0,0,W,H,10); ctx.fill();
+      ctx.shadowColor=glow; ctx.shadowBlur=8;
+      ctx.strokeStyle=glow; ctx.lineWidth=2;
+      roundRect(ctx,1,1,W-2,H-2,10); ctx.stroke(); ctx.shadowBlur=0;
+      const scale = 1+Math.sin(t*2)*0.04;
+      ctx.save(); ctx.translate(W/2,H/2); ctx.scale(scale,scale);
+      ctx.font=`${Math.floor(W*.6)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(emoji,0,0); ctx.restore();
+      petAnimFrames.set(containerId, requestAnimationFrame(frame));
+    }
+    petAnimFrames.set(containerId, requestAnimationFrame(frame));
+    return;
   }
-  petAnimFrames.set(canvasId, requestAnimationFrame(frame));
+  // Для інвентарю — вставляємо HTML div
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = createPetCardHTML(pet, container.dataset.size||80);
 }
 
 function stopAllPetAnims() {
   petAnimFrames.forEach(id=>cancelAnimationFrame(id));
   petAnimFrames.clear();
 }
+
 
 // ============================================================
 // КЕЙСИ
@@ -906,10 +1033,10 @@ function renderInv(){
     let h=`<div style="font-size:11px;color:#8d99ae;font-weight:700;margin-bottom:10px;letter-spacing:.5px">${s.inv.length} ${L('invCountLabel')}</div>`;
     s.inv.forEach((p,i)=>{
         const eq=s.p&&s.p.id===p.id;
-        const canvasId=`pet-canvas-${i}`;
+        const containerId=`pet-vis-${i}`;
         h+=`<div class="pet-card${eq?' pet-eq':''}">
             <div class="pet-stripe" style="background:${p.c}"></div>
-            <canvas id="${canvasId}" width="64" height="64" style="border-radius:12px;flex-shrink:0"></canvas>
+            <div id="${containerId}" data-size="72" style="flex-shrink:0"></div>
             <div class="pet-info">
                 <div class="pet-badge" style="background:${p.c}25;color:${p.c};border:1px solid ${p.c}50">${p.r}</div>
                 <div class="pet-name">${p.n}${eq?`<span class="pet-active-tag">✦ ${L('activePet')}</span>`:''}</div>
@@ -925,9 +1052,9 @@ function renderInv(){
         </div>`;
     });
     el.innerHTML=h;
-    // Start animations after render
+    // Insert pet visuals after render
     requestAnimationFrame(()=>{
-        s.inv.forEach((p,i)=>startPetAnim(`pet-canvas-${i}`,p));
+        s.inv.forEach((p,i)=>startPetAnim(`pet-vis-${i}`,p));
     });
 }
 window.equip=id=>{s.p=s.inv.find(i=>i.id===id);save();renderInv();ren();};
