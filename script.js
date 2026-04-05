@@ -22,417 +22,13 @@ const ADMINS          = [8216362223, 2067230442];
 const myId            = tg.initDataUnsafe?.user?.id || 101;
 const myName          = tg.initDataUnsafe?.user?.first_name || "Гравець";
 const DEADLINE_EASTER = new Date("2026-04-14T00:00:00+03:00").getTime();
-const DEADLINE_CLOWN  = new Date("2026-04-02T00:00:00+03:00").getTime();
+const DEADLINE_CLOWN  = new Date("2026-04-14T00:00:00+03:00").getTime();
 const XP_PER_LEVEL    = 1000;
 
 // ============================================================
 // ПЕТИ — canvas малюнки + анімація
 // ============================================================
 // Кожен пет має функцію draw(ctx, W, H, t) де t = time для анімації
-const PET_DRAW = {
-  '🐶': (ctx,W,H,t) => { // Собака
-    ctx.fillStyle='#c8a96e'; roundRect(ctx,W*.2,H*.25,W*.6,H*.5,W*.15); ctx.fill();
-    ctx.fillStyle='#b8935a'; roundRect(ctx,W*.15,H*.2,W*.18,H*.28,W*.08); ctx.fill();
-    roundRect(ctx,W*.67,H*.2,W*.18,H*.28,W*.08); ctx.fill();
-    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(W*.37,H*.42,W*.06,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.63,H*.42,W*.06,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#e8748a'; ctx.beginPath(); ctx.ellipse(W*.5,H*.6,W*.1,H*.07,0,0,Math.PI*2); ctx.fill();
-    // Tail wag
-    const tw = Math.sin(t*3)*0.3;
-    ctx.strokeStyle='#c8a96e'; ctx.lineWidth=W*.05; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(W*.8,H*.55); ctx.quadraticCurveTo(W*(1+tw*.1),H*.4,W*.85,H*.35); ctx.stroke();
-  },
-  '🐱': (ctx,W,H,t) => { // Кіт
-    ctx.fillStyle='#e8c88a'; roundRect(ctx,W*.2,H*.28,W*.6,H*.48,W*.15); ctx.fill();
-    // Ears
-    ctx.beginPath(); ctx.moveTo(W*.22,H*.3); ctx.lineTo(W*.15,H*.1); ctx.lineTo(W*.38,H*.28); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(W*.78,H*.3); ctx.lineTo(W*.85,H*.1); ctx.lineTo(W*.62,H*.28); ctx.fill();
-    ctx.fillStyle='#f8a8b8';
-    ctx.beginPath(); ctx.moveTo(W*.25,H*.28); ctx.lineTo(W*.19,H*.14); ctx.lineTo(W*.37,H*.28); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(W*.75,H*.28); ctx.lineTo(W*.81,H*.14); ctx.lineTo(W*.63,H*.28); ctx.fill();
-    ctx.fillStyle='#1a1a2e'; ctx.beginPath(); ctx.ellipse(W*.37,H*.44,W*.07,W*.09,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.63,H*.44,W*.07,W*.09,0,0,Math.PI*2); ctx.fill();
-    // Blink
-    if (Math.sin(t*1.5)>0.95) { ctx.fillStyle='#e8c88a'; ctx.fillRect(W*.3,H*.41,W*.14,W*.08); ctx.fillRect(W*.56,H*.41,W*.14,W*.08); }
-    ctx.strokeStyle='#c8a870'; ctx.lineWidth=W*.02;
-    for(let i=0;i<3;i++){ ctx.beginPath(); ctx.moveTo(W*.5,H*.57); ctx.lineTo(W*.2+i*W*.05,H*.54+Math.sin(t*2+i)*.02*H); ctx.stroke(); }
-    for(let i=0;i<3;i++){ ctx.beginPath(); ctx.moveTo(W*.5,H*.57); ctx.lineTo(W*.8-i*W*.05,H*.54+Math.sin(t*2+i)*.02*H); ctx.stroke(); }
-  },
-  '🐰': (ctx,W,H,t) => { // Кролик
-    // Body
-    ctx.fillStyle='#f0f0f0'; ctx.beginPath(); ctx.ellipse(W*.5,H*.6,W*.25,H*.22,0,0,Math.PI*2); ctx.fill();
-    // Head
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.38,W*.18,H*.16,0,0,Math.PI*2); ctx.fill();
-    // Ears bounce
-    const eb=Math.sin(t*2)*0.04;
-    ctx.fillStyle='#f0f0f0'; roundRect(ctx,W*.32,H*(0.08+eb),W*.1,H*.24,W*.05); ctx.fill();
-    roundRect(ctx,W*.58,H*(0.08+eb),W*.1,H*.24,W*.05); ctx.fill();
-    ctx.fillStyle='#ffb6c1'; roundRect(ctx,W*.345,H*(0.1+eb),W*.06,H*.18,W*.03); ctx.fill();
-    roundRect(ctx,W*.6,H*(0.1+eb),W*.06,H*.18,W*.03); ctx.fill();
-    ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(W*.43,H*.37,W*.04,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.57,H*.37,W*.04,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#ffb6c1'; ctx.beginPath(); ctx.arc(W*.5,H*.44,W*.03,0,Math.PI*2); ctx.fill();
-  },
-  '🦊': (ctx,W,H,t) => { // Лисиця
-    ctx.fillStyle='#e8651a'; roundRect(ctx,W*.18,H*.28,W*.64,H*.48,W*.15); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(W*.5,H*.52,W*.14,H*.12,0,0,Math.PI*2); ctx.fill();
-    // Ears
-    ctx.fillStyle='#e8651a';
-    ctx.beginPath(); ctx.moveTo(W*.2,H*.3); ctx.lineTo(W*.12,H*.08); ctx.lineTo(W*.38,H*.28); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(W*.8,H*.3); ctx.lineTo(W*.88,H*.08); ctx.lineTo(W*.62,H*.28); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(W*.37,H*.43,W*.055,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.63,H*.43,W*.055,0,Math.PI*2); ctx.fill();
-    // Tail
-    const fa=Math.sin(t*2.5)*0.2;
-    ctx.strokeStyle='#e8651a'; ctx.lineWidth=W*.08; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(W*.82,H*.72); ctx.quadraticCurveTo(W*(1.1+fa*.1),H*.6,W*.9,H*.35); ctx.stroke();
-    ctx.strokeStyle='#fff'; ctx.lineWidth=W*.04;
-    ctx.beginPath(); ctx.moveTo(W*.82,H*.72); ctx.quadraticCurveTo(W*(1.08+fa*.1),H*.61,W*.9,H*.36); ctx.stroke();
-  },
-  '🐺': (ctx,W,H,t) => { // Вовк
-    ctx.fillStyle='#7a8a9a'; roundRect(ctx,W*.17,H*.27,W*.66,H*.5,W*.13); ctx.fill();
-    ctx.fillStyle='#c8d0d8'; ctx.beginPath(); ctx.ellipse(W*.5,H*.52,W*.15,H*.13,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#7a8a9a';
-    ctx.beginPath(); ctx.moveTo(W*.2,H*.3); ctx.lineTo(W*.13,H*.07); ctx.lineTo(W*.4,H*.28); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(W*.8,H*.3); ctx.lineTo(W*.87,H*.07); ctx.lineTo(W*.6,H*.28); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='#f8d84a'; ctx.beginPath(); ctx.arc(W*.37,H*.42,W*.07,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.63,H*.42,W*.07,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#222'; ctx.beginPath(); ctx.ellipse(W*.37,H*.42,W*.03,W*.05,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.63,H*.42,W*.03,W*.05,0,0,Math.PI*2); ctx.fill();
-    // Howl animation
-    if(Math.sin(t*.8)>0.7){ ctx.fillStyle='#c8d0d8'; ctx.beginPath(); ctx.ellipse(W*.5,H*.62,W*.08,H*.1,0,0,Math.PI*2); ctx.fill(); }
-  },
-  '🐝': (ctx,W,H,t) => { // Бджола
-    const by=Math.sin(t*8)*H*.03;
-    ctx.fillStyle='#f8d84a'; ctx.beginPath(); ctx.ellipse(W*.5,H*.5+by,W*.2,H*.28,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#222'; for(let i=0;i<3;i++){ ctx.beginPath(); ctx.ellipse(W*.5,H*(.37+i*.12)+by,W*.2,H*.04,0,0,Math.PI*2); ctx.fill(); }
-    ctx.fillStyle='rgba(200,240,255,0.7)';
-    ctx.beginPath(); ctx.ellipse(W*.32,H*.35+by,W*.15,H*.09,-.5,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.68,H*.35+by,W*.15,H*.09,.5,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(W*.43,H*.4+by,W*.03,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.57,H*.4+by,W*.03,0,Math.PI*2); ctx.fill();
-  },
-  '🐼': (ctx,W,H,t) => { // Панда
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(W*.5,H*.55,W*.27,H*.25,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.38,W*.2,H*.18,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#222'; ctx.beginPath(); ctx.ellipse(W*.37,H*.38,W*.08,W*.09,-.3,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.63,H*.38,W*.08,W*.09,.3,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(W*.37,H*.37,W*.04,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.63,H*.37,W*.04,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(W*.37,H*.37,W*.02,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.63,H*.37,W*.02,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(W*.3,H*.22,W*.07,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.7,H*.22,W*.07,0,Math.PI*2); ctx.fill();
-    // Bamboo
-    const bsw=Math.sin(t*1.5)*0.05;
-    ctx.strokeStyle='#4a8a4a'; ctx.lineWidth=W*.04;
-    ctx.beginPath(); ctx.moveTo(W*(0.15+bsw),H*.9); ctx.lineTo(W*(0.2+bsw),H*.35); ctx.stroke();
-  },
-  '🦁': (ctx,W,H,t) => { // Лев
-    ctx.fillStyle='#c8852a'; ctx.beginPath(); ctx.arc(W*.5,H*.45,W*.32,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#e8a84a'; ctx.beginPath(); ctx.arc(W*.5,H*.43,W*.2,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(W*.4,H*.4,W*.055,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.6,H*.4,W*.055,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#e8857a'; ctx.beginPath(); ctx.arc(W*.5,H*.5,W*.06,0,Math.PI*2); ctx.fill();
-    // Mane animate
-    for(let i=0;i<8;i++){
-      const a=i/8*Math.PI*2+t*.5; const r=W*.3+Math.sin(t*2+i)*.03*W;
-      ctx.fillStyle='#a85a18'; ctx.beginPath(); ctx.ellipse(W*.5+Math.cos(a)*r,H*.43+Math.sin(a)*r*.8,W*.06,W*.1,a,0,Math.PI*2); ctx.fill();
-    }
-  },
-  '🐲': (ctx,W,H,t) => { // Дракон
-    ctx.fillStyle='#2a8a4a';
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.55,W*.25,H*.2,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.35,W*.2,H*.17,0,0,Math.PI*2); ctx.fill();
-    // Wings
-    const wa=Math.sin(t*4)*0.15;
-    ctx.fillStyle='rgba(42,138,74,0.7)';
-    ctx.beginPath(); ctx.moveTo(W*.3,H*.4); ctx.quadraticCurveTo(W*.05,H*(0.1-wa),W*.2,H*.55); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(W*.7,H*.4); ctx.quadraticCurveTo(W*.95,H*(0.1-wa),W*.8,H*.55); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='#f8d84a'; ctx.beginPath(); ctx.arc(W*.4,H*.32,W*.06,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.6,H*.32,W*.06,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#e82a2a'; ctx.beginPath(); ctx.arc(W*.4,H*.32,W*.03,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.6,H*.32,W*.03,0,Math.PI*2); ctx.fill();
-    // Fire breath
-    if(Math.sin(t*.7)>0.6){ ctx.fillStyle='rgba(248,100,20,0.8)'; ctx.beginPath(); ctx.ellipse(W*.5,H*.48,W*.07,H*.06,0,0,Math.PI*2); ctx.fill(); }
-  },
-  '🐟': (ctx,W,H,t) => { // Рибка
-    const fy=Math.sin(t*3)*H*.04;
-    ctx.fillStyle='#4a8ae8'; ctx.beginPath(); ctx.ellipse(W*.45,H*.5+fy,W*.25,H*.14,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#4a8ae8'; ctx.beginPath(); ctx.moveTo(W*.2,H*.5+fy); ctx.lineTo(W*.08,H*.38+fy); ctx.lineTo(W*.08,H*.62+fy); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(W*.63,H*.48+fy,W*.04,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(W*.64,H*.47+fy,W*.015,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=W*.015;
-    ctx.beginPath(); ctx.arc(W*.45,H*.5+fy,W*.12,-.5,.5); ctx.stroke();
-  },
-  '🐠': (ctx,W,H,t) => { // Тропічна рибка
-    const fy=Math.sin(t*2.5)*H*.03;
-    ctx.fillStyle='#f87820'; ctx.beginPath(); ctx.ellipse(W*.45,H*.5+fy,W*.25,H*.15,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#fff'; for(let i=0;i<3;i++){ ctx.beginPath(); ctx.rect(W*(.3+i*.12),H*.36+fy,W*.03,H*.28); ctx.fill(); }
-    ctx.fillStyle='#1a1afe'; ctx.beginPath(); ctx.arc(W*.63,H*.47+fy,W*.04,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#f87820'; ctx.beginPath(); ctx.moveTo(W*.2,H*.5+fy); ctx.lineTo(W*.06,H*.37+fy); ctx.lineTo(W*.06,H*.63+fy); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.ellipse(W*.39,H*.45+fy,W*.06,H*.06,-.3,0,Math.PI*2); ctx.fill();
-  },
-  '🦈': (ctx,W,H,t) => { // Акула
-    const sa=Math.sin(t*2)*0.04;
-    ctx.fillStyle='#5a7a9a'; ctx.beginPath(); ctx.ellipse(W*.48,H*.55,W*.35,H*.18,sa,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#e8e8f0'; ctx.beginPath(); ctx.ellipse(W*.5,H*.62,W*.2,H*.1,sa,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#5a7a9a'; ctx.beginPath(); ctx.moveTo(W*.5,H*.3); ctx.lineTo(W*.42,H*.42); ctx.lineTo(W*.58,H*.42); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(W*.62,H*.52,W*.04,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(W*.63,H*.51,W*.015,0,Math.PI*2); ctx.fill();
-  },
-  '🐙': (ctx,W,H,t) => { // Восьминіг
-    ctx.fillStyle='#bf40bf'; ctx.beginPath(); ctx.arc(W*.5,H*.38,W*.22,0,Math.PI*2); ctx.fill();
-    for(let i=0;i<8;i++){
-      const a=i/8*Math.PI*2+Math.PI/8; const wave=Math.sin(t*3+i*.8)*.08;
-      ctx.strokeStyle='#bf40bf'; ctx.lineWidth=W*.07; ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(W*.5+Math.cos(a)*W*.18,H*.5+Math.sin(a)*H*.1);
-      ctx.quadraticCurveTo(W*(.5+Math.cos(a)*.4+wave),H*(.6+Math.sin(a)*.25),W*(.5+Math.cos(a)*.38+wave*1.5),H*.85); ctx.stroke();
-    }
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(W*.41,H*.33,W*.07,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.59,H*.33,W*.07,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(W*.41,H*.34,W*.04,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.59,H*.34,W*.04,0,Math.PI*2); ctx.fill();
-  },
-  '🚽': (ctx,W,H,t) => { // Унітаз
-    ctx.fillStyle='#f0f0ff'; roundRect(ctx,W*.2,H*.3,W*.6,H*.55,W*.1); ctx.fill();
-    ctx.strokeStyle='#ddd'; ctx.lineWidth=2; roundRect(ctx,W*.2,H*.3,W*.6,H*.55,W*.1); ctx.stroke();
-    ctx.fillStyle='#e0e0ff'; roundRect(ctx,W*.15,H*.25,W*.7,H*.12,W*.06); ctx.fill();
-    // Water ripple
-    ctx.strokeStyle='rgba(100,150,255,0.4)'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.65,W*.2+Math.sin(t*2)*.02*W,H*.06,0,0,Math.PI*2); ctx.stroke();
-  },
-  '💩': (ctx,W,H,t) => { // Какашка
-    ctx.fillStyle='#8B4513';
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.7,W*.25,H*.15,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.58,W*.18,H*.13,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.47,W*.12,H*.11,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.38,W*.07,H*.08,0,0,Math.PI*2); ctx.fill();
-    // Flies
-    const fa=t*4;
-    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(W*.3+Math.cos(fa)*W*.1,H*.3+Math.sin(fa)*.8*H*.1,W*.025,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.7+Math.cos(fa+2)*W*.08,H*.25+Math.sin(fa+2)*.8*H*.1,W*.02,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#f0f';
-    ctx.beginPath(); ctx.arc(W*.43,H*.42,W*.03,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.57,H*.42,W*.03,0,Math.PI*2); ctx.fill();
-  },
-  '📱': (ctx,W,H,t) => { // Нокіа3310
-    ctx.fillStyle='#1a3a6a'; roundRect(ctx,W*.25,H*.12,W*.5,H*.76,W*.08); ctx.fill();
-    ctx.fillStyle='#2a5aaa'; roundRect(ctx,W*.32,H*.18,W*.36,H*.28,W*.04); ctx.fill();
-    // Screen glow
-    const gl=0.7+Math.sin(t*2)*.3;
-    ctx.fillStyle=`rgba(100,200,100,${gl})`; ctx.font=`bold ${W*.12}px monospace`; ctx.textAlign='center';
-    ctx.fillText('NOKIA',W*.5,H*.38);
-    ctx.fillStyle='#3a3a3a'; roundRect(ctx,W*.3,H*.52,W*.12,H*.1,W*.03); ctx.fill();
-    roundRect(ctx,W*.44,H*.52,W*.12,H*.1,W*.03); ctx.fill();
-    roundRect(ctx,W*.58,H*.52,W*.12,H*.1,W*.03); ctx.fill();
-    roundRect(ctx,W*.3,H*.64,W*.12,H*.1,W*.03); ctx.fill();
-    roundRect(ctx,W*.44,H*.64,W*.12,H*.1,W*.03); ctx.fill();
-    roundRect(ctx,W*.58,H*.64,W*.12,H*.1,W*.03); ctx.fill();
-  },
-  '🤡': (ctx,W,H,t) => { // Клоун
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(W*.5,H*.42,W*.22,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#e82a2a'; ctx.beginPath(); ctx.arc(W*.5,H*.22,W*.18,Math.PI,0); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.28,H*.18,W*.06,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.72,H*.18,W*.06,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#f8d84a'; ctx.beginPath(); ctx.arc(W*.5,H*.22,W*.18,0,Math.PI); ctx.fill();
-    // Eyes
-    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(W*.4,H*.39,W*.05,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.6,H*.39,W*.05,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#e82a2a'; ctx.beginPath(); ctx.arc(W*.5,H*.47,W*.05,0,Math.PI*2); ctx.fill();
-    // Bow tie
-    ctx.fillStyle='#e82a4a'; ctx.beginPath(); ctx.moveTo(W*.35,H*.65); ctx.lineTo(W*.5,H*.7); ctx.lineTo(W*.65,H*.65); ctx.lineTo(W*.5,H*.6); ctx.closePath(); ctx.fill();
-    // Bounce
-    const by=Math.abs(Math.sin(t*2))*H*.04;
-    ctx.fillStyle='rgba(232,42,42,0.3)'; ctx.beginPath(); ctx.ellipse(W*.5,H*.88+by,W*.15,H*.03,0,0,Math.PI*2); ctx.fill();
-  },
-  '🗑️': (ctx,W,H,t) => { // Смітник
-    ctx.fillStyle='#5a6a7a'; roundRect(ctx,W*.2,H*.3,W*.6,H*.6,W*.06); ctx.fill();
-    ctx.strokeStyle='#4a5a6a'; ctx.lineWidth=W*.04;
-    for(let i=0;i<3;i++){ ctx.beginPath(); ctx.moveTo(W*(.35+i*.15),H*.38); ctx.lineTo(W*(.35+i*.15),H*.84); ctx.stroke(); }
-    ctx.fillStyle='#6a7a8a'; roundRect(ctx,W*.15,H*.24,W*.7,H*.1,W*.04); ctx.fill();
-    roundRect(ctx,W*.35,H*.16,W*.3,H*.1,W*.04); ctx.fill();
-    // Smell waves
-    const sw=Math.sin(t*3);
-    ctx.strokeStyle='rgba(100,200,50,0.5)'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(W*.3,H*.2); ctx.quadraticCurveTo(W*.25,H*(.12+sw*.02),W*.3,H*.05); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(W*.5,H*.18); ctx.quadraticCurveTo(W*.45,H*(.1+sw*.02),W*.5,H*.03); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(W*.7,H*.2); ctx.quadraticCurveTo(W*.65,H*(.12+sw*.02),W*.7,H*.05); ctx.stroke();
-  },
-  // === НОВІ ВЕЛИКОДНІ ПЕТИ ===
-  '🌙🐑': (ctx,W,H,t) => { // Місячний баранчик
-    // Starry sky body
-    const grd=ctx.createRadialGradient(W*.5,H*.55,0,W*.5,H*.55,W*.3);
-    grd.addColorStop(0,'#1a2a5a'); grd.addColorStop(1,'#0a1030');
-    ctx.fillStyle=grd; ctx.beginPath(); ctx.ellipse(W*.5,H*.57,W*.28,H*.22,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.38,W*.2,H*.18,0,0,Math.PI*2); ctx.fill();
-    // Stars
-    ctx.fillStyle='#fff';
-    [[.4,.55],[.6,.52],[.5,.65],[.35,.62],[.65,.6],[.45,.45]].forEach(([sx,sy])=>{
-      const ss=0.6+Math.sin(t*3+sx*10)*.4;
-      ctx.globalAlpha=ss; ctx.beginPath(); ctx.arc(W*sx,H*sy,W*.015,0,Math.PI*2); ctx.fill();
-    });
-    ctx.globalAlpha=1;
-    // Crescent horns
-    ctx.strokeStyle='#c8d0f0'; ctx.lineWidth=W*.04; ctx.lineCap='round';
-    ctx.beginPath(); ctx.arc(W*.35,H*.18,W*.1,Math.PI,Math.PI*.3); ctx.stroke();
-    ctx.beginPath(); ctx.arc(W*.65,H*.18,W*.1,Math.PI*.7,0); ctx.stroke();
-    // Eyes
-    ctx.fillStyle='#f8f8ff'; ctx.beginPath(); ctx.arc(W*.41,H*.36,W*.05,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.59,H*.36,W*.05,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#8080ff'; ctx.beginPath(); ctx.arc(W*.41,H*.36,W*.03,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.59,H*.36,W*.03,0,Math.PI*2); ctx.fill();
-    // Star on forehead
-    const sp=0.7+Math.sin(t*4)*.3;
-    ctx.fillStyle=`rgba(255,240,100,${sp})`; ctx.font=`${W*.12}px serif`; ctx.textAlign='center'; ctx.fillText('★',W*.5,H*.28);
-  },
-  '🌙🐇': (ctx,W,H,t) => { // Місячний заєць
-    // Semi-transparent dark blue body
-    ctx.globalAlpha=0.85;
-    const grd=ctx.createLinearGradient(W*.2,H*.2,W*.8,H*.8);
-    grd.addColorStop(0,'#1a2a6a'); grd.addColorStop(1,'#0a0a3a');
-    ctx.fillStyle=grd;
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.6,W*.25,H*.22,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.38,W*.18,H*.17,0,0,Math.PI*2); ctx.fill();
-    ctx.globalAlpha=1;
-    // Comet ears
-    const et=t*.8;
-    ctx.fillStyle='rgba(80,120,220,0.9)';
-    ctx.beginPath(); ctx.moveTo(W*.35,H*.24); ctx.bezierCurveTo(W*.28,H*.05,W*.1,H*(-.1+Math.sin(et)*.05),W*.22,H*.22); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(W*.65,H*.24); ctx.bezierCurveTo(W*.72,H*.05,W*.9,H*(-.1+Math.sin(et+1)*.05),W*.78,H*.22); ctx.closePath(); ctx.fill();
-    // Stars inside body
-    ctx.fillStyle='rgba(200,220,255,0.8)';
-    [[.38,.55],[.55,.63],[.62,.5],[.45,.7],[.5,.42]].forEach(([sx,sy])=>{
-      ctx.globalAlpha=0.5+Math.sin(t*2+sx*8)*.5;
-      ctx.beginPath(); ctx.arc(W*sx,H*sy,W*.012,0,Math.PI*2); ctx.fill();
-    });
-    ctx.globalAlpha=1;
-    ctx.fillStyle='#e0e8ff'; ctx.beginPath(); ctx.arc(W*.42,H*.36,W*.05,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.58,H*.36,W*.05,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#4060ff'; ctx.beginPath(); ctx.arc(W*.42,H*.36,W*.03,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.58,H*.36,W*.03,0,Math.PI*2); ctx.fill();
-  },
-  '🍩🐹': (ctx,W,H,t) => { // Пончик-хом'як
-    // Donut body
-    ctx.fillStyle='#c8784a';
-    ctx.beginPath(); ctx.arc(W*.5,H*.5,W*.28,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#f8d0a0'; // Glaze
-    ctx.beginPath(); ctx.arc(W*.5,H*.5,W*.22,0,Math.PI*2); ctx.fill();
-    // Strawberry jam drip
-    ctx.fillStyle='#e82040';
-    ctx.beginPath(); ctx.arc(W*.5,H*.5,W*.22,-.5,.5); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.68,H*.56,W*.05,H*.07,0,0,Math.PI*2); ctx.fill();
-    // Hole
-    ctx.fillStyle='var(--bg,#050710)';
-    ctx.beginPath(); ctx.arc(W*.5,H*.5,W*.1,0,Math.PI*2); ctx.fill();
-    // Face on top
-    ctx.fillStyle='#c8784a'; ctx.beginPath(); ctx.ellipse(W*.5,H*.3,W*.15,H*.13,0,0,Math.PI*2); ctx.fill();
-    // Cheeks
-    ctx.fillStyle='#f8a890'; ctx.beginPath(); ctx.ellipse(W*.37,H*.35,W*.05,W*.04,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.63,H*.35,W*.05,W*.04,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(W*.43,H*.28,W*.03,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.57,H*.28,W*.03,0,Math.PI*2); ctx.fill();
-    // Sprinkles bounce
-    const sp=['#e82a2a','#2a8ae8','#2ae83a','#f8d84a','#e82ae8'];
-    sp.forEach((c,i)=>{
-      ctx.fillStyle=c; ctx.save(); ctx.translate(W*(.3+i*.1),H*(.42+Math.sin(t*3+i)*.02));
-      ctx.rotate(i*.8); ctx.fillRect(-W*.02,-W*.01,W*.04,W*.015); ctx.restore();
-    });
-  },
-  '🍯🐻': (ctx,W,H,t) => { // Медовий пасхальний ведмідь
-    // Honey body glow
-    const gl=0.85+Math.sin(t*2)*.15;
-    ctx.fillStyle=`rgba(255,${Math.floor(180+gl*30)},20,${gl})`;
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.6,W*.28,H*.22,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.38,W*.2,H*.18,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle=`rgba(255,200,30,${gl})`;
-    ctx.beginPath(); ctx.arc(W*.3,H*.22,W*.09,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.7,H*.22,W*.09,0,Math.PI*2); ctx.fill();
-    // Honey drip
-    ctx.fillStyle='rgba(255,160,0,0.8)';
-    const ht=Math.sin(t*1.5)*.05;
-    ctx.beginPath(); ctx.moveTo(W*.42,H*.28); ctx.quadraticCurveTo(W*.4,H*(.45+ht),W*.42,H*(.52+ht)); ctx.quadraticCurveTo(W*.44,H*(.56+ht),W*.46,H*(.52+ht)); ctx.quadraticCurveTo(W*.44,H*(.38+ht),W*.46,H*.28); ctx.fill();
-    // Eggshell hat
-    ctx.fillStyle='#f8e8d0'; ctx.beginPath(); ctx.ellipse(W*.5,H*.16,W*.15,H*.08,0,Math.PI,0); ctx.fill();
-    ctx.strokeStyle='#e82a4a'; ctx.lineWidth=2;
-    for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(W*(.37+i*.09),H*.12);ctx.lineTo(W*(.37+i*.09),H*.2);ctx.stroke();}
-    // Easter bee in paw
-    ctx.fillStyle='#f8d84a'; ctx.beginPath(); ctx.ellipse(W*.78,H*.6,W*.08,W*.06,-.3,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle='#222'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(W*.71,H*.58); ctx.lineTo(W*.85,H*.58); ctx.stroke();
-    // Eyes
-    ctx.fillStyle='#5a2a0a'; ctx.beginPath(); ctx.arc(W*.42,H*.36,W*.04,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.58,H*.36,W*.04,0,Math.PI*2); ctx.fill();
-  },
-  '🔥🥚': (ctx,W,H,t) => { // Фенікс-писанка
-    // Egg
-    const eg=ctx.createRadialGradient(W*.5,H*.45,W*.05,W*.5,H*.5,W*.28);
-    eg.addColorStop(0,'#fff8e0'); eg.addColorStop(0.5,'#f8c830'); eg.addColorStop(1,'#e87820');
-    ctx.fillStyle=eg; ctx.beginPath(); ctx.ellipse(W*.5,H*.5,W*.2,H*.27,0,0,Math.PI*2); ctx.fill();
-    // Embroidery pattern
-    ctx.strokeStyle='#e82a2a'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.5,W*.2,H*.27,0,Math.PI*.3,Math.PI*.9); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(W*.5,H*.5,W*.2,H*.27,0,Math.PI*1.3,Math.PI*1.9); ctx.stroke();
-    ctx.strokeStyle='#2a5ae8'; ctx.lineWidth=1.5;
-    for(let i=0;i<5;i++){
-      const a=i/5*Math.PI*2; ctx.beginPath();
-      ctx.moveTo(W*.5+Math.cos(a)*W*.08,H*.5+Math.sin(a)*H*.12);
-      ctx.lineTo(W*.5+Math.cos(a)*W*.18,H*.5+Math.sin(a)*H*.24); ctx.stroke();
-    }
-    // Phoenix emerging
-    const py=Math.sin(t*2)*H*.02;
-    ctx.fillStyle='#f87820'; ctx.beginPath(); ctx.ellipse(W*.5,H*.18+py,W*.08,H*.1,0,0,Math.PI*2); ctx.fill();
-    // Wings
-    ctx.fillStyle='rgba(248,180,20,0.8)';
-    ctx.beginPath(); ctx.moveTo(W*.5,H*.2+py); ctx.quadraticCurveTo(W*.2,H*(.1+py),W*.15,H*.35+py); ctx.quadraticCurveTo(W*.3,H*.25+py,W*.4,H*.28+py); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(W*.5,H*.2+py); ctx.quadraticCurveTo(W*.8,H*(.1+py),W*.85,H*.35+py); ctx.quadraticCurveTo(W*.7,H*.25+py,W*.6,H*.28+py); ctx.closePath(); ctx.fill();
-    // Tail - embroidered
-    ctx.strokeStyle='#e82a2a'; ctx.lineWidth=W*.02;
-    for(let i=0;i<5;i++){
-      const ta=i/5*Math.PI+Math.PI*.6+Math.sin(t*2+i)*.1;
-      ctx.beginPath(); ctx.moveTo(W*.5,H*.3+py); ctx.lineTo(W*.5+Math.cos(ta)*W*.3,H*.3+py+Math.sin(ta)*H*.25); ctx.stroke();
-    }
-    // Fire
-    for(let i=0;i<6;i++){
-      const fa=t*3+i; const fc=`hsl(${30+i*10},100%,${50+i*5}%)`;
-      ctx.fillStyle=fc; ctx.globalAlpha=0.7;
-      ctx.beginPath(); ctx.ellipse(W*(.35+i*.06),H*.85,W*.03,H*(.08+Math.sin(fa)*.03),0,0,Math.PI*2); ctx.fill();
-    }
-    ctx.globalAlpha=1;
-  },
-  '👻🐰': (ctx,W,H,t) => { // Привид пасхи
-    // Ghost rabbit body - translucent
-    ctx.globalAlpha=0.75+Math.sin(t*2)*.15;
-    const gg=ctx.createRadialGradient(W*.5,H*.5,0,W*.5,H*.5,W*.35);
-    gg.addColorStop(0,'rgba(255,255,255,0.9)'); gg.addColorStop(1,'rgba(200,230,255,0.3)');
-    ctx.fillStyle=gg;
-    ctx.beginPath(); ctx.moveTo(W*.25,H*.85); ctx.lineTo(W*.2,H*.4);
-    ctx.quadraticCurveTo(W*.2,H*.2,W*.5,H*.2); ctx.quadraticCurveTo(W*.8,H*.2,W*.8,H*.4);
-    ctx.lineTo(W*.75,H*.85); ctx.quadraticCurveTo(W*.65,H*.78,W*.5,H*.85);
-    ctx.quadraticCurveTo(W*.35,H*.78,W*.25,H*.85); ctx.closePath(); ctx.fill();
-    // Ghost ears
-    ctx.beginPath(); ctx.moveTo(W*.35,H*.22); ctx.quadraticCurveTo(W*.3,H*.03,W*.4,H*.18); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(W*.65,H*.22); ctx.quadraticCurveTo(W*.7,H*.03,W*.6,H*.18); ctx.closePath(); ctx.fill();
-    ctx.globalAlpha=1;
-    // Glowing eyes
-    const egel=0.6+Math.sin(t*3)*.4;
-    ctx.fillStyle=`rgba(100,220,255,${egel})`; ctx.beginPath(); ctx.arc(W*.4,H*.42,W*.06,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.6,H*.42,W*.06,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(W*.41,H*.41,W*.02,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W*.61,H*.41,W*.02,0,Math.PI*2); ctx.fill();
-    // Glowing basket
-    ctx.globalAlpha=0.6+Math.sin(t*2)*.2;
-    ctx.fillStyle='rgba(200,220,255,0.7)'; roundRect(ctx,W*.35,H*.6,W*.3,H*.2,W*.04); ctx.fill();
-    ctx.globalAlpha=1;
-    // Easter eggs in basket (glowing)
-    ['rgba(255,100,100,0.8)','rgba(100,255,100,0.8)','rgba(100,100,255,0.8)'].forEach((c,i)=>{
-      ctx.fillStyle=c; ctx.globalAlpha=0.7;
-      ctx.beginPath(); ctx.ellipse(W*(.42+i*.08),H*.68,W*.03,W*.04,0,0,Math.PI*2); ctx.fill();
-    });
-    ctx.globalAlpha=1;
-    // Float animation handled by canvas translate offset
-  },
-};
 
 function roundRect(ctx,x,y,w,h,r){
   ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
@@ -441,23 +37,13 @@ function roundRect(ctx,x,y,w,h,r){
   ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
 }
 
-// Map emoji → draw key
-const PET_KEY_MAP = {
-  '🐶':'🐶','🐱':'🐱','🐰':'🐰','🦊':'🦊','🐺':'🐺','🐝':'🐝','🐼':'🐼',
-  '🦁':'🦁','🐲':'🐲','🐟':'🐟','🐠':'🐠','🦈':'🦈','🐙':'🐙',
-  '🚽':'🚽','💩':'💩','📱':'📱','🤡':'🤡','🗑️':'🗑️',
-  'moonlamb':'🌙🐑','moonhare':'🌙🐇','donutham':'🍩🐹',
-  'honeybear':'🍯🐻','phoenixegg':'🔥🥚','easterghost':'👻🐰',
-};
 
-// Canvas pet card renderer (for case roulette and result)
 // ============================================================
-// СИСТЕМА ВІДОБРАЖЕННЯ ПЕТІВ — CSS картки з анімацією
+// СИСТЕМА ВІДОБРАЖЕННЯ ПЕТІВ — OpenMoji SVG ілюстрації
 // ============================================================
-// Замість поганих canvas-малюнків використовуємо красиві CSS картки
-// з великими емодзі, фонами і анімаціями
+// OpenMoji — безкоштовні ілюстровані emoji, виглядають як справжні малюнки
 
-// Емодзі для відображення (підтримка складених емодзі)
+// Маппінг emoji → OpenMoji codepoint (hex unicode)
 function getPetEmoji(pet) {
   const emojiMap = {
     'moonlamb':    '🌙🐑', 'moonhare':   '🌙🐇',
@@ -1300,58 +886,145 @@ function startBalloon(bt){balloonState={bet:bt,pops:0,burstAt:Math.floor(Math.ra
 let pvpState=null;
 function buildPvpUI(){
     const el=document.getElementById('ui-pvp');if(!el)return;
-    const zones=[{k:'pvpTop',v:'top'},{k:'pvpSide',v:'side'},{k:'pvpBot',v:'bot'}];
-    const zoneHtml=z=>zones.map(({k,v})=>`<button class="pvp-zone-btn${pvpState&&pvpState[z]===v?' pvp-sel':''}" onclick="pvpPick('${z}','${v}')">${L(k)}</button>`).join('');
-    el.innerHTML=`<div class="pvp-game">
-        <div style="font-size:13px;font-weight:700;color:#8d99ae;margin-bottom:12px;text-align:center">${L('pvpCommission')}</div>
-        <div class="pvp-row">
-            <div><div style="font-size:11px;color:#8d99ae;margin-bottom:6px;font-weight:700">${L('pvpSelect')}</div><div class="pvp-zone-grid">${zoneHtml('defense')}</div></div>
-            <div style="font-size:32px;align-self:center">🥚⚔️🥚</div>
-            <div><div style="font-size:11px;color:#8d99ae;margin-bottom:6px;font-weight:700">${L('pvpAttack')}</div><div class="pvp-zone-grid">${zoneHtml('attack')}</div></div>
+    const zones=['top','side','bot'];
+    const zoneEmoji={'top':'⬆️','side':'↔️','bot':'⬇️'};
+    const zoneLabel={
+        'top': L('pvpTop'), 'side': L('pvpSide'), 'bot': L('pvpBot')
+    };
+    const defSel = pvpState?.defense;
+    const atkSel = pvpState?.attack;
+
+    el.innerHTML=`<div style="padding:4px 0">
+        <div style="font-size:12px;color:#8d99ae;text-align:center;margin-bottom:14px;font-weight:600">
+            ${L('pvpCommission')}<br>
+            <span style="color:var(--accent);font-size:11px">Якщо атака влучає — яйце тріскає. Захисти своє та розбий ворожe!</span>
         </div>
-        ${pvpState&&pvpState.defense&&pvpState.attack?`<button class="btn" style="margin-top:14px" onclick="pvpFight()">${L('pvpFight')}</button>`:''}
-        <div id="pvp-result" style="margin-top:12px;text-align:center;font-weight:bold;font-size:15px"></div>
-    </div>`;
-}
+
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:start;margin-bottom:14px">
+            <!-- Захист -->
+            <div>
+                <div style="font-size:11px;color:#8d99ae;font-weight:700;text-align:center;margin-bottom:8px">🛡️ ${L('pvpSelect')}</div>
+                ${zones.map(v=>`
+                    <button onclick="pvpPick('defense','${v}')" style="
+                        width:100%;padding:10px 8px;margin-bottom:6px;border:2px solid ${defSel===v?'var(--accent)':'var(--border)'};
+                        border-radius:10px;background:${defSel===v?'rgba(255,255,255,.12)':'rgba(255,255,255,.04)'};
+                        color:${defSel===v?'var(--accent)':'#8d99ae'};font-weight:700;font-size:13px;cursor:pointer;
+                        display:flex;align-items:center;gap:6px;
+                    ">
+                        <span>${zoneEmoji[v]}</span> ${zoneLabel[v]}
+                        ${defSel===v?'<span style="margin-left:auto">✓</span>':''}
+                    </button>`).join('')}
+            </div>
+
+            <!-- Яйця -->
+            <div style="text-align:center;font-size:32px;padding-top:28px">🥚<br>⚔️<br>🥚</div>
+
+            <!-- Атака -->
+            <div>
+                <div style="font-size:11px;color:#8d99ae;font-weight:700;text-align:center;margin-bottom:8px">⚔️ ${L('pvpAttack')}</div>
+                ${zones.map(v=>`
+                    <button onclick="pvpPick('attack','${v}')" style="
+                        width:100%;padding:10px 8px;margin-bottom:6px;border:2px solid ${atkSel===v?'var(--error)':'var(--border)'};
+                        border-radius:10px;background:${atkSel===v?'rgba(239,68,68,.15)':'rgba(255,255,255,.04)'};
+                        color:${atkSel===v?'var(--error)':'#8d99ae'};font-weight:700;font-size:13px;cursor:pointer;
+                        display:flex;align-items:center;gap:6px;
+                    ">
+                        <span>${zoneEmoji[v]}</span> ${zoneLabel[v]}
+                        ${atkSel===v?'<span style="margin-left:auto">✓</span>':''}
+                    </button>`).join('')}
+            </div>
+        </div>
+
+        ${defSel&&atkSel ? `
+            <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;font-size:12px;color:#8d99ae;text-align:center">
+                Захист: <b style="color:var(--accent)">${zoneEmoji[defSel]} ${zoneLabel[defSel]}</b> · Атака: <b style="color:var(--error)">${zoneEmoji[atkSel]} ${zoneLabel[atkSel]}</b>
+            </div>
+            <button class="btn" onclick="pvpFight()">${L('pvpFight')}</button>
+        ` : `
+            <div style="text-align:center;color:#8d99ae;font-size:12px;padding:8px">
+                👆 Обери зону захисту і зону атаки
+            </div>
+        `}
+    </div>`
+;}
 window.pvpPick=(zone,val)=>{
     if(!pvpState) pvpState={};
     pvpState[zone]=val; buildPvpUI();
 };
 window.pvpFight=()=>{
     const bt=parseFloat(document.getElementById('bet-a').value);
-    if(isNaN(bt)||bt<=0||bt>s.b) return alert('Мало BB!');
-    if(!pvpState||!pvpState.defense||!pvpState.attack) return;
-    // Bot picks random
+    if(isNaN(bt)||bt<=0||bt>s.b)return alert('Мало BB!');
+    if(!pvpState||!pvpState.defense||!pvpState.attack)return;
+
     const zones=['top','side','bot'];
     const botDefense=zones[Math.floor(Math.random()*3)];
-    const botAttack=zones[Math.floor(Math.random()*3)];
-    // Win if player attack ≠ bot defense AND bot attack ≠ player defense
-    const playerCracks=pvpState.attack!==botDefense;
-    const botCracks=botAttack!==pvpState.defense;
-    const commission=bt*0.05;
-    const resEl=document.getElementById('pvp-result');
-    if(playerCracks&&!botCracks){
-        const win=(bt-commission)*(s.p?s.p.m:1);
-        s.b+=win;s.x+=Math.floor(bt/2);save();checkPetLevelUp();
-        resEl.innerHTML=`<span style="color:var(--success)">+${win.toFixed(2)} BB 🎉</span><br><small>Твоє яйце вціліло! Ворожнє тріснуло!</small>`;
-    } else if(botCracks&&!playerCracks){
-        s.b-=bt;save();
-        resEl.innerHTML=`<span style="color:var(--error)">-${bt.toFixed(2)} BB 💔</span><br><small>Твоє яйце тріснуло!</small>`;
-    } else if(playerCracks&&botCracks){
-        // Both crack — draw, commission taken
-        s.b-=commission;save();
-        resEl.innerHTML=`<span style="color:var(--warning)">Нічия! -${commission.toFixed(2)} BB комісія</span><br><small>Обидва яйця тріснули!</small>`;
-    } else {
-        // Neither cracks — draw
-        resEl.innerHTML=`<span style="color:var(--warning)">Нічия! Обидва захистились!</span>`;
-    }
-    pvpState=null; setTimeout(()=>buildPvpUI(),2000);
+    const botAttack =zones[Math.floor(Math.random()*3)];
+    const playerCracks = pvpState.attack   !== botDefense;
+    const botCracks    = botAttack         !== pvpState.defense;
+    const commission   = Math.round(bt*0.05*100)/100;
+    const zoneEmoji={'top':'⬆️','side':'↔️','bot':'⬇️'};
+    const zoneLabel={'top':L('pvpTop'),'side':L('pvpSide'),'bot':L('pvpBot')};
+    const el=document.getElementById('ui-pvp');
+
+    // Показуємо анімацію зіткнення
+    el.innerHTML=`<div style="text-align:center;padding:20px 0">
+        <div style="font-size:48px;animation:pvp-clash 0.6s ease" id="pvp-anim">🥚💥🥚</div>
+        <div style="font-size:12px;color:#8d99ae;margin-top:8px">Зіткнення...</div>
+    </div>`;
+
+    setTimeout(()=>{
+        let resultHTML='', won=0;
+        if(playerCracks&&!botCracks){
+            won=(bt-commission)*(s.p?s.p.m:1);
+            s.b+=won;s.x+=Math.floor(bt/2);save();checkPetLevelUp();
+            resultHTML=`<div style="font-size:36px">🥚✅</div>
+                <div style="color:var(--success);font-size:18px;font-weight:900;margin-top:8px">+${won.toFixed(2)} BB</div>
+                <div style="color:#8d99ae;font-size:12px;margin-top:4px">Твоє яйце вціліло! Ворожє тріснуло! 🎉</div>`;
+        } else if(botCracks&&!playerCracks){
+            s.b-=bt;save();
+            resultHTML=`<div style="font-size:36px">💔🥚</div>
+                <div style="color:var(--error);font-size:18px;font-weight:900;margin-top:8px">-${bt.toFixed(2)} BB</div>
+                <div style="color:#8d99ae;font-size:12px;margin-top:4px">Твоє яйце тріснуло! 😢</div>`;
+        } else if(playerCracks&&botCracks){
+            s.b-=commission;save();
+            resultHTML=`<div style="font-size:36px">💥💥</div>
+                <div style="color:var(--warning);font-size:16px;font-weight:900;margin-top:8px">Нічия! -${commission.toFixed(2)} BB</div>
+                <div style="color:#8d99ae;font-size:12px;margin-top:4px">Обидва яйця тріснули!</div>`;
+        } else {
+            resultHTML=`<div style="font-size:36px">🥚🥚</div>
+                <div style="color:var(--accent);font-size:16px;font-weight:900;margin-top:8px">Нічия!</div>
+                <div style="color:#8d99ae;font-size:12px;margin-top:4px">Обидва захистились!</div>`;
+        }
+
+        const detailColor={top:'#38bdf8',side:'#a78bfa',bot:'#f87171'};
+        el.innerHTML=`<div style="text-align:center;padding:8px 0">
+            ${resultHTML}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;font-size:11px">
+                <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px">
+                    <div style="color:#8d99ae;margin-bottom:4px">Твоя атака</div>
+                    <div style="font-weight:700">${zoneEmoji[pvpState.attack]} ${zoneLabel[pvpState.attack]}</div>
+                    <div style="color:#8d99ae;margin-top:2px">Бот захистив: ${zoneEmoji[botDefense]} ${zoneLabel[botDefense]}</div>
+                    <div style="color:${playerCracks?'var(--success)':'var(--error)'};font-weight:700;margin-top:4px">${playerCracks?'✅ Влучив!':'❌ Заблоковано'}</div>
+                </div>
+                <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px">
+                    <div style="color:#8d99ae;margin-bottom:4px">Бот атакував</div>
+                    <div style="font-weight:700">${zoneEmoji[botAttack]} ${zoneLabel[botAttack]}</div>
+                    <div style="color:#8d99ae;margin-top:2px">Твій захист: ${zoneEmoji[pvpState.defense]} ${zoneLabel[pvpState.defense]}</div>
+                    <div style="color:${botCracks?'var(--error)':'var(--success)'};font-weight:700;margin-top:4px">${botCracks?'💔 Тріснуло!':'🛡️ Захистив!'}</div>
+                </div>
+            </div>
+            <button class="btn" style="margin-top:14px;background:rgba(255,255,255,.1);color:#fff;font-size:13px" onclick="pvpState=null;buildPvpUI()">🥚 Грати знову</button>
+        </div>`;
+        pvpState=null;
+    },800);
 };
 
 // ============================================================
 // PLINKO (Кошик Удачі)
 // ============================================================
-const PLINKO_MULTS=[0.2,0.5,1.0,1.5,2.0,3.0,5.0,10.0,50.0,10.0,5.0,3.0,2.0,1.5,1.0,0.5,0.2];
+// Plinko: симетричні множники, макс x8, середина x1.5
+// Очікуване значення ~0.92 (казино має ~8% edge)
+const PLINKO_MULTS=[0.3,0.5,0.7,1.0,1.5,2.5,4.0,8.0,4.0,2.5,1.5,1.0,0.7,0.5,0.3];
 let plinkoRunning=false;
 function buildPlinkoUI(){
     const el=document.getElementById('ui-plinko');if(!el)return;
@@ -1397,41 +1070,44 @@ function drawPlinkoBoard(ballX,ballY,winIdx){
 }
 function dropPlinkoEgg(bt){
     if(plinkoRunning)return; plinkoRunning=true;
-    const W=280,H=320;
-    let bx=W/2+(Math.random()-.5)*20,by=10,vel=0,hBounce=false;
-    const rows=8;
-    // Determine final bucket based on physics simulation
-    let curX=bx;
-    for(let r=0;r<rows;r++){curX+=Math.random()<.5?-14:14;}
-    const bucketIdx=Math.max(0,Math.min(PLINKO_MULTS.length-1,Math.round((curX/(W))*PLINKO_MULTS.length)));
-    const finalMult=PLINKO_MULTS[bucketIdx];
-    const finalX=bucketIdx*(W/PLINKO_MULTS.length)+W/(PLINKO_MULTS.length*2);
-    // Animate
-    let frame=0;
-    const totalFrames=60;
+    const W=280,H=320,ROWS=8,N=PLINKO_MULTS.length;
+    // Симулюємо реальну траєкторію — кожен ряд відхиляється вліво або вправо
+    let col = Math.floor(N/2); // стартова позиція — центр
+    const path=[col];
+    for(let r=0;r<ROWS;r++){
+        // Кожен рядок — 50/50 вліво/вправо, але граничимо до [0, N-1]
+        const dir = Math.random()<0.5 ? -1 : 1;
+        col = Math.max(0, Math.min(N-1, col + dir));
+        path.push(col);
+    }
+    const bucketIdx = Math.max(0, Math.min(N-1, col));
+    const finalMult = PLINKO_MULTS[bucketIdx];
+    const bucketW = W/N;
+    const finalX = bucketIdx*bucketW + bucketW/2;
+
+    // Анімуємо по кроках
+    let step=0;
+    const totalSteps = path.length;
     const iv=setInterval(()=>{
-        frame++;
-        const t=frame/totalFrames;
-        bx=W/2+(finalX-W/2)*t+(Math.random()-.5)*8*(1-t);
-        by=10+t*(H-50);
-        drawPlinkoBoard(bx,by);
-        if(frame>=totalFrames){
+        const t = step/totalSteps;
+        const curCol = path[step]||bucketIdx;
+        const bx = curCol*bucketW + bucketW/2 + (Math.random()-.5)*4;
+        const by = 20 + t*(H-60);
+        drawPlinkoBoard(bx, by, step>=totalSteps-1 ? bucketIdx : undefined);
+        step++;
+        if(step >= totalSteps){
             clearInterval(iv);
-            drawPlinkoBoard(finalX,H-40,bucketIdx);
+            drawPlinkoBoard(finalX, H-40, bucketIdx);
             plinkoRunning=false;
-            // Check confetti bonus
-            const confetti=Math.random()<0.15;
-            const finalMultiplier=confetti?finalMult*2:finalMult;
-            const bon=s.p?s.p.m:1;
-            const win=bt*finalMultiplier*bon-bt;
-            if(win>0){s.b+=win;s.x+=Math.floor(bt/2);save();checkPetLevelUp();
-                document.getElementById('plinko-result').innerHTML=`<span style="color:var(--success)">+${win.toFixed(2)} BB${confetti?' 🎊 x2 КОНФЕТІ!':''}</span>`;
+            const won = bt*finalMult - bt;
+            if(won >= 0){ s.b+=won; s.x+=Math.floor(bt/2); save(); checkPetLevelUp();
+                document.getElementById('plinko-result').innerHTML=`<span style="color:var(--success)">+${won.toFixed(2)} BB 🥚 x${finalMult}</span>`;
             } else {
-                s.b+=bt*finalMultiplier-bt;save();
-                document.getElementById('plinko-result').innerHTML=`<span style="color:var(--error)">${(bt*finalMultiplier-bt).toFixed(2)} BB (x${finalMult})</span>`;
+                s.b += won; save();
+                document.getElementById('plinko-result').innerHTML=`<span style="color:var(--error)">${won.toFixed(2)} BB (x${finalMult})</span>`;
             }
         }
-    },25);
+    }, 80);
 }
 
 // ============================================================
