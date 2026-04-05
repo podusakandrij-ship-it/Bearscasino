@@ -75,26 +75,37 @@ const RARITY_ANIM = {
   'Смехуятина':  'pet-bounce',
 };
 
-// Малюємо пета як HTML-елемент (не canvas)
-function createPetCardHTML(pet, size=80, showInfo=false) {
-  const emoji   = getPetEmoji(pet);
-  const glow    = RARITY_GLOW[pet.r] || '#94a3b8';
-  const bg      = RARITY_BG[pet.r]   || RARITY_BG['Звичайний'];
-  const anim    = RARITY_ANIM[pet.r] || '';
-  const emojiSize = Math.round(size * 0.52);
+// Отримати зображення пета (кастомне фото або emoji)
+function getPetImageSrc(pet) {
+    const key = pet.drawKey;
+    if (key && typeof PET_IMAGES !== 'undefined' && PET_IMAGES[key]) {
+        return { type: 'img', src: PET_IMAGES[key] };
+    }
+    return { type: 'emoji', src: getPetEmoji(pet) };
+}
+
+// Малюємо красиву картку пета з кастомним фото або emoji
+function createPetCardHTML(pet, size=80) {
+  const glow  = RARITY_GLOW[pet.r] || '#94a3b8';
+  const bg    = RARITY_BG[pet.r]   || RARITY_BG['Звичайний'];
+  const anim  = RARITY_ANIM[pet.r] || '';
+  const radius = Math.round(size*0.18);
+  const imgSrc = getPetImageSrc(pet);
   const particles = makeRarityParticles(pet.r, glow);
 
-  return `<div class="pet-visual" style="
-    width:${size}px;height:${size}px;
-    background:${bg};
-    border-radius:${Math.round(size*0.18)}px;
-    border:2px solid ${glow};
-    box-shadow:0 0 ${Math.round(size*.2)}px ${glow}55, inset 0 0 ${Math.round(size*.15)}px ${glow}11;
+  const imgStyle = `width:${Math.round(size*.88)}px;height:${Math.round(size*.88)}px;object-fit:contain;position:relative;z-index:1;${anim?`animation:${anim} 2.5s ease-in-out infinite`:''};filter:drop-shadow(0 2px 10px ${glow}99)`;
+
+  const content = imgSrc.type === 'img'
+    ? `<img src="${imgSrc.src}" style="${imgStyle}" onerror="this.outerHTML='<span style=\\"font-size:${Math.round(size*.5)}px\\">${getPetEmoji(pet)}</span>'">`
+    : `<span style="font-size:${Math.round(size*.52)}px;line-height:1;position:relative;z-index:1;${anim?`animation:${anim} 2.5s ease-in-out infinite`:''}">${imgSrc.src}</span>`;
+
+  return `<div style="
+    width:${size}px;height:${size}px;background:${bg};
+    border-radius:${radius}px;border:2px solid ${glow};
+    box-shadow:0 0 ${Math.round(size*.2)}px ${glow}66,inset 0 0 ${Math.round(size*.1)}px ${glow}11;
     display:flex;align-items:center;justify-content:center;
-    position:relative;overflow:hidden;flex-shrink:0;
-  ">
-    ${particles}
-    <span style="font-size:${emojiSize}px;line-height:1;position:relative;z-index:1;${anim?`animation:${anim} 2s ease-in-out infinite`:''}">${emoji}</span>
+    position:relative;overflow:hidden;flex-shrink:0;">
+    ${particles}${content}
   </div>`;
 }
 
@@ -118,77 +129,77 @@ function makeRarityParticles(rarity, color) {
   return html;
 }
 
-// Для canvas у кейс-рулетці (залишаємо canvas але з великим емодзі)
+// Для canvas у кейс-рулетці — використовує кастомні фото або emoji
 function drawPetCard(canvas, pet) {
   const ctx = canvas.getContext('2d');
-  const W   = canvas.width, H = canvas.height;
-  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.width, H = canvas.height;
   ctx.clearRect(0,0,W,H);
-
   const glow = RARITY_GLOW[pet.r] || '#94a3b8';
-  const bg   = ctx.createLinearGradient(0,0,W,H);
 
-  // Фон залежно від рідкості
+  // Фон
   const bgColors = {
-    'Звичайний':   ['#1e2433','#141820'],
-    'Незвичайний': ['#0f1e35','#0a1225'],
-    'Рідкісний':   ['#1a0f2e','#0d0a20'],
-    'Епічний':     ['#2a1800','#1a0f00'],
-    'Легендарний': ['#2a0a0a','#180505'],
-    'Міфічний':    ['#001a2a','#000f18'],
-    'Смехуятина':  ['#2a1000','#1a0800'],
+    'Звичайний':['#1e2433','#141820'],'Незвичайний':['#0f1e35','#0a1225'],
+    'Рідкісний':['#1a0f2e','#0d0a20'],'Епічний':['#2a1800','#1a0f00'],
+    'Легендарний':['#2a0a0a','#180505'],'Міфічний':['#001a2a','#000f18'],
+    'Смехуятина':['#2a1000','#1a0800'],
   };
-  const [c1,c2] = bgColors[pet.r] || bgColors['Звичайний'];
-  bg.addColorStop(0,c1); bg.addColorStop(1,c2);
-  ctx.fillStyle = bg;
-  roundRect(ctx,0,0,W,H,10); ctx.fill();
+  const [c1,c2]=bgColors[pet.r]||bgColors['Звичайний'];
+  const bg=ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,c1);bg.addColorStop(1,c2);
+  ctx.fillStyle=bg;roundRect(ctx,0,0,W,H,10);ctx.fill();
 
-  // Glow border
-  ctx.shadowColor  = glow;
-  ctx.shadowBlur   = 12;
-  ctx.strokeStyle  = glow;
-  ctx.lineWidth    = 2;
-  roundRect(ctx,1,1,W-2,H-2,10); ctx.stroke();
-  ctx.shadowBlur   = 0;
+  // Рамка
+  ctx.shadowColor=glow;ctx.shadowBlur=12;ctx.strokeStyle=glow;ctx.lineWidth=2;
+  roundRect(ctx,1,1,W-2,H-2,10);ctx.stroke();ctx.shadowBlur=0;
 
-  // Зірочки/частинки для рідкісних
-  if (!['Звичайний','Незвичайний'].includes(pet.r)) {
-    ctx.fillStyle = glow;
-    for (let i=0; i<6; i++) {
-      const px = W*(0.1+Math.random()*0.8), py = H*(0.1+Math.random()*0.6);
-      const ps = 1.5+Math.random()*2;
-      ctx.globalAlpha = 0.4+Math.random()*0.4;
-      ctx.beginPath(); ctx.arc(px,py,ps,0,Math.PI*2); ctx.fill();
+  // Зірочки для рідкісних
+  if(!['Звичайний','Незвичайний'].includes(pet.r)){
+    ctx.fillStyle=glow;
+    for(let i=0;i<5;i++){
+      const px=W*(0.1+Math.random()*.8),py=H*(0.05+Math.random()*.55);
+      ctx.globalAlpha=0.4+Math.random()*.4;
+      ctx.beginPath();ctx.arc(px,py,1.5+Math.random()*2,0,Math.PI*2);ctx.fill();
     }
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=1;
   }
 
-  // ВЕЛИКЕ ЕМОДЗІ — центр картки
-  const emoji = getPetEmoji(pet);
-  const emojiSize = Math.floor(H * 0.48);
-  ctx.font = `${emojiSize}px serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(emoji, W/2, H*0.44);
+  const drawFallbackEmoji = () => {
+    ctx.font=`${Math.floor(H*.45)}px serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(getPetEmoji(pet),W/2,H*.43);
+    drawLabels();
+  };
+  const drawLabels = () => {
+    ctx.font=`bold ${Math.max(9,Math.floor(H*.11))}px system-ui`;
+    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='alphabetic';
+    ctx.fillText(pet.n.length>9?pet.n.slice(0,9)+'…':pet.n,W/2,H*.82);
+    ctx.font=`bold ${Math.max(7,Math.floor(H*.09))}px system-ui`;
+    ctx.fillStyle=glow;ctx.fillText(pet.r,W/2,H*.94);
+  };
 
-  // Назва
-  ctx.font = `bold ${Math.max(10, Math.floor(H*0.12))}px system-ui`;
-  ctx.fillStyle = '#fff';
-  ctx.textBaseline = 'alphabetic';
-  const name = pet.n.length > 9 ? pet.n.slice(0,9)+'…' : pet.n;
-  ctx.fillText(name, W/2, H*0.82);
-
-  // Рідкість
-  ctx.font = `bold ${Math.max(8, Math.floor(H*0.09))}px system-ui`;
-  ctx.fillStyle = glow;
-  ctx.fillText(pet.r, W/2, H*0.94);
+  // Пробуємо завантажити кастомне фото
+  const imgSrc = getPetImageSrc(pet);
+  if (imgSrc.type === 'img') {
+    const img = new Image();
+    img.onload = () => {
+      const sz=Math.floor(H*.58),ox=(W-sz)/2,oy=H*.05;
+      ctx.drawImage(img,ox,oy,sz,sz);
+      drawLabels();
+    };
+    img.onerror = drawFallbackEmoji;
+    img.src = imgSrc.src;
+    drawLabels(); // одразу малюємо текст
+  } else {
+    drawFallbackEmoji();
+  }
 }
+
 
 // Анімовані картки в інвентарі — через CSS div замість canvas
 const petAnimFrames = new Map();
 
 function startPetAnim(containerId, pet) {
-  // Для HUD canvas — залишаємо простий canvas
+  // Для HUD canvas — анімована картка з фото
   if (containerId === 'p-hud-canvas') {
     const canvas = document.getElementById(containerId);
     if (!canvas) return;
@@ -196,7 +207,12 @@ function startPetAnim(containerId, pet) {
     const ctx = canvas.getContext('2d');
     const W=canvas.width, H=canvas.height;
     const glow = RARITY_GLOW[pet.r]||'#94a3b8';
-    const emoji = getPetEmoji(pet);
+    const imgSrc = getPetImageSrc(pet);
+    let petImg = null;
+    if (imgSrc.type === 'img') {
+      petImg = new Image();
+      petImg.src = imgSrc.src;
+    }
     let startT=null;
     function frame(ts) {
       if(!startT) startT=ts;
@@ -208,8 +224,14 @@ function startPetAnim(containerId, pet) {
       roundRect(ctx,1,1,W-2,H-2,10); ctx.stroke(); ctx.shadowBlur=0;
       const scale = 1+Math.sin(t*2)*0.04;
       ctx.save(); ctx.translate(W/2,H/2); ctx.scale(scale,scale);
-      ctx.font=`${Math.floor(W*.6)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText(emoji,0,0); ctx.restore();
+      if (petImg && petImg.complete && petImg.naturalHeight>0) {
+        const sz=Math.floor(W*.82);
+        ctx.drawImage(petImg,-sz/2,-sz/2,sz,sz);
+      } else {
+        ctx.font=`${Math.floor(W*.6)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(getPetEmoji(pet),0,0);
+      }
+      ctx.restore();
       petAnimFrames.set(containerId, requestAnimationFrame(frame));
     }
     petAnimFrames.set(containerId, requestAnimationFrame(frame));
