@@ -86,27 +86,32 @@ function getPetImageSrc(pet) {
 
 // Малюємо красиву картку пета з кастомним фото або emoji
 function createPetCardHTML(pet, size=80) {
-  const glow  = RARITY_GLOW[pet.r] || '#94a3b8';
-  const bg    = RARITY_BG[pet.r]   || RARITY_BG['Звичайний'];
-  const anim  = RARITY_ANIM[pet.r] || '';
+  const glow   = RARITY_GLOW[pet.r] || '#94a3b8';
+  const bg     = RARITY_BG[pet.r]   || RARITY_BG['Звичайний'];
+  const anim   = RARITY_ANIM[pet.r] || '';
   const radius = Math.round(size*0.18);
   const imgSrc = getPetImageSrc(pet);
   const particles = makeRarityParticles(pet.r, glow);
+  const animStyle = anim ? `animation:${anim} 2.5s ease-in-out infinite` : '';
 
-  const imgStyle = `width:${Math.round(size*.88)}px;height:${Math.round(size*.88)}px;object-fit:contain;position:relative;z-index:1;${anim?`animation:${anim} 2.5s ease-in-out infinite`:''};filter:drop-shadow(0 2px 10px ${glow}99)`;
-
-  const content = imgSrc.type === 'img'
-    ? `<img src="${imgSrc.src}" style="${imgStyle}" onerror="this.outerHTML='<span style=\\"font-size:${Math.round(size*.5)}px\\">${getPetEmoji(pet)}</span>'">`
-    : `<span style="font-size:${Math.round(size*.52)}px;line-height:1;position:relative;z-index:1;${anim?`animation:${anim} 2.5s ease-in-out infinite`:''}">${imgSrc.src}</span>`;
+  let content;
+  if (imgSrc.type === 'img') {
+    const sz = Math.round(size * 0.9);
+    // Показуємо тільки img — без дублювання emoji
+    content = `<img src="${imgSrc.src}"
+      width="${sz}" height="${sz}"
+      style="object-fit:contain;position:relative;z-index:1;${animStyle};filter:drop-shadow(0 2px 12px ${glow}aa)"
+      alt="${pet.n}">`;
+  } else {
+    content = `<span style="font-size:${Math.round(size*.54)}px;line-height:1;position:relative;z-index:1;${animStyle}">${imgSrc.src}</span>`;
+  }
 
   return `<div style="
     width:${size}px;height:${size}px;background:${bg};
     border-radius:${radius}px;border:2px solid ${glow};
     box-shadow:0 0 ${Math.round(size*.2)}px ${glow}66,inset 0 0 ${Math.round(size*.1)}px ${glow}11;
     display:flex;align-items:center;justify-content:center;
-    position:relative;overflow:hidden;flex-shrink:0;">
-    ${particles}${content}
-  </div>`;
+    position:relative;overflow:hidden;flex-shrink:0;">${particles}${content}</div>`;
 }
 
 // Часточки/декор для рідкісних петів
@@ -578,7 +583,13 @@ function renderShop(){
             const dl=c.deadline||0;
             if(c.limited&&now>dl) continue;
             const badge=c.limited?'<span class="badge-ltd">Лімітовано</span>':'';
-            const chances=c.drop.map(p=>`<span style="color:${p.c}">${p.s} ${p.w}%</span>`).join(' · ');
+            const chances = c.drop.map(p => {
+                const imgSrc = getPetImageSrc(p);
+                const petIcon = imgSrc.type === 'img'
+                    ? `<img src="${imgSrc.src}" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:2px">`
+                    : `<span style="font-size:14px;vertical-align:middle;margin-right:1px">${p.s}</span>`;
+                return `<span style="color:${p.c}">${petIcon}${p.w}%</span>`;
+            }).join(' · ');
             let timer='';
             if(c.limited){const diff=dl-now,d=Math.floor(diff/86400000),hr=Math.floor((diff/3600000)%24);timer=`<div class="case-timer">⏳ ${d}д ${hr}г</div>`;}
             h+=`<div class="shop-card"><div class="case-info">
@@ -1044,9 +1055,9 @@ window.pvpFight=()=>{
 // ============================================================
 // PLINKO (Кошик Удачі)
 // ============================================================
-// Plinko: симетричні множники, макс x8, середина x1.5
-// Очікуване значення ~0.92 (казино має ~8% edge)
-const PLINKO_MULTS=[0.3,0.5,0.7,1.0,1.5,2.5,4.0,8.0,4.0,2.5,1.5,1.0,0.7,0.5,0.3];
+// Plinko: 13 кошиків, симетричні, макс x1.75 в центрі, x0.2 на краях
+// Очікуване значення ~0.94
+const PLINKO_MULTS=[0.2,0.3,0.4,0.6,0.8,1.1,1.75,1.1,0.8,0.6,0.4,0.3,0.2];
 let plinkoRunning=false;
 function buildPlinkoUI(){
     const el=document.getElementById('ui-plinko');if(!el)return;
@@ -1092,44 +1103,45 @@ function drawPlinkoBoard(ballX,ballY,winIdx){
 }
 function dropPlinkoEgg(bt){
     if(plinkoRunning)return; plinkoRunning=true;
-    const W=280,H=320,ROWS=8,N=PLINKO_MULTS.length;
-    // Симулюємо реальну траєкторію — кожен ряд відхиляється вліво або вправо
-    let col = Math.floor(N/2); // стартова позиція — центр
+    const N=PLINKO_MULTS.length, ROWS=8;
+    // Стартова позиція — центр з невеликим відхиленням
+    // Після ROWS рядів позиція розподіляється по всій ширині (біноміальний розподіл)
+    let col = Math.floor(N/2);
     const path=[col];
     for(let r=0;r<ROWS;r++){
-        // Кожен рядок — 50/50 вліво/вправо, але граничимо до [0, N-1]
         const dir = Math.random()<0.5 ? -1 : 1;
         col = Math.max(0, Math.min(N-1, col + dir));
         path.push(col);
     }
-    const bucketIdx = Math.max(0, Math.min(N-1, col));
+    const bucketIdx = col;
     const finalMult = PLINKO_MULTS[bucketIdx];
+    const W=280, H=320;
     const bucketW = W/N;
     const finalX = bucketIdx*bucketW + bucketW/2;
 
-    // Анімуємо по кроках
     let step=0;
-    const totalSteps = path.length;
     const iv=setInterval(()=>{
-        const t = step/totalSteps;
-        const curCol = path[step]||bucketIdx;
-        const bx = curCol*bucketW + bucketW/2 + (Math.random()-.5)*4;
-        const by = 20 + t*(H-60);
-        drawPlinkoBoard(bx, by, step>=totalSteps-1 ? bucketIdx : undefined);
+        const progress = step/path.length;
+        const curCol = path[Math.min(step, path.length-1)];
+        const bx = curCol*bucketW + bucketW/2 + (Math.random()-.5)*4*(1-progress);
+        const by = 20 + progress*(H-60);
+        drawPlinkoBoard(bx, by, step>=path.length-1 ? bucketIdx : undefined);
         step++;
-        if(step >= totalSteps){
+        if(step > path.length){
             clearInterval(iv);
             drawPlinkoBoard(finalX, H-40, bucketIdx);
             plinkoRunning=false;
-            const won = bt*finalMult - bt;
-            if(won >= 0){ s.b+=won; s.x+=Math.floor(bt/2); save(); checkPetLevelUp();
+            const payout = bt * finalMult;
+            const won = payout - bt;
+            s.b += won; save();
+            if(won >= 0){
+                if(finalMult > 0) { s.x+=Math.floor(bt/2); checkPetLevelUp(); }
                 document.getElementById('plinko-result').innerHTML=`<span style="color:var(--success)">+${won.toFixed(2)} BB 🥚 x${finalMult}</span>`;
             } else {
-                s.b += won; save();
                 document.getElementById('plinko-result').innerHTML=`<span style="color:var(--error)">${won.toFixed(2)} BB (x${finalMult})</span>`;
             }
         }
-    }, 80);
+    }, 90);
 }
 
 // ============================================================
