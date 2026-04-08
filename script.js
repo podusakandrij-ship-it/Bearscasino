@@ -92,19 +92,22 @@ function getPetImageSrc(pet) {
 function createPetCardHTML(pet, size=80) {
   const glow   = RARITY_GLOW[pet.r] || '#94a3b8';
   const bg     = RARITY_BG[pet.r]   || RARITY_BG['Звичайний'];
-  const anim   = RARITY_ANIM[pet.r] || '';
   const radius = Math.round(size*0.18);
   const imgSrc = getPetImageSrc(pet);
   const particles = makeRarityParticles(pet.r, glow);
+
+  // Анімація ТІЛЬКИ для emoji-петів (без фото)
+  const hasPhoto = imgSrc.type === 'img';
+  const anim = hasPhoto ? '' : (RARITY_ANIM[pet.r] || '');
   const animStyle = anim ? `animation:${anim} 2.5s ease-in-out infinite` : '';
 
   let content;
-  if (imgSrc.type === 'img') {
-    const sz = Math.round(size * 0.9);
-    // Показуємо тільки img — без дублювання emoji
+  if (hasPhoto) {
+    const sz = Math.round(size * 0.92);
+    // Фото без анімації руху — тільки glow через box-shadow контейнера
     content = `<img src="${imgSrc.src}"
       width="${sz}" height="${sz}"
-      style="object-fit:contain;position:relative;z-index:1;${animStyle};filter:drop-shadow(0 2px 12px ${glow}aa)"
+      style="object-fit:contain;position:relative;z-index:1;filter:drop-shadow(0 2px 14px ${glow}99)"
       alt="${pet.n}">`;
   } else {
     content = `<span style="font-size:${Math.round(size*.54)}px;line-height:1;position:relative;z-index:1;${animStyle}">${imgSrc.src}</span>`;
@@ -560,8 +563,10 @@ function ren(){
         if (hudWrap) {
             const imgSrc = getPetImageSrc(s.p);
             if (imgSrc.type === 'img') {
-                hudWrap.innerHTML = `<img src="${imgSrc.src}" style="width:52px;height:52px;object-fit:contain;animation:pet-float 3s ease-in-out infinite">`;
+                // Фото — без анімації руху
+                hudWrap.innerHTML = `<img src="${imgSrc.src}" style="width:52px;height:52px;object-fit:contain;">`;
             } else {
+                // Emoji — з анімацією float
                 hudWrap.innerHTML = `<span style="font-size:34px;animation:pet-float 3s ease-in-out infinite">${imgSrc.src}</span>`;
             }
         }
@@ -1586,35 +1591,109 @@ function renderSettings(){
         <div class="sett-card${currentLang===k?' sett-active':''}" onclick="pickLang('${k}')">
             <span>${n}</span>${currentLang===k?'<span style="color:var(--accent)">✓</span>':''}
         </div>`).join('');
+    const musicTracksHtml = (() => {
+        if (typeof MUSIC_TRACKS === 'undefined') return '<div style="color:var(--muted);font-size:12px">music.js не завантажено</div>';
+        const tracks = Object.entries(MUSIC_TRACKS);
+        const offCard = `<div class="sett-card${currentTrack===null?' sett-active':''}" onclick="pickTrack(null)">
+            <span>🔇 Без звуку</span>
+            ${currentTrack===null?'<span style="color:var(--accent)">✓</span>':''}
+        </div>`;
+        const trackCards = tracks.map(([k,t])=>`
+            <div class="sett-card${currentTrack===k?' sett-active':''}" onclick="pickTrack('${k}')">
+                <span>🎵 ${t.title}</span>
+                <div style="display:flex;align-items:center;gap:6px">
+                    ${currentTrack===k && musicEnabled ? '<span style="color:var(--accent);font-size:16px;animation:xp-shine 1s infinite">▶</span>' : ''}
+                    ${currentTrack===k?'<span style="color:var(--accent)">✓</span>':''}
+                </div>
+            </div>`).join('');
+        return offCard + trackCards;
+    })();
+
     el.innerHTML=`
         <div class="glass"><div class="sett-section-title">${L('theme')}</div><div class="sett-grid">${themeHtml}</div></div>
         <div class="glass"><div class="sett-section-title">${L('lang')}</div><div class="sett-list">${langHtml}</div></div>
-        <div class="glass"><div class="sett-section-title">${L('music')}</div>
-            <div class="sett-card${musicEnabled?' sett-active':''}" onclick="toggleMusic()">
-                <span>${musicEnabled?L('musicOn'):L('musicOff')}</span>
-                <div style="font-size:22px">${musicEnabled?'🔊':'🔇'}</div>
+        <div class="glass">
+            <div class="sett-section-title">${L('music')}</div>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+                <button class="btn-s" style="flex:1;background:${musicEnabled?'rgba(232,121,160,.15)':'rgba(255,255,255,.04)'};border-color:${musicEnabled?'var(--accent)':'rgba(255,255,255,.12)'};color:${musicEnabled?'var(--accent)':'var(--muted)'}" onclick="toggleMusic()">
+                    ${musicEnabled?'🔊 Увімк.':'🔇 Вимк.'}
+                </button>
+                <div style="flex:2;display:flex;align-items:center;font-size:12px;color:var(--muted);padding:0 8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">
+                    ${currentTrack && typeof MUSIC_TRACKS!=='undefined' && MUSIC_TRACKS[currentTrack] ? '🎵 ' + MUSIC_TRACKS[currentTrack].title : '🔇 Без звуку'}
+                </div>
             </div>
+            <div class="sett-list">${musicTracksHtml}</div>
         </div>`;
 }
 window.pickTheme=k=>{applyTheme(k);renderSettings();showToast(L('saved'));};
 window.pickLang=k=>{applyLang(k);renderSettings();showToast(L('saved'));};
 
 // ============================================================
-// МУЗИКА
+// МУЗИКА — мультитрек плеєр
 // ============================================================
-const MUSIC_URL=typeof MUSIC_B64!=='undefined'?MUSIC_B64:'';
-let musicEnabled=localStorage.getItem('bc_music')!=='false';
-let bgAudio=null;
-function initMusic(){
-    if(!MUSIC_URL)return;
-    if(!bgAudio){bgAudio=new Audio(MUSIC_URL);bgAudio.loop=true;bgAudio.volume=0.35;}
-    if(musicEnabled){bgAudio.play().catch(()=>{document.addEventListener('click',()=>{if(musicEnabled&&bgAudio.paused)bgAudio.play();},{once:true});});}
+let currentTrack  = localStorage.getItem('bc_track') || 'bubblegum';
+let musicEnabled  = localStorage.getItem('bc_music') !== 'false';
+let bgAudio       = null;
+
+function getMusicSrc(key) {
+    if (!key) return null;
+    if (typeof MUSIC_TRACKS !== 'undefined' && MUSIC_TRACKS[key]) return MUSIC_TRACKS[key].src;
+    // Fallback: стара MUSIC_B64
+    if (typeof MUSIC_B64 !== 'undefined' && key === 'bubblegum') return MUSIC_B64;
+    return null;
 }
-window.toggleMusic=()=>{
-    musicEnabled=!musicEnabled;localStorage.setItem('bc_music',musicEnabled);
-    if(musicEnabled){if(!bgAudio)initMusic();else bgAudio.play().catch(()=>{});}
-    else{if(bgAudio)bgAudio.pause();}
-    renderSettings();showToast(musicEnabled?L('musicOn'):L('musicOff'));
+
+function initMusic() {
+    if (!musicEnabled || !currentTrack) return;
+    const src = getMusicSrc(currentTrack);
+    if (!src) return;
+    if (!bgAudio) {
+        bgAudio = new Audio(src);
+        bgAudio.loop   = true;
+        bgAudio.volume = 0.35;
+    } else if (bgAudio.src !== src) {
+        bgAudio.pause();
+        bgAudio = new Audio(src);
+        bgAudio.loop   = true;
+        bgAudio.volume = 0.35;
+    }
+    bgAudio.play().catch(() => {
+        document.addEventListener('click', () => {
+            if (musicEnabled && bgAudio && bgAudio.paused) bgAudio.play();
+        }, { once: true });
+    });
+}
+
+window.pickTrack = key => {
+    currentTrack = key;
+    localStorage.setItem('bc_track', key || '');
+    if (bgAudio) { bgAudio.pause(); bgAudio = null; }
+    if (key && musicEnabled) {
+        musicEnabled = true;
+        localStorage.setItem('bc_music', 'true');
+        initMusic();
+    } else if (!key) {
+        // Вимкнути звук
+        musicEnabled = false;
+        localStorage.setItem('bc_music', 'false');
+    }
+    renderSettings();
+    if (key && typeof MUSIC_TRACKS !== 'undefined' && MUSIC_TRACKS[key]) {
+        showToast(`🎵 ${MUSIC_TRACKS[key].title}`);
+    }
+};
+
+window.toggleMusic = () => {
+    musicEnabled = !musicEnabled;
+    localStorage.setItem('bc_music', musicEnabled);
+    if (musicEnabled) {
+        if (!bgAudio) initMusic();
+        else bgAudio.play().catch(()=>{});
+    } else {
+        if (bgAudio) bgAudio.pause();
+    }
+    renderSettings();
+    showToast(musicEnabled ? L('musicOn') : L('musicOff'));
 };
 
 // ============================================================
