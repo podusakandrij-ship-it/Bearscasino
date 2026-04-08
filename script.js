@@ -23,7 +23,11 @@ const myId            = tg.initDataUnsafe?.user?.id || 101;
 const myName          = tg.initDataUnsafe?.user?.first_name || "Гравець";
 const DEADLINE_EASTER = new Date("2026-04-14T00:00:00+03:00").getTime();
 const DEADLINE_CLOWN  = new Date("2026-04-14T00:00:00+03:00").getTime();
-const XP_PER_LEVEL    = 1000;
+const XP_BASE = 1000; // XP для 1-го рівня
+function xpForLevel(lvl) {
+    // Кожен рівень потребує на 30% більше ніж попередній
+    return Math.round(XP_BASE * Math.pow(1.3, (lvl||1) - 1));
+}
 
 // ============================================================
 // ПЕТИ — canvas малюнки + анімація
@@ -496,7 +500,7 @@ function save(){db.ref('players/'+myId).set(s);}
 // ============================================================
 function checkPetLevelUp(){
     if(!s.p) return;
-    const needed=(s.p.lvl||1)*XP_PER_LEVEL;
+    const needed=xpForLevel(s.p.lvl||1);
     if(s.x>=needed){
         s.x-=needed; s.p.lvl=(s.p.lvl||1)+1;
         s.p.m=Math.round((s.p.m+0.005)*1000)/1000;
@@ -522,32 +526,59 @@ const RARITY_GLOW={
 };
 
 function ren(){
-    document.getElementById('bal-val').innerText=Number.isInteger(s.b)?s.b:s.b.toFixed(2);
-    const petLvl=s.p?(s.p.lvl||1):1;
-    document.getElementById('xp-f').style.width=Math.min((s.x/(petLvl*XP_PER_LEVEL))*100,100)+'%';
-    const bonusLblEl=document.getElementById('pet-bonus-lbl');
-    if(bonusLblEl) bonusLblEl.textContent=L('bonusLabelHud');
-    if(s.p){
-        document.getElementById('p-img').innerText='';
-        // Draw pet on HUD canvas
-        const hc=document.getElementById('p-hud-canvas');
-        if(hc){ hc.width=hc.width; startPetAnim('p-hud-canvas',s.p); }
-        else {
-            const img=document.getElementById('p-img');
-            if(img) img.innerText=s.p.s||'';
+    // Баланс
+    document.getElementById('bal-val').innerText = Number.isInteger(s.b) ? s.b : s.b.toFixed(2);
+
+    const petLvl  = s.p ? (s.p.lvl||1) : 1;
+    const needed  = xpForLevel(petLvl);
+    const pct     = Math.min((s.x / needed)*100, 100);
+
+    // XP бар з анімацією
+    const xpFill = document.getElementById('xp-f');
+    if (xpFill) xpFill.style.width = pct + '%';
+
+    // XP текст
+    const xpText = document.getElementById('xp-text');
+    if (xpText) xpText.textContent = `${s.x} / ${needed} XP`;
+
+    // Бонус лейбл
+    const bonusLbl = document.getElementById('pet-bonus-lbl');
+    if (bonusLbl) bonusLbl.textContent = L('bonusLabelHud');
+
+    const hudWrap = document.getElementById('p-hud-wrap');
+
+    if (s.p) {
+        // HUD зображення
+        if (hudWrap) {
+            const imgSrc = getPetImageSrc(s.p);
+            if (imgSrc.type === 'img') {
+                hudWrap.innerHTML = `<img src="${imgSrc.src}" style="width:52px;height:52px;object-fit:contain;animation:pet-float 3s ease-in-out infinite">`;
+            } else {
+                hudWrap.innerHTML = `<span style="font-size:34px;animation:pet-float 3s ease-in-out infinite">${imgSrc.src}</span>`;
+            }
         }
-        document.getElementById('p-name').innerText=s.p.n;
-        document.getElementById('p-m').innerText=s.p.m.toFixed(3);
-        document.getElementById('p-l').innerText=s.p.lvl||1;
-        const t=document.getElementById('p-rarity');
-        t.innerText=s.p.r; t.style.background=s.p.c;
+        document.getElementById('p-name').innerText  = s.p.n;
+        document.getElementById('p-m').innerText     = 'x' + s.p.m.toFixed(3);
+        document.getElementById('p-l').innerText     = s.p.lvl || 1;
+        const rb = document.getElementById('p-rarity');
+        rb.innerText = s.p.r;
+        rb.style.background = (s.p.c||'#94a3b8') + '22';
+        rb.style.color = s.p.c || '#94a3b8';
+        rb.style.border = `1px solid ${s.p.c||'#94a3b8'}44`;
     } else {
-        const img=document.getElementById('p-img'); if(img) img.innerText='🥚';
-        document.getElementById('p-name').innerText=L('noPet');
-        const t=document.getElementById('p-rarity');
-        t.innerText=L('noPetRarity'); t.style.background='';
+        if (hudWrap) hudWrap.innerHTML = `<span style="font-size:34px">🥚</span>`;
+        document.getElementById('p-name').innerText = L('noPet');
+        document.getElementById('p-m').innerText    = 'x1.000';
+        document.getElementById('p-l').innerText    = '1';
+        const rb = document.getElementById('p-rarity');
+        rb.innerText = L('noPetRarity');
+        rb.style.background = 'rgba(107,114,128,.2)';
+        rb.style.color = '#9ca3af';
+        rb.style.border = '1px solid rgba(107,114,128,.3)';
     }
-    if(ADMINS.includes(Number(myId))) document.getElementById('admin-tab').style.display='block';
+
+    if (ADMINS.includes(Number(myId)))
+        document.getElementById('admin-tab').style.display = 'flex';
 }
 
 // ============================================================
@@ -599,24 +630,54 @@ function renderShop(){
         }
         list.innerHTML=h;
     } else {
-        list.innerHTML=tabs+`<div id="m-list" class="glass" style="text-align:center;color:#8d99ae">${L('loading')}</div>`;
+        list.innerHTML=tabs+`<div id="m-list" class="card" style="text-align:center;color:var(--muted)">${L('loading')}</div>`;
         db.ref('market').once('value',snap=>{
-            let h='';
+            let myLots='', otherLots='';
             snap.forEach(child=>{
                 const lot=child.val();
                 if(!lot||!lot.pet) return;
-                if(String(lot.sellerId)===String(myId)) return;
-                h+=`<div class="market-item">
-                    <div><div style="font-weight:700;color:${lot.pet.c}">${lot.pet.s} ${lot.pet.n}</div>
-                    <div style="font-size:11px;color:#8d99ae">LVL ${lot.pet.lvl||1} · x${lot.pet.m.toFixed(3)} · ${lot.sellerName}</div></div>
-                    <button class="btn-buy" onclick="buyFromMarket('${child.key}')">${lot.price} BB</button>
-                </div>`;
+                const imgSrc=getPetImageSrc(lot.pet);
+                const icon = imgSrc.type==='img'
+                    ? `<img src="${imgSrc.src}" width="38" height="38" style="object-fit:contain;border-radius:8px;flex-shrink:0">`
+                    : `<span style="font-size:28px;flex-shrink:0">${lot.pet.s}</span>`;
+                if(String(lot.sellerId)===String(myId)){
+                    myLots+=`<div class="market-item">
+                        ${icon}
+                        <div style="flex:1">
+                            <div style="font-weight:700;color:${lot.pet.c};font-size:13px">${lot.pet.n}</div>
+                            <div style="font-size:11px;color:var(--muted)">Твій лот · <b style="color:var(--accent2)">${lot.price} BB</b></div>
+                        </div>
+                        <button class="btn-ghost" style="color:var(--error);border-color:rgba(239,68,68,.3);font-size:11px;padding:7px 10px" onclick="cancelMarketLot('${child.key}')">✕ Забрати</button>
+                    </div>`;
+                } else {
+                    otherLots+=`<div class="market-item">
+                        ${icon}
+                        <div style="flex:1">
+                            <div style="font-weight:700;color:${lot.pet.c};font-size:13px">${lot.pet.n}</div>
+                            <div style="font-size:11px;color:var(--muted)">LVL ${lot.pet.lvl||1} · x${lot.pet.m.toFixed(3)} · ${lot.sellerName}</div>
+                        </div>
+                        <button class="btn-buy" onclick="buyFromMarket('${child.key}')">${lot.price} BB</button>
+                    </div>`;
+                }
             });
+            let result='';
+            if(myLots) result+=`<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin-bottom:8px">МОЇ ЛОТИ</div>${myLots}<div style="height:1px;background:rgba(255,255,255,.06);margin:12px 0"></div>`;
+            result+=otherLots||`<div style="padding:20px;text-align:center;color:var(--muted)">${L('marketEmpty')}</div>`;
             const el=document.getElementById('m-list');
-            if(el) el.innerHTML=h||`<div style="padding:30px;text-align:center;color:#8d99ae">${L('marketEmpty')}</div>`;
+            if(el) el.innerHTML=result;
         });
     }
 }
+window.cancelMarketLot=lotId=>{
+    db.ref('market/'+lotId).once('value',snap=>{
+        const lot=snap.val();
+        if(!lot) return;
+        s.inv.push(lot.pet); save();
+        db.ref('market/'+lotId).remove();
+        showToast(`✅ ${lot.pet.n} повернуто в інвентар`);
+        renderShop();
+    });
+};
 window.buyFromMarket=lotId=>{
     db.ref('market/'+lotId).once('value',snap=>{
         const lot=snap.val();
@@ -643,40 +704,61 @@ window.listOnMarket=petId=>{
 function renderInv(){
     stopAllPetAnims();
     const el=document.getElementById('inv-list');
+    const countEl=document.getElementById('inv-count');
+    if(countEl) countEl.textContent=s.inv.length ? `${s.inv.length} ${L('invCountLabel')}` : '';
     if(!s.inv||!s.inv.length){
-        el.innerHTML=`<div class="inv-empty"><div style="font-size:52px;margin-bottom:12px">🥚</div>
-            <div style="font-weight:bold;font-size:15px">${L('invEmpty')}</div>
-            <div style="font-size:12px;opacity:.6;margin-top:4px">${L('invEmptySub')}</div></div>`;
+        el.innerHTML=`<div class="inv-empty">
+            <div style="font-size:52px;margin-bottom:12px">🥚</div>
+            <div style="font-weight:700;font-size:15px">${L('invEmpty')}</div>
+            <div style="font-size:12px;opacity:.6;margin-top:4px">${L('invEmptySub')}</div>
+        </div>`;
         return;
     }
-    let h=`<div style="font-size:11px;color:#8d99ae;font-weight:700;margin-bottom:10px;letter-spacing:.5px">${s.inv.length} ${L('invCountLabel')}</div>`;
+    let h='';
     s.inv.forEach((p,i)=>{
         const eq=s.p&&s.p.id===p.id;
-        const containerId=`pet-vis-${i}`;
+        const cid=`pet-vis-${i}`;
+        const pvl=p.lvl||1, pxp=s.p&&s.p.id===p.id?s.x:0;
+        const pct=eq?Math.min((pxp/xpForLevel(pvl))*100,100):0;
+        // Quick sell price = base multiplier * 50
+        const qsPrice = Math.floor(p.m * 50);
         h+=`<div class="pet-card${eq?' pet-eq':''}">
             <div class="pet-stripe" style="background:${p.c}"></div>
-            <div id="${containerId}" data-size="72" style="flex-shrink:0"></div>
-            <div class="pet-info">
-                <div class="pet-badge" style="background:${p.c}25;color:${p.c};border:1px solid ${p.c}50">${p.r}</div>
-                <div class="pet-name">${p.n}${eq?`<span class="pet-active-tag">✦ ${L('activePet')}</span>`:''}</div>
-                <div class="pet-stats">
-                    <span>${L('bonusWord')} <b style="color:${p.c}">x${p.m.toFixed(3)}</b></span>
-                    <span style="margin-left:10px">LVL <b style="color:#eee">${p.lvl||1}</b></span>
+            <div id="${cid}" data-size="68" style="flex-shrink:0"></div>
+            <div class="pet-info" style="overflow:hidden">
+                <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+                    <div class="pet-badge" style="background:${p.c}22;color:${p.c};border:1px solid ${p.c}44">${p.r}</div>
+                    ${eq?`<span class="pet-active-tag">✦ ${L('activePet')}</span>`:''}
                 </div>
+                <div class="pet-name">${p.n}</div>
+                <div class="pet-stats"><span>${L('bonusWord')} <b style="color:${p.c}">x${p.m.toFixed(3)}</b> · LVL <b style="color:#fff">${pvl}</b></span></div>
+                ${eq?`<div style="margin-top:5px">
+                    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:2px">
+                        <span>XP</span><span>${pxp}/${xpForLevel(pvl)}</span>
+                    </div>
+                    <div class="xp-bar" style="height:4px"><div class="xp-fill" style="width:${pct}%"></div></div>
+                </div>`:''}
             </div>
             <div class="pet-btns">
                 <button class="pb-equip${eq?' pb-eq':''}" onclick="equip(${p.id})">${eq?L('equipped'):L('equip')}</button>
-                <button class="pb-sell" onclick="listOnMarket(${p.id})">🏪</button>
+                <button class="pb-sell" onclick="listOnMarket(${p.id})" title="На ринок">🏪</button>
+                <button class="pb-quick-sell" onclick="quickSell(${p.id},${qsPrice})" title="Продати за ${qsPrice} BB">💰${qsPrice}</button>
             </div>
         </div>`;
     });
     el.innerHTML=h;
-    // Insert pet visuals after render
-    requestAnimationFrame(()=>{
-        s.inv.forEach((p,i)=>startPetAnim(`pet-vis-${i}`,p));
-    });
+    requestAnimationFrame(()=>{ s.inv.forEach((p,i)=>startPetAnim(`pet-vis-${i}`,p)); });
 }
 window.equip=id=>{s.p=s.inv.find(i=>i.id===id);save();renderInv();ren();};
+window.quickSell=(petId,price)=>{
+    const pet=s.inv.find(p=>p.id===petId);
+    if(!pet) return;
+    if(s.p&&s.p.id===petId) return alert(`Спочатку зніми ${pet.n}!`);
+    if(!confirm(`Продати ${pet.s||''} ${pet.n} за ${price} BB?`)) return;
+    s.inv=s.inv.filter(p=>p.id!==petId);
+    s.b+=price; save(); renderInv(); ren();
+    showToast(`💰 Продано ${pet.n} за ${price} BB`);
+};
 
 // ============================================================
 // КОЛЕСО
@@ -1270,9 +1352,19 @@ function endBJ(){document.getElementById('bj-ctrl').style.display='none';}
 // ============================================================
 function loadTop(){
     db.ref('players').once('value',snap=>{
-        let l=[];snap.forEach(c=>{const v=c.val();if(v.name)l.push(v);});l.sort((a,b)=>b.b-a.b);
+        let l=[];
+        snap.forEach(c=>{const v=c.val();if(v&&v.name)l.push(v);});
+        l.sort((a,b)=>b.b-a.b);
+        const medals=['🥇','🥈','🥉'];
         document.getElementById('leaderboard').innerHTML=l.slice(0,10).map((p,i)=>`
-            <div class="market-item"><span>${['🥇','🥈','🥉'][i]||`${i+1}.`} ${p.name}</span><b style="color:var(--accent)">${Math.floor(p.b)} BB</b></div>`).join('');
+            <div class="leader-item">
+                <div class="leader-rank">${medals[i]||`<span style="color:var(--muted);font-size:13px">${i+1}</span>`}</div>
+                <div>
+                    <div class="leader-name">${p.name}</div>
+                    <div style="font-size:10px;color:var(--muted)">${p.p?`${p.p.s||''} ${p.p.n}`:''}</div>
+                </div>
+                <div class="leader-bal">${Math.floor(p.b).toLocaleString()} BB</div>
+            </div>`).join('');
     });
 }
 
@@ -1283,18 +1375,73 @@ window.setAdminTab=t=>{currentAdminTab=t;adminInvUserId=null;loadAdmin();};
 function loadAdmin(){
     if(currentAdminTab==='inv'&&adminInvUserId){loadAdminUserInv(adminInvUserId,adminInvUserName);return;}
     db.ref('players').once('value',snap=>{
-        let tabs=`<div class="admin-tabs">
-            <div class="a-tab ${currentAdminTab==='balance'?'active':''}" onclick="setAdminTab('balance')">💰 ${L('adminBalance')}</div>
-            <div class="a-tab ${currentAdminTab==='pets'?'active':''}" onclick="setAdminTab('pets')">🐾 ${L('adminPets')}</div>
-            <div class="a-tab ${currentAdminTab==='inv'?'active':''}" onclick="setAdminTab('inv')">🎒 ${L('adminInv')}</div>
+        const players=[];
+        snap.forEach(c=>{const v=c.val();if(v)players.push({uid:c.key,...v});});
+
+        const tabs=`<div class="admin-tabs">
+            <div class="a-tab ${currentAdminTab==='stats'?'active':''}"  onclick="setAdminTab('stats')">📊 Стат</div>
+            <div class="a-tab ${currentAdminTab==='balance'?'active':''}" onclick="setAdminTab('balance')">💰 BB</div>
+            <div class="a-tab ${currentAdminTab==='pets'?'active':''}"   onclick="setAdminTab('pets')">🐾 Пети</div>
+            <div class="a-tab ${currentAdminTab==='inv'?'active':''}"    onclick="setAdminTab('inv')">🎒 Інв</div>
         </div>`;
+
+        if(currentAdminTab==='stats'){
+            const totalBB = players.reduce((a,p)=>a+(p.b||0),0);
+            const totalPets = players.reduce((a,p)=>a+(p.inv?p.inv.length:0),0);
+            const avgBB = players.length ? (totalBB/players.length).toFixed(0) : 0;
+            const richest = players.reduce((a,b)=>(b.b||0)>(a.b||0)?b:a,{b:0,name:'—'});
+            const mostPets = players.reduce((a,b)=>((b.inv||[]).length>((a.inv||[]).length))?b:a,{inv:[],name:'—'});
+
+            // Розподіл по рідкості
+            const rarityCount={};
+            players.forEach(p=>(p.inv||[]).forEach(pet=>{rarityCount[pet.r]=(rarityCount[pet.r]||0)+1;}));
+
+            document.getElementById('admin-list').innerHTML=tabs+`
+            <div class="stat-grid">
+                <div class="stat-card"><div class="stat-val">${players.length}</div><div class="stat-lbl">Гравців</div></div>
+                <div class="stat-card"><div class="stat-val">${Math.floor(totalBB).toLocaleString()}</div><div class="stat-lbl">BB у грі</div></div>
+                <div class="stat-card"><div class="stat-val">${totalPets}</div><div class="stat-lbl">Петів всього</div></div>
+                <div class="stat-card"><div class="stat-val">${avgBB}</div><div class="stat-lbl">BB на гравця</div></div>
+            </div>
+            <div class="admin-card">
+                <div class="card-title">🏆 Лідери</div>
+                <div style="font-size:13px;margin-bottom:6px">💰 Найбагатший: <b style="color:var(--accent2)">${richest.name}</b> — ${Math.floor(richest.b||0)} BB</div>
+                <div style="font-size:13px">🐾 Найбільше петів: <b style="color:var(--accent2)">${mostPets.name}</b> — ${(mostPets.inv||[]).length} шт.</div>
+            </div>
+            <div class="admin-card">
+                <div class="card-title">🐾 Розподіл по рідкості</div>
+                ${Object.entries(rarityCount).sort((a,b)=>b[1]-a[1]).map(([r,n])=>`
+                    <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+                        <span style="color:${RARITY_GLOW[r]||'#fff'}">${r}</span>
+                        <b style="color:var(--accent2)">${n}</b>
+                    </div>`).join('')}
+            </div>`;
+            return;
+        }
+
         let h=tabs;
-        snap.forEach(c=>{
-            const p=c.val(),uid=c.key;
-            h+=`<div class="admin-card"><b>${p.name||L('anon')}</b> <small style="color:#8d99ae">${(p.b||0).toFixed(2)} BB</small>`;
-            if(currentAdminTab==='balance'){h+=`<div class="admin-ctrl-grid"><button class="btn-ctrl b-add" onclick="mathB('${uid}','add')">+ ${L('adminBalance')}</button><button class="btn-ctrl b-sub" onclick="mathB('${uid}','sub')">−</button><button class="btn-ctrl b-set" onclick="mathB('${uid}','set')">Set</button></div>`;}
-            else if(currentAdminTab==='pets'){h+=`<button class="btn" style="padding:8px;font-size:12px;margin-top:8px;background:#8b5cf6" onclick="adminGivePet('${uid}')">🎁 ${L('adminPets')}</button>`;}
-            else{h+=`<br><small style="color:#8d99ae">${L('petsCount')} ${(p.inv||[]).length}</small><button class="btn" style="padding:8px;font-size:12px;margin-top:8px;background:#1c4a8a" onclick="openAdminInv('${uid}','${(p.name||L('anon')).replace(/'/g,"\\'")}')"> ${L('viewInv')}</button>`;}
+        players.forEach(({uid,name,b,inv,p:activePet})=>{
+            b=b||0; inv=inv||[];
+            h+=`<div class="admin-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <div>
+                        <b style="font-size:14px">${name||L('anon')}</b>
+                        ${activePet?`<span style="font-size:11px;color:var(--muted);margin-left:6px">${activePet.s||''}</span>`:''}
+                    </div>
+                    <span style="color:var(--accent2);font-weight:700;font-size:14px">${b.toFixed(0)} BB</span>
+                </div>`;
+            if(currentAdminTab==='balance'){
+                h+=`<div class="admin-ctrl-grid">
+                    <button class="btn-ctrl b-add" onclick="mathB('${uid}','add')">＋ Додати</button>
+                    <button class="btn-ctrl b-sub" onclick="mathB('${uid}','sub')">－ Забрати</button>
+                    <button class="btn-ctrl b-set" onclick="mathB('${uid}','set')">Задати</button>
+                </div>`;
+            } else if(currentAdminTab==='pets'){
+                h+=`<button class="btn-buy" style="width:100%;margin-top:4px" onclick="adminGivePet('${uid}')">🎁 Подарувати пета</button>`;
+            } else {
+                h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:6px">${L('petsCount')} ${inv.length}</div>
+                <button class="btn-ghost" style="width:100%;font-size:12px" onclick="openAdminInv('${uid}','${(name||'').replace(/'/g,"\\'")}')">🎒 Переглянути інвентар</button>`;
+            }
             h+=`</div>`;
         });
         document.getElementById('admin-list').innerHTML=h;
@@ -1303,24 +1450,84 @@ function loadAdmin(){
 window.openAdminInv=(uid,name)=>{adminInvUserId=uid;adminInvUserName=name;loadAdminUserInv(uid,name);};
 function loadAdminUserInv(uid,name){
     db.ref('players/'+uid).once('value',snap=>{
-        const p=snap.val(),inv=(p&&p.inv)?p.inv:[];
-        let h=`<div class="admin-tabs"><div class="a-tab" onclick="setAdminTab('balance')">💰</div><div class="a-tab" onclick="setAdminTab('pets')">🐾</div><div class="a-tab active">🎒</div></div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-            <button class="btn-s" onclick="adminInvUserId=null;loadAdmin()" style="font-size:15px;padding:8px 14px">${L('back')}</button>
-            <div><b>${name}</b> <small style="color:#8d99ae">(${inv.length} ${L('petsOf')})</small></div>
+        const p=snap.val()||{},inv=p.inv||[];
+        const tabs=`<div class="admin-tabs">
+            <div class="a-tab" onclick="setAdminTab('stats')">📊</div>
+            <div class="a-tab" onclick="setAdminTab('balance')">💰</div>
+            <div class="a-tab" onclick="setAdminTab('pets')">🐾</div>
+            <div class="a-tab active">🎒</div>
         </div>`;
-        if(!inv.length){h+=`<div class="admin-card" style="text-align:center;color:#8d99ae;padding:20px">${L('empty')}</div>`;}
-        else{inv.forEach((pet,idx)=>{const eq=p.p&&p.p.id===pet.id;h+=`<div class="admin-card" style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:28px">${pet.s}</span><div><div style="font-weight:bold">${pet.n}${eq?` <span style="font-size:10px;background:var(--success);padding:1px 5px;border-radius:4px">${L('activePet')}</span>`:''}</div><div style="font-size:11px;color:${pet.c}">${pet.r} · x${pet.m.toFixed(3)} · LVL ${pet.lvl||1}</div></div></div><button class="btn-ctrl b-sub" onclick="adminRemovePet('${uid}',${idx},'${name}')">🗑</button></div>`;});}
+        let h=tabs+`<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <button class="btn-s" onclick="adminInvUserId=null;loadAdmin()" style="padding:8px 14px;font-size:14px">${L('back')}</button>
+            <div><b>${name}</b> <span style="color:var(--muted);font-size:12px">${inv.length} ${L('petsOf')}</span></div>
+        </div>`;
+        if(!inv.length){
+            h+=`<div class="admin-card" style="text-align:center;color:var(--muted);padding:20px">${L('empty')}</div>`;
+        } else {
+            inv.forEach((pet,idx)=>{
+                const eq=p.p&&p.p.id===pet.id;
+                const imgSrc=getPetImageSrc(pet);
+                const icon = imgSrc.type==='img'
+                    ? `<img src="${imgSrc.src}" width="36" height="36" style="object-fit:contain;border-radius:8px">`
+                    : `<span style="font-size:26px">${pet.s}</span>`;
+                h+=`<div class="admin-card" style="padding:12px">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                        ${icon}
+                        <div style="flex:1">
+                            <div style="font-weight:700;font-size:13px">${pet.n}${eq?` <span style="font-size:10px;background:rgba(16,185,129,.2);color:var(--success);padding:1px 5px;border-radius:4px">Активний</span>`:''}</div>
+                            <div style="font-size:11px;color:${pet.c}">${pet.r} · x${pet.m.toFixed(3)} · LVL ${pet.lvl||1}</div>
+                        </div>
+                        <button class="btn-ctrl b-sub" style="padding:8px 10px;font-size:16px" onclick="adminRemovePet('${uid}',${idx},'${name.replace(/'/g,"\\'")}')">🗑</button>
+                    </div>
+                    <div class="admin-ctrl-grid" style="grid-template-columns:1fr 1fr 1fr;gap:6px">
+                        <button class="btn-ctrl" style="background:#6366f1;font-size:11px" onclick="adminSetPetLevel('${uid}',${idx},'${name.replace(/'/g,"\\'")}')">✏️ Рівень</button>
+                        <button class="btn-ctrl b-add" style="font-size:11px" onclick="adminAddPetLevel('${uid}',${idx},1)">LVL +1</button>
+                        <button class="btn-ctrl b-sub" style="font-size:11px" onclick="adminAddPetLevel('${uid}',${idx},-1)">LVL -1</button>
+                    </div>
+                </div>`;
+            });
+        }
         document.getElementById('admin-list').innerHTML=h;
     });
 }
 window.adminRemovePet=(uid,idx,name)=>{
     db.ref('players/'+uid).once('value',snap=>{
-        const p=snap.val();let inv=p.inv?[...p.inv]:[];const pet=inv[idx];
-        if(!pet)return alert('Не знайдено!');
-        if(!confirm(`${L('confirmDelete')} ${pet.s} ${pet.n}?`))return;
-        if(p.p&&p.p.id===pet.id)db.ref('players/'+uid+'/p').set(null);
-        inv.splice(idx,1);db.ref('players/'+uid+'/inv').set(inv).then(()=>loadAdminUserInv(uid,name));
+        const p=snap.val(); let inv=p.inv?[...p.inv]:[];
+        const pet=inv[idx];
+        if(!pet) return alert('Не знайдено!');
+        if(!confirm(`${L('confirmDelete')} ${pet.n}?`)) return;
+        // Якщо це активний пет — знімаємо
+        if(p.p&&p.p.id===pet.id) db.ref('players/'+uid+'/p').set(null);
+        inv.splice(idx,1);
+        db.ref('players/'+uid+'/inv').set(inv).then(()=>loadAdminUserInv(uid,name));
+    });
+};
+window.adminSetPetLevel=(uid,idx,name)=>{
+    const newLvl=prompt('Новий рівень (1-100):');
+    if(!newLvl||isNaN(newLvl)||newLvl<1) return;
+    db.ref('players/'+uid).once('value',snap=>{
+        const p=snap.val(); const inv=[...(p.inv||[])];
+        if(!inv[idx]) return;
+        inv[idx].lvl=parseInt(newLvl);
+        // Оновлюємо бонус: base + (lvl-1)*0.005
+        const base=inv[idx].m;
+        // Рахуємо множник через кількість level ups
+        db.ref('players/'+uid+'/inv').set(inv);
+        if(p.p&&p.p.id===inv[idx].id) db.ref('players/'+uid+'/p').set(inv[idx]);
+        setTimeout(()=>loadAdminUserInv(uid,name),300);
+    });
+};
+window.adminAddPetLevel=(uid,idx,delta)=>{
+    db.ref('players/'+uid).once('value',snap=>{
+        const p=snap.val(); const inv=[...(p.inv||[])];
+        if(!inv[idx]) return;
+        const newLvl=Math.max(1,(inv[idx].lvl||1)+delta);
+        inv[idx].lvl=newLvl;
+        inv[idx].m=Math.round((inv[idx].m+delta*0.005)*1000)/1000;
+        if(inv[idx].m<1) inv[idx].m=1;
+        db.ref('players/'+uid+'/inv').set(inv);
+        if(p.p&&p.p.id===inv[idx].id) db.ref('players/'+uid+'/p').set(inv[idx]);
+        setTimeout(()=>loadAdminUserInv(uid,p.name||''),300);
     });
 };
 window.mathB=(id,type)=>{
