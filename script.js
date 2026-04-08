@@ -500,13 +500,21 @@ function save(){db.ref('players/'+myId).set(s);}
 // ============================================================
 function checkPetLevelUp(){
     if(!s.p) return;
-    const needed=xpForLevel(s.p.lvl||1);
-    if(s.x>=needed){
-        s.x-=needed; s.p.lvl=(s.p.lvl||1)+1;
-        s.p.m=Math.round((s.p.m+0.005)*1000)/1000;
-        const idx=s.inv.findIndex(i=>i.id===s.p.id);
-        if(idx!==-1) s.inv[idx]=s.p;
-        save(); showToast(`${s.p.s||''} <b>${s.p.n}</b> — LVL ${s.p.lvl}! <span style="color:var(--accent)">+0.005</span>`);
+    let levelled = false;
+    // Цикл — пет може підняти кілька рівнів за раз
+    while(s.x >= xpForLevel(s.p.lvl||1)){
+        const needed = xpForLevel(s.p.lvl||1);
+        s.x  -= needed;
+        s.p.lvl = (s.p.lvl||1) + 1;
+        s.p.m   = Math.round((s.p.m + 0.005)*1000)/1000;
+        levelled = true;
+    }
+    if(levelled){
+        const idx = s.inv.findIndex(i=>i.id===s.p.id);
+        if(idx!==-1) s.inv[idx] = s.p;
+        save();
+        showToast(`${getPetEmoji(s.p)} <b>${s.p.n}</b> — LVL ${s.p.lvl}! <span style="color:var(--accent)">+0.005 бонус</span>`);
+        ren();
     }
 }
 function showToast(html){
@@ -1479,10 +1487,11 @@ function loadAdminUserInv(uid,name){
                         </div>
                         <button class="btn-ctrl b-sub" style="padding:8px 10px;font-size:16px" onclick="adminRemovePet('${uid}',${idx},'${name.replace(/'/g,"\\'")}')">🗑</button>
                     </div>
-                    <div class="admin-ctrl-grid" style="grid-template-columns:1fr 1fr 1fr;gap:6px">
-                        <button class="btn-ctrl" style="background:#6366f1;font-size:11px" onclick="adminSetPetLevel('${uid}',${idx},'${name.replace(/'/g,"\\'")}')">✏️ Рівень</button>
-                        <button class="btn-ctrl b-add" style="font-size:11px" onclick="adminAddPetLevel('${uid}',${idx},1)">LVL +1</button>
-                        <button class="btn-ctrl b-sub" style="font-size:11px" onclick="adminAddPetLevel('${uid}',${idx},-1)">LVL -1</button>
+                    <div class="admin-ctrl-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
+                        <button class="btn-ctrl" style="background:#6366f1;font-size:10px" onclick="adminSetPetLevel('${uid}',${idx},'${name.replace(/'/g,"\\'")}')">✏️ Рівень</button>
+                        <button class="btn-ctrl b-add" style="font-size:10px" onclick="adminAddPetLevel('${uid}',${idx},1)">LVL +1</button>
+                        <button class="btn-ctrl b-sub" style="font-size:10px" onclick="adminAddPetLevel('${uid}',${idx},-1)">LVL -1</button>
+                        <button class="btn-ctrl" style="background:#374151;font-size:10px" onclick="adminResetXP('${uid}')">🔄 XP</button>
                     </div>
                 </div>`;
             });
@@ -1503,31 +1512,47 @@ window.adminRemovePet=(uid,idx,name)=>{
     });
 };
 window.adminSetPetLevel=(uid,idx,name)=>{
-    const newLvl=prompt('Новий рівень (1-100):');
-    if(!newLvl||isNaN(newLvl)||newLvl<1) return;
+    const newLvlStr=prompt('Новий рівень (1-100):');
+    if(!newLvlStr||isNaN(newLvlStr)) return;
+    const newLvl=Math.max(1,Math.min(100,parseInt(newLvlStr)));
     db.ref('players/'+uid).once('value',snap=>{
         const p=snap.val(); const inv=[...(p.inv||[])];
         if(!inv[idx]) return;
-        inv[idx].lvl=parseInt(newLvl);
-        // Оновлюємо бонус: base + (lvl-1)*0.005
-        const base=inv[idx].m;
-        // Рахуємо множник через кількість level ups
+        const pet=inv[idx];
+        const oldLvl=pet.lvl||1;
+        // Перераховуємо м від базового значення рідкості + (newLvl-1)*0.005
+        // Базовий множник — те що було на LVL1
+        const baseMult = Math.round((pet.m - (oldLvl-1)*0.005)*1000)/1000;
+        pet.lvl = newLvl;
+        pet.m   = Math.round((baseMult + (newLvl-1)*0.005)*1000)/1000;
+        if(pet.m < 1) pet.m = 1;
+        // Скидаємо XP гравця до 0 при зміні рівня
+        db.ref('players/'+uid+'/x').set(0);
         db.ref('players/'+uid+'/inv').set(inv);
-        if(p.p&&p.p.id===inv[idx].id) db.ref('players/'+uid+'/p').set(inv[idx]);
-        setTimeout(()=>loadAdminUserInv(uid,name),300);
+        if(p.p&&p.p.id===pet.id) db.ref('players/'+uid+'/p').set(pet);
+        showToast(`✅ ${pet.n}: LVL ${newLvl}, x${pet.m.toFixed(3)}`);
+        setTimeout(()=>loadAdminUserInv(uid,name),400);
     });
+};
+window.adminResetXP=(uid)=>{
+    if(!confirm('Скинути XP до 0?')) return;
+    db.ref('players/'+uid+'/x').set(0);
+    showToast('✅ XP скинуто');
 };
 window.adminAddPetLevel=(uid,idx,delta)=>{
     db.ref('players/'+uid).once('value',snap=>{
         const p=snap.val(); const inv=[...(p.inv||[])];
         if(!inv[idx]) return;
-        const newLvl=Math.max(1,(inv[idx].lvl||1)+delta);
-        inv[idx].lvl=newLvl;
-        inv[idx].m=Math.round((inv[idx].m+delta*0.005)*1000)/1000;
-        if(inv[idx].m<1) inv[idx].m=1;
+        const pet=inv[idx];
+        const oldLvl=pet.lvl||1;
+        const newLvl=Math.max(1,oldLvl+delta);
+        const baseMult=Math.round((pet.m-(oldLvl-1)*0.005)*1000)/1000;
+        pet.lvl=newLvl;
+        pet.m=Math.round((baseMult+(newLvl-1)*0.005)*1000)/1000;
+        if(pet.m<1) pet.m=1;
         db.ref('players/'+uid+'/inv').set(inv);
-        if(p.p&&p.p.id===inv[idx].id) db.ref('players/'+uid+'/p').set(inv[idx]);
-        setTimeout(()=>loadAdminUserInv(uid,p.name||''),300);
+        if(p.p&&p.p.id===pet.id) db.ref('players/'+uid+'/p').set(pet);
+        setTimeout(()=>loadAdminUserInv(uid,p.name||name),300);
     });
 };
 window.mathB=(id,type)=>{
