@@ -280,13 +280,9 @@ const CASES = {
         {n:'Бджола',s:'🐝',r:'Рідкісний',  m:1.12,w:40,c:'#a855f7'},
         {n:'Панда', s:'🐼',r:'Епічний',    m:1.14,w:10,c:'#f59e0b'}]},
     legend:   { n:"Legendary Case 👑", p:1200, drop:[
-        {n:'Панда', s:'🐼',r:'Епічний',    m:1.14,w:56,c:'#f59e0b'},
-        {n:'Лев',   s:'🦁',r:'Легендарний',m:1.16,w:24,c:'#f43f5e'},
-        {n:'Дракон',s:'🐲',r:'Легендарний',m:1.17,w:20,c:'#f43f5e'}]},
-    fool:     { n:"Кейс Дурня 🤡", p:1488, drop:[
-        {n:'Унітаз',   s:'🚽',r:'Епічний',   m:1.20,w:45,c:'#f59e0b',drawKey:'toilet'},
-        {n:'Какашка',  s:'💩',r:'Легендарний',m:1.25,w:35,c:'#f43f5e',drawKey:'poop'},
-        {n:'Нокіа3310',s:'📱',r:'Міфічний',  m:1.32,w:20,c:'#bf40bf',drawKey:'nokia'}]},
+        {n:'Панда',    s:'🐼',r:'Епічний',    m:1.14,w:50,c:'#f59e0b'},
+        {n:'Лев',      s:'🦁',r:'Легендарний',m:1.16,w:30,c:'#f43f5e'},
+        {n:'Дракон',   s:'🐲',r:'Легендарний',m:1.17,w:20,c:'#f43f5e'}]},
     easter:   { n:"Великодній Кейс 🥚", p:1450, limited:true, deadline:DEADLINE_EASTER_CASE, drop:[
         {n:'Місячний заєць',   s:'🌙🐇',r:'Рідкісний',  m:1.165,w:33,c:'#a855f7',drawKey:'moonhare'},
         {n:'Місячний баранчик',s:'🌙🐑',r:'Рідкісний',  m:1.165,w:33,c:'#a855f7',drawKey:'moonlamb'},
@@ -299,6 +295,9 @@ const ADMIN_ONLY_PETS = [
     {n:'Клоун',              s:'🤡',r:'Смехуятина', m:1.67, c:'#ff6b35',drawKey:'clown2'},
     {n:'Смітник',            s:'🗑️',r:'Легендарний',m:1.35, c:'#f43f5e'},
     {n:'Медовий пасх. медвідь',s:'🍯🐻',r:'Епічний',m:1.25, c:'#f59e0b',drawKey:'honeybear'},
+    {n:'Унітаз',             s:'🚽',r:'Епічний',    m:1.20, c:'#f59e0b',drawKey:'toilet'},
+    {n:'Какашка',            s:'💩',r:'Легендарний', m:1.25, c:'#f43f5e',drawKey:'poop'},
+    {n:'Нокіа3310',          s:'📱',r:'Міфічний',   m:1.32, c:'#bf40bf',drawKey:'nokia'},
 ];
 
 // ============================================================
@@ -1246,37 +1245,141 @@ function dropPlinkoEgg(bt){
 // ============================================================
 // CANVAS КЕЙСИ
 // ============================================================
+function openCaseAnimation(win, onComplete) {
+    const modal = document.getElementById('case-modal');
+    const title = document.getElementById('case-title');
+    const resEl = document.getElementById('case-res');
+    const closeEl = document.getElementById('case-close');
+    const glow = RARITY_GLOW[win.r] || '#fff';
+
+    modal.style.display = 'flex';
+    closeEl.style.display = 'none';
+    resEl.innerHTML = '';
+
+    // Phase 1: Show rolling roulette
+    const scr = document.getElementById('case-scroll');
+    const CARD_W = 92, COUNT = 52, WIN_IDX = 38;
+    const pool = [];
+    for(const key in CASES) pool.push(...CASES[key].drop);
+    if(!pool.length) pool.push(win);
+    scr.innerHTML = ''; scr.style.transition = 'none'; scr.style.left = '0px';
+    const items = [];
+    for(let i=0;i<COUNT;i++) items.push(i===WIN_IDX ? win : pool[Math.floor(Math.random()*pool.length)]);
+    items.forEach(pet=>{
+        const cv=document.createElement('canvas'); cv.width=86; cv.height=106;
+        cv.style.cssText='display:block;margin:3px;border-radius:14px;flex-shrink:0';
+        scr.appendChild(cv); drawPetCard(cv,pet);
+    });
+
+    // Start spin
+    setTimeout(()=>{
+        scr.style.transition='4.5s cubic-bezier(0.08,0,0.05,1)';
+        scr.style.left=`-${WIN_IDX*CARD_W-(window.innerWidth/2-CARD_W/2)}px`;
+    }, 80);
+
+    // Phase 2: After spin — dramatic reveal
+    setTimeout(()=>{
+        // Flash the winner card
+        const winCard = scr.children[WIN_IDX];
+        if(winCard){
+            winCard.style.transition='transform .15s,box-shadow .15s';
+            winCard.style.transform='scale(1.15)';
+            winCard.style.boxShadow=`0 0 30px ${glow}, 0 0 60px ${glow}66`;
+        }
+        // Sparkle flash on modal
+        modal.style.background=`rgba(4,6,12,.97)`;
+        setTimeout(()=>{
+            modal.style.background='rgba(4,6,12,.97)';
+        },200);
+    }, 4700);
+
+    // Phase 3: Big reveal card
+    setTimeout(()=>{
+        // Hide roulette
+        const roulette = modal.querySelector('.case-roulette');
+        if(roulette){ roulette.style.transition='opacity .4s'; roulette.style.opacity='0'; }
+        title.style.transition='opacity .3s'; title.style.opacity='0';
+
+        setTimeout(()=>{
+            if(roulette) roulette.style.display='none';
+            title.style.display='none';
+
+            // Big card reveal with animation
+            const imgSrc = getPetImageSrc(win);
+            const hasPhoto = imgSrc.type === 'img';
+            const cardSize = 180;
+
+            resEl.innerHTML = `<div id="reveal-card" style="
+                opacity:0;transform:scale(0.3) rotate(-10deg);
+                transition:opacity .5s,transform .5s cubic-bezier(.175,.885,.32,1.5);
+                display:inline-block;
+            ">
+                <div style="
+                    width:${cardSize}px;height:${cardSize}px;
+                    background:${RARITY_BG[win.r]||'#1a1f2e'};
+                    border-radius:20px;border:3px solid ${glow};
+                    box-shadow:0 0 40px ${glow}88,0 0 80px ${glow}44;
+                    display:flex;align-items:center;justify-content:center;
+                    position:relative;overflow:hidden;margin:0 auto 12px;
+                ">
+                    ${hasPhoto
+                        ? `<img src="${imgSrc.src}" style="width:${Math.round(cardSize*.9)}px;height:${Math.round(cardSize*.9)}px;object-fit:contain">`
+                        : `<span style="font-size:${Math.round(cardSize*.5)}px">${imgSrc.src}</span>`
+                    }
+                </div>
+            </div>
+            <div id="reveal-info" style="opacity:0;transform:translateY(16px);transition:opacity .4s .3s,transform .4s .3s">
+                <div style="font-size:24px;font-weight:900;color:${glow};letter-spacing:.5px">${win.n}</div>
+                <div style="font-size:13px;color:#8d99ae;margin-top:4px">${win.r} · x${win.m.toFixed(3)}</div>
+                <div style="font-size:12px;color:var(--accent2);margin-top:6px;font-weight:700">+${win.n} в інвентар!</div>
+            </div>`;
+
+            // Animate in
+            requestAnimationFrame(()=>{
+                requestAnimationFrame(()=>{
+                    const card=document.getElementById('reveal-card');
+                    const info=document.getElementById('reveal-info');
+                    if(card){card.style.opacity='1';card.style.transform='scale(1) rotate(0deg)';}
+                    if(info){info.style.opacity='1';info.style.transform='translateY(0)';}
+                });
+            });
+
+            setTimeout(()=>{
+                closeEl.style.display='block';
+                closeEl.style.animation='toast-in .3s ease';
+                onComplete();
+            }, 700);
+        }, 400);
+    }, 5400);
+}
+
 function buyCase(k){
     const c=CASES[k];
     if(s.b<c.p)return alert('Мало BB!');
-    s.b-=c.p;save();
-    document.getElementById('case-modal').style.display='flex';
-    let rand=Math.random()*100,win,cur=0;
+    s.b-=c.p; save();
+
+    // Pick winner
+    let rand=Math.random()*100, win=null, cur=0;
     for(const p of c.drop){cur+=p.w;if(rand<=cur){win={...p};break;}}
-    const CARD_W=90,COUNT=55,WIN_IDX=40;
-    const pool=[];for(const key in CASES)pool.push(...CASES[key].drop);
-    const scr=document.getElementById('case-scroll');
-    scr.innerHTML='';scr.style.transition='none';scr.style.left='0px';
-    const items=[];for(let i=0;i<COUNT;i++)items.push(i===WIN_IDX?win:pool[Math.floor(Math.random()*pool.length)]);
-    items.forEach(pet=>{
-        const cv=document.createElement('canvas');cv.width=84;cv.height=104;
-        cv.style.cssText='display:block;margin:3px;border-radius:12px;flex-shrink:0';
-        scr.appendChild(cv);drawPetCard(cv,pet);
+    if(!win) win={...c.drop[c.drop.length-1]};
+
+    openCaseAnimation(win, ()=>{
+        win.id=Date.now(); win.lvl=1;
+        s.inv.push(win); save();
     });
-    setTimeout(()=>{scr.style.transition='5s cubic-bezier(0.05,0,0.1,1)';scr.style.left=`-${WIN_IDX*CARD_W-(window.innerWidth/2-CARD_W/2)}px`;},50);
-    const resEl=document.getElementById('case-res'),closeEl=document.getElementById('case-close');
-    setTimeout(()=>{
-        const bigCv=document.createElement('canvas');bigCv.width=160;bigCv.height=196;
-        bigCv.style.cssText='border-radius:16px;display:block;margin:0 auto 10px';
-        drawPetCard(bigCv,win);resEl.innerHTML='';resEl.appendChild(bigCv);
-        const label=document.createElement('div');
-        label.innerHTML=`<span style="color:${RARITY_GLOW[win.r]||'#fff'};font-size:20px;font-weight:900">${win.n}</span><br><small style="color:#8d99ae">${win.r} · x${win.m.toFixed(3)}</small>`;
-        resEl.appendChild(label);closeEl.style.display='block';
-        win.id=Date.now();win.lvl=1;s.inv.push(win);save();
-    },5600);
 }
 window.buyCase=buyCase;
-window.closeCase=()=>{document.getElementById('case-modal').style.display='none';document.getElementById('case-close').style.display='none';document.getElementById('case-res').innerText='';};
+window.closeCase=()=>{
+    const modal=document.getElementById('case-modal');
+    const title=document.getElementById('case-title');
+    const roulette=modal.querySelector('.case-roulette');
+    // Reset modal for next use
+    modal.style.display='none';
+    if(title){title.style.display='';title.style.opacity='1';}
+    if(roulette){roulette.style.display='';roulette.style.opacity='1';}
+    document.getElementById('case-close').style.display='none';
+    document.getElementById('case-res').innerHTML='';
+};
 
 // ============================================================
 // updUI + play
@@ -1422,11 +1525,12 @@ function loadAdmin(){
             document.getElementById('admin-list').innerHTML=makeTabs()+`
             <div class="admin-card">
                 <div class="card-title">➕ Створити промокод</div>
-                <input type="text" id="promo-code-inp" placeholder="Код (напр. EASTER2026)" style="text-transform:uppercase;margin-bottom:8px">
+                <input type="text" id="promo-code-inp" placeholder="Код (напр. EASTER2026)" style="text-transform:uppercase;margin-bottom:8px" oninput="this.value=this.value.toUpperCase()">
                 <div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin-bottom:6px">ТИП НАГОРОДИ</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
                     <button id="pt-bb"   class="btn-s promo-type-btn active-type" onclick="setPromoType('bb')">💰 BB</button>
                     <button id="pt-pet"  class="btn-s promo-type-btn" onclick="setPromoType('pet')">🐾 Пет</button>
+                    <button id="pt-case" class="btn-s promo-type-btn" onclick="setPromoType('case')">📦 Кейс</button>
                 </div>
                 <div id="promo-bb-inp">
                     <input type="number" id="promo-amount" placeholder="Кількість BB" style="margin-bottom:8px">
@@ -1435,6 +1539,12 @@ function loadAdmin(){
                     <select id="promo-pet-sel" style="margin-bottom:8px">
                         ${getAllPets().map((p,i)=>`<option value="${i}">${p.s||''} ${p.n} (${p.r})</option>`).join('')}
                     </select>
+                </div>
+                <div id="promo-case-inp" style="display:none">
+                    <select id="promo-case-sel" style="margin-bottom:8px">
+                        ${Object.entries(CASES).map(([k,c])=>`<option value="${k}">${c.n} — ${c.p} BB</option>`).join('')}
+                    </select>
+                    <input type="number" id="promo-case-count" placeholder="Кількість кейсів" value="1" style="margin-bottom:8px">
                 </div>
                 <input type="number" id="promo-uses" placeholder="Макс. активацій (0 = необмежено)" style="margin-bottom:10px" value="1">
                 <button class="btn" onclick="adminCreatePromo()">✅ Створити промокод</button>
@@ -1519,17 +1629,21 @@ function getAllPets(){
     return all;
 }
 function promoRewardLabel(d){
-    if(d.type==='bb') return `💰 ${d.amount} BB`;
-    if(d.type==='pet') return `🐾 ${d.pet?.s||''} ${d.pet?.n||'пет'}`;
+    if(d.type==='bb')   return `💰 ${d.amount} BB`;
+    if(d.type==='pet')  return `🐾 ${d.pet?.s||''} ${d.pet?.n||'пет'}`;
+    if(d.type==='case') return `📦 ${d.count||1}x ${CASES[d.caseKey]?.n||d.caseKey}`;
     return '?';
 }
 let currentPromoType='bb';
 window.setPromoType=t=>{
     currentPromoType=t;
-    document.getElementById('promo-bb-inp').style.display=t==='bb'?'block':'none';
-    document.getElementById('promo-pet-inp').style.display=t==='pet'?'block':'none';
+    ['bb','pet','case'].forEach(tp=>{
+        const el=document.getElementById('promo-'+tp+'-inp');
+        if(el) el.style.display=t===tp?'block':'none';
+    });
     document.querySelectorAll('.promo-type-btn').forEach(b=>b.classList.remove('active-type'));
-    document.getElementById('pt-'+t).classList.add('active-type');
+    const btn=document.getElementById('pt-'+t);
+    if(btn) btn.classList.add('active-type');
 };
 window.adminCreatePromo=()=>{
     const code=(document.getElementById('promo-code-inp').value||'').trim().toUpperCase().replace(/\s+/g,'');
@@ -1540,11 +1654,16 @@ window.adminCreatePromo=()=>{
         const amt=parseFloat(document.getElementById('promo-amount').value);
         if(!amt||amt<=0) return alert('Введи кількість BB!');
         reward={type:'bb',amount:amt};
-    } else {
+    } else if(currentPromoType==='pet'){
         const idx=parseInt(document.getElementById('promo-pet-sel').value);
         const pets=getAllPets();
         if(!pets[idx]) return alert('Обери пета!');
         reward={type:'pet',pet:{...pets[idx],id:Date.now(),lvl:1}};
+    } else if(currentPromoType==='case'){
+        const caseKey=document.getElementById('promo-case-sel').value;
+        const count=parseInt(document.getElementById('promo-case-count').value)||1;
+        if(!CASES[caseKey]) return alert('Обери кейс!');
+        reward={type:'case',caseKey,count};
     }
     db.ref('promo/'+code).set({...reward,maxUses:uses||999999,used:0,createdAt:Date.now()}).then(()=>{
         showToast(`✅ Промокод ${code} створено!`);
@@ -1572,12 +1691,14 @@ window.adminGivePetModal=(uid,name)=>{
 window.applyPromo=()=>{
     const code=(document.getElementById('promo-inp').value||'').trim().toUpperCase();
     if(!code) return;
+    const btn=document.querySelector('[onclick="applyPromo()"]');
+    if(btn) btn.disabled=true;
     db.ref('promo/'+code).once('value',snap=>{
+        if(btn) btn.disabled=false;
         const data=snap.val();
         if(!data){showToast('❌ Промокод не знайдено');return;}
         const used=data.used||0, max=data.maxUses||1;
         if(used>=max){showToast('❌ Промокод вичерпано');return;}
-        // Перевіряємо чи вже використовував
         const usedBy=data.usedBy||[];
         if(usedBy.includes(String(myId))){showToast('❌ Ти вже використав цей промокод');return;}
         // Застосовуємо нагороду
@@ -1585,11 +1706,43 @@ window.applyPromo=()=>{
         db.ref('promo/'+code+'/usedBy').set([...usedBy,String(myId)]);
         if(data.type==='bb'){
             s.b+=data.amount; save(); ren();
-            showToast(`✅ +${data.amount} BB! Промокод активовано 🎉`);
+            showToast(`🎉 +${data.amount} BB! Промокод активовано`);
         } else if(data.type==='pet'&&data.pet){
             const pet={...data.pet,id:Date.now(),lvl:1};
             s.inv.push(pet); save();
-            showToast(`✅ ${pet.s||''} ${pet.n} отримано! 🎉`);
+            showToast(`🎉 ${pet.s||''} ${pet.n} отримано!`);
+        } else if(data.type==='case'&&data.caseKey){
+            const c=CASES[data.caseKey];
+            if(!c){showToast('❌ Кейс більше не доступний');return;}
+            const count=data.count||1;
+            document.getElementById('promo-inp').value='';
+            // Відкриваємо кейси з анімацією по одному
+            let opened=0;
+            function openNext(){
+                if(opened>=count){
+                    renderSettings();
+                    showToast(`🎉 ${count}x ${c.n} відкрито!`);
+                    return;
+                }
+                let rand=Math.random()*100,win=null,cur=0;
+                for(const p of c.drop){cur+=p.w;if(rand<=cur){win={...p};break;}}
+                if(!win) win={...c.drop[c.drop.length-1]};
+                opened++;
+                openCaseAnimation(win,()=>{
+                    win.id=Date.now()+opened; win.lvl=1;
+                    s.inv.push(win); save();
+                    // After close button click — if more cases, open next
+                    const origClose=window.closeCase;
+                    if(opened<count){
+                        window.closeCase=()=>{
+                            origClose();
+                            window.closeCase=origClose;
+                            setTimeout(openNext,300);
+                        };
+                    }
+                });
+            }
+            openNext();
         }
         document.getElementById('promo-inp').value='';
         renderSettings();
