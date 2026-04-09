@@ -103,11 +103,11 @@ function createPetCardHTML(pet, size=80) {
 
   let content;
   if (hasPhoto) {
-    const sz = Math.round(size * 0.92);
-    // Фото без анімації руху — тільки glow через box-shadow контейнера
+    const sz = Math.round(size * 0.90);
+    // Фото без анімації. Фон контейнера завжди видно через прозорі пікселі
     content = `<img src="${imgSrc.src}"
       width="${sz}" height="${sz}"
-      style="object-fit:contain;position:relative;z-index:1;filter:drop-shadow(0 2px 14px ${glow}99)"
+      style="object-fit:contain;position:relative;z-index:1;display:block;flex-shrink:0"
       alt="${pet.n}">`;
   } else {
     content = `<span style="font-size:${Math.round(size*.54)}px;line-height:1;position:relative;z-index:1;${animStyle}">${imgSrc.src}</span>`;
@@ -283,6 +283,10 @@ const CASES = {
         {n:'Панда', s:'🐼',r:'Епічний',    m:1.14,w:56,c:'#f59e0b'},
         {n:'Лев',   s:'🦁',r:'Легендарний',m:1.16,w:24,c:'#f43f5e'},
         {n:'Дракон',s:'🐲',r:'Легендарний',m:1.17,w:20,c:'#f43f5e'}]},
+    fool:     { n:"Кейс Дурня 🤡", p:1488, drop:[
+        {n:'Унітаз',   s:'🚽',r:'Епічний',   m:1.20,w:45,c:'#f59e0b',drawKey:'toilet'},
+        {n:'Какашка',  s:'💩',r:'Легендарний',m:1.25,w:35,c:'#f43f5e',drawKey:'poop'},
+        {n:'Нокіа3310',s:'📱',r:'Міфічний',  m:1.32,w:20,c:'#bf40bf',drawKey:'nokia'}]},
     easter:   { n:"Великодній Кейс 🥚", p:1450, limited:true, deadline:DEADLINE_EASTER_CASE, drop:[
         {n:'Місячний заєць',   s:'🌙🐇',r:'Рідкісний',  m:1.165,w:33,c:'#a855f7',drawKey:'moonhare'},
         {n:'Місячний баранчик',s:'🌙🐑',r:'Рідкісний',  m:1.165,w:33,c:'#a855f7',drawKey:'moonlamb'},
@@ -292,7 +296,7 @@ const CASES = {
 };
 
 const ADMIN_ONLY_PETS = [
-    {n:'Клоун',              s:'🤡',r:'Смехуятина', m:1.67, c:'#ff6b35'},
+    {n:'Клоун',              s:'🤡',r:'Смехуятина', m:1.67, c:'#ff6b35',drawKey:'clown2'},
     {n:'Смітник',            s:'🗑️',r:'Легендарний',m:1.35, c:'#f43f5e'},
     {n:'Медовий пасх. медвідь',s:'🍯🐻',r:'Епічний',m:1.25, c:'#f59e0b',drawKey:'honeybear'},
 ];
@@ -1387,29 +1391,74 @@ function loadTop(){
 window.setAdminTab=t=>{currentAdminTab=t;adminInvUserId=null;loadAdmin();};
 function loadAdmin(){
     if(currentAdminTab==='inv'&&adminInvUserId){loadAdminUserInv(adminInvUserId,adminInvUserName);return;}
+
+    const makeTabs=()=>`<div class="admin-tabs">
+        <div class="a-tab ${currentAdminTab==='stats'?'active':''}"  onclick="setAdminTab('stats')">📊 Стат</div>
+        <div class="a-tab ${currentAdminTab==='balance'?'active':''}" onclick="setAdminTab('balance')">💰 BB</div>
+        <div class="a-tab ${currentAdminTab==='inv'?'active':''}"    onclick="setAdminTab('inv')">🐾 Пети</div>
+        <div class="a-tab ${currentAdminTab==='promo'?'active':''}"  onclick="setAdminTab('promo')">🎟 Промо</div>
+    </div>`;
+
+    // ── ПРОМОКОДИ ──
+    if(currentAdminTab==='promo'){
+        db.ref('promo').once('value',snap=>{
+            const codes=snap.val()||{};
+            let codeRows='';
+            Object.entries(codes).forEach(([code,data])=>{
+                const used=data.used||0, max=data.maxUses||1;
+                const expired=used>=max;
+                codeRows+=`<div class="admin-card" style="padding:12px">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <div style="font-weight:800;font-size:15px;letter-spacing:1px;color:${expired?'var(--muted)':'var(--accent2)'}">${code}</div>
+                            <div style="font-size:11px;color:var(--muted);margin-top:3px">
+                                ${promoRewardLabel(data)} · ${used}/${max} активацій${expired?' · <span style="color:var(--error)">Вичерпано</span>':''}
+                            </div>
+                        </div>
+                        <button class="btn-ctrl b-sub" style="padding:7px 10px" onclick="adminDeletePromo('${code}')">🗑</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('admin-list').innerHTML=makeTabs()+`
+            <div class="admin-card">
+                <div class="card-title">➕ Створити промокод</div>
+                <input type="text" id="promo-code-inp" placeholder="Код (напр. EASTER2026)" style="text-transform:uppercase;margin-bottom:8px">
+                <div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin-bottom:6px">ТИП НАГОРОДИ</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+                    <button id="pt-bb"   class="btn-s promo-type-btn active-type" onclick="setPromoType('bb')">💰 BB</button>
+                    <button id="pt-pet"  class="btn-s promo-type-btn" onclick="setPromoType('pet')">🐾 Пет</button>
+                </div>
+                <div id="promo-bb-inp">
+                    <input type="number" id="promo-amount" placeholder="Кількість BB" style="margin-bottom:8px">
+                </div>
+                <div id="promo-pet-inp" style="display:none">
+                    <select id="promo-pet-sel" style="margin-bottom:8px">
+                        ${getAllPets().map((p,i)=>`<option value="${i}">${p.s||''} ${p.n} (${p.r})</option>`).join('')}
+                    </select>
+                </div>
+                <input type="number" id="promo-uses" placeholder="Макс. активацій (0 = необмежено)" style="margin-bottom:10px" value="1">
+                <button class="btn" onclick="adminCreatePromo()">✅ Створити промокод</button>
+            </div>
+            <div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin:14px 0 8px">АКТИВНІ ПРОМОКОДИ (${Object.keys(codes).length})</div>
+            ${codeRows||`<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">Немає промокодів</div>`}`;
+        });
+        return;
+    }
+
+    // ── СТАТИСТИКА ──
     db.ref('players').once('value',snap=>{
         const players=[];
         snap.forEach(c=>{const v=c.val();if(v)players.push({uid:c.key,...v});});
 
-        const tabs=`<div class="admin-tabs">
-            <div class="a-tab ${currentAdminTab==='stats'?'active':''}"  onclick="setAdminTab('stats')">📊 Стат</div>
-            <div class="a-tab ${currentAdminTab==='balance'?'active':''}" onclick="setAdminTab('balance')">💰 BB</div>
-            <div class="a-tab ${currentAdminTab==='pets'?'active':''}"   onclick="setAdminTab('pets')">🐾 Пети</div>
-            <div class="a-tab ${currentAdminTab==='inv'?'active':''}"    onclick="setAdminTab('inv')">🎒 Інв</div>
-        </div>`;
-
         if(currentAdminTab==='stats'){
-            const totalBB = players.reduce((a,p)=>a+(p.b||0),0);
-            const totalPets = players.reduce((a,p)=>a+(p.inv?p.inv.length:0),0);
-            const avgBB = players.length ? (totalBB/players.length).toFixed(0) : 0;
-            const richest = players.reduce((a,b)=>(b.b||0)>(a.b||0)?b:a,{b:0,name:'—'});
-            const mostPets = players.reduce((a,b)=>((b.inv||[]).length>((a.inv||[]).length))?b:a,{inv:[],name:'—'});
-
-            // Розподіл по рідкості
+            const totalBB=players.reduce((a,p)=>a+(p.b||0),0);
+            const totalPets=players.reduce((a,p)=>a+(p.inv?p.inv.length:0),0);
+            const avgBB=players.length?(totalBB/players.length).toFixed(0):0;
+            const richest=players.reduce((a,b)=>(b.b||0)>(a.b||0)?b:a,{b:0,name:'—'});
+            const mostPets=players.reduce((a,b)=>((b.inv||[]).length>((a.inv||[]).length))?b:a,{inv:[],name:'—'});
             const rarityCount={};
             players.forEach(p=>(p.inv||[]).forEach(pet=>{rarityCount[pet.r]=(rarityCount[pet.r]||0)+1;}));
-
-            document.getElementById('admin-list').innerHTML=tabs+`
+            document.getElementById('admin-list').innerHTML=makeTabs()+`
             <div class="stat-grid">
                 <div class="stat-card"><div class="stat-val">${players.length}</div><div class="stat-lbl">Гравців</div></div>
                 <div class="stat-card"><div class="stat-val">${Math.floor(totalBB).toLocaleString()}</div><div class="stat-lbl">BB у грі</div></div>
@@ -1418,8 +1467,8 @@ function loadAdmin(){
             </div>
             <div class="admin-card">
                 <div class="card-title">🏆 Лідери</div>
-                <div style="font-size:13px;margin-bottom:6px">💰 Найбагатший: <b style="color:var(--accent2)">${richest.name}</b> — ${Math.floor(richest.b||0)} BB</div>
-                <div style="font-size:13px">🐾 Найбільше петів: <b style="color:var(--accent2)">${mostPets.name}</b> — ${(mostPets.inv||[]).length} шт.</div>
+                <div style="font-size:13px;margin-bottom:6px">💰 <b style="color:var(--accent2)">${richest.name}</b> — ${Math.floor(richest.b||0)} BB</div>
+                <div style="font-size:13px">🐾 <b style="color:var(--accent2)">${mostPets.name}</b> — ${(mostPets.inv||[]).length} петів</div>
             </div>
             <div class="admin-card">
                 <div class="card-title">🐾 Розподіл по рідкості</div>
@@ -1432,7 +1481,8 @@ function loadAdmin(){
             return;
         }
 
-        let h=tabs;
+        // ── BB / ПЕТИ+ІНВ ──
+        let h=makeTabs();
         players.forEach(({uid,name,b,inv,p:activePet})=>{
             b=b||0; inv=inv||[];
             h+=`<div class="admin-card">
@@ -1449,26 +1499,111 @@ function loadAdmin(){
                     <button class="btn-ctrl b-sub" onclick="mathB('${uid}','sub')">－ Забрати</button>
                     <button class="btn-ctrl b-set" onclick="mathB('${uid}','set')">Задати</button>
                 </div>`;
-            } else if(currentAdminTab==='pets'){
-                h+=`<button class="btn-buy" style="width:100%;margin-top:4px" onclick="adminGivePet('${uid}')">🎁 Подарувати пета</button>`;
             } else {
-                h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:6px">${L('petsCount')} ${inv.length}</div>
-                <button class="btn-ghost" style="width:100%;font-size:12px" onclick="openAdminInv('${uid}','${(name||'').replace(/'/g,"\\'")}')">🎒 Переглянути інвентар</button>`;
+                // Пети + інвентар в одній вкладці
+                h+=`<div style="display:flex;gap:6px;margin-top:6px">
+                    <button class="btn-buy" style="flex:1" onclick="adminGivePetModal('${uid}','${(name||'').replace(/'/g,"\\'")}')">🎁 Подарувати</button>
+                    <button class="btn-ghost" style="flex:1;font-size:12px" onclick="openAdminInv('${uid}','${(name||'').replace(/'/g,"\\'")}')">🎒 Інвентар (${inv.length})</button>
+                </div>`;
             }
             h+=`</div>`;
         });
         document.getElementById('admin-list').innerHTML=h;
     });
 }
-window.openAdminInv=(uid,name)=>{adminInvUserId=uid;adminInvUserName=name;loadAdminUserInv(uid,name);};
+// ── Хелпери промокодів ──
+function getAllPets(){
+    let all=[],seen=new Set();
+    for(const k in CASES) CASES[k].drop.forEach(p=>{if(!seen.has(p.n)){all.push(p);seen.add(p.n);}});
+    ADMIN_ONLY_PETS.forEach(p=>{if(!seen.has(p.n)){all.push(p);seen.add(p.n);}});
+    return all;
+}
+function promoRewardLabel(d){
+    if(d.type==='bb') return `💰 ${d.amount} BB`;
+    if(d.type==='pet') return `🐾 ${d.pet?.s||''} ${d.pet?.n||'пет'}`;
+    return '?';
+}
+let currentPromoType='bb';
+window.setPromoType=t=>{
+    currentPromoType=t;
+    document.getElementById('promo-bb-inp').style.display=t==='bb'?'block':'none';
+    document.getElementById('promo-pet-inp').style.display=t==='pet'?'block':'none';
+    document.querySelectorAll('.promo-type-btn').forEach(b=>b.classList.remove('active-type'));
+    document.getElementById('pt-'+t).classList.add('active-type');
+};
+window.adminCreatePromo=()=>{
+    const code=(document.getElementById('promo-code-inp').value||'').trim().toUpperCase().replace(/\s+/g,'');
+    if(!code) return alert('Введи код!');
+    const uses=parseInt(document.getElementById('promo-uses').value)||1;
+    let reward={};
+    if(currentPromoType==='bb'){
+        const amt=parseFloat(document.getElementById('promo-amount').value);
+        if(!amt||amt<=0) return alert('Введи кількість BB!');
+        reward={type:'bb',amount:amt};
+    } else {
+        const idx=parseInt(document.getElementById('promo-pet-sel').value);
+        const pets=getAllPets();
+        if(!pets[idx]) return alert('Обери пета!');
+        reward={type:'pet',pet:{...pets[idx],id:Date.now(),lvl:1}};
+    }
+    db.ref('promo/'+code).set({...reward,maxUses:uses||999999,used:0,createdAt:Date.now()}).then(()=>{
+        showToast(`✅ Промокод ${code} створено!`);
+        loadAdmin();
+    });
+};
+window.adminDeletePromo=code=>{
+    if(!confirm(`Видалити промокод ${code}?`)) return;
+    db.ref('promo/'+code).remove().then(()=>{showToast('🗑 Видалено');loadAdmin();});
+};
+window.adminGivePetModal=(uid,name)=>{
+    const pets=getAllPets();
+    const list=pets.map((p,i)=>`${i}: ${p.s||''} ${p.n} (${p.r})`).join('\n');
+    const ch=prompt(list);
+    if(ch===null||!pets[ch]) return;
+    const p={...pets[ch],id:Date.now(),lvl:1};
+    db.ref('players/'+uid+'/inv').once('value',sn=>{
+        const inv=sn.val()||[]; inv.push(p);
+        db.ref('players/'+uid+'/inv').set(inv);
+        showToast(`✅ ${p.s||''} ${p.n} → ${name}`);
+    });
+};
+
+// ── Застосувати промокод (гравець) ──
+window.applyPromo=()=>{
+    const code=(document.getElementById('promo-inp').value||'').trim().toUpperCase();
+    if(!code) return;
+    db.ref('promo/'+code).once('value',snap=>{
+        const data=snap.val();
+        if(!data){showToast('❌ Промокод не знайдено');return;}
+        const used=data.used||0, max=data.maxUses||1;
+        if(used>=max){showToast('❌ Промокод вичерпано');return;}
+        // Перевіряємо чи вже використовував
+        const usedBy=data.usedBy||[];
+        if(usedBy.includes(String(myId))){showToast('❌ Ти вже використав цей промокод');return;}
+        // Застосовуємо нагороду
+        db.ref('promo/'+code+'/used').set(used+1);
+        db.ref('promo/'+code+'/usedBy').set([...usedBy,String(myId)]);
+        if(data.type==='bb'){
+            s.b+=data.amount; save(); ren();
+            showToast(`✅ +${data.amount} BB! Промокод активовано 🎉`);
+        } else if(data.type==='pet'&&data.pet){
+            const pet={...data.pet,id:Date.now(),lvl:1};
+            s.inv.push(pet); save();
+            showToast(`✅ ${pet.s||''} ${pet.n} отримано! 🎉`);
+        }
+        document.getElementById('promo-inp').value='';
+        renderSettings();
+    });
+};
+window.openAdminInv=(uid,name)=>{adminInvUserId=uid;adminInvUserName=name;currentAdminTab='inv';loadAdminUserInv(uid,name);};
 function loadAdminUserInv(uid,name){
     db.ref('players/'+uid).once('value',snap=>{
         const p=snap.val()||{},inv=p.inv||[];
         const tabs=`<div class="admin-tabs">
             <div class="a-tab" onclick="setAdminTab('stats')">📊</div>
             <div class="a-tab" onclick="setAdminTab('balance')">💰</div>
-            <div class="a-tab" onclick="setAdminTab('pets')">🐾</div>
-            <div class="a-tab active">🎒</div>
+            <div class="a-tab active">🐾</div>
+            <div class="a-tab" onclick="setAdminTab('promo')">🎟</div>
         </div>`;
         let h=tabs+`<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
             <button class="btn-s" onclick="adminInvUserId=null;loadAdmin()" style="padding:8px 14px;font-size:14px">${L('back')}</button>
@@ -1565,18 +1700,8 @@ window.mathB=(id,type)=>{
     if(type==='add')ref.transaction(c=>(c||0)+v);else if(type==='sub')ref.transaction(c=>(c||0)-v);else ref.set(v);
     setTimeout(loadAdmin,500);
 };
-window.adminGivePet=tid=>{
-    let unique=[],seen=new Set();
-    for(const k in CASES)CASES[k].drop.forEach(p=>{if(!seen.has(p.n)){unique.push(p);seen.add(p.n);}});
-    ADMIN_ONLY_PETS.forEach(p=>{if(!seen.has(p.n)){unique.push(p);seen.add(p.n);}});
-    const list=unique.map((p,i)=>`${i}: ${p.s} ${p.n} (${p.r})`).join('\n');
-    const ch=prompt(list);
-    if(ch!==null&&unique[ch]){
-        const p={...unique[ch],id:Date.now(),lvl:1};
-        db.ref('players/'+tid+'/inv').once('value',sn=>{const inv=sn.val()||[];inv.push(p);db.ref('players/'+tid+'/inv').set(inv);});
-        alert(`${L('given')} ${unique[ch].s} ${unique[ch].n}`);
-    }
-};
+// adminGivePet — alias для зворотньої сумісності
+window.adminGivePet=uid=>window.adminGivePetModal(uid,'');
 
 // ============================================================
 // НАЛАШТУВАННЯ
@@ -1623,6 +1748,13 @@ function renderSettings(){
                 </div>
             </div>
             <div class="sett-list">${musicTracksHtml}</div>
+        </div>
+        <div class="glass">
+            <div class="sett-section-title">🎟 ПРОМОКОД</div>
+            <div style="display:flex;gap:8px">
+                <input type="text" id="promo-inp" placeholder="Введи промокод..." style="flex:1;margin:0;text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase()">
+                <button class="btn-buy" style="padding:12px 16px;font-size:14px;flex-shrink:0" onclick="applyPromo()">▶</button>
+            </div>
         </div>`;
 }
 window.pickTheme=k=>{applyTheme(k);renderSettings();showToast(L('saved'));};
