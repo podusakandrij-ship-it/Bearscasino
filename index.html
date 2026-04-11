@@ -10,7 +10,6 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-<canvas id="easter-bg"></canvas>
 
 <header>
   <div class="logo">BEARS CASINO</div>
@@ -50,11 +49,7 @@
         <option value="wheel">🎡 Колесо (до x1.6)</option>
         <option value="slots">🎰 Слоти (до x5.0)</option>
         <option value="mines">💣 Міни (до x4.0)</option>
-        <option value="clown">🐰 Двері Великодня</option>
-        <option value="balloon">🥚 Яйце Удачі</option>
         <option value="bj">🃏 Блекджек (x2.0)</option>
-        <option value="pvp">⚔️ Бій Крашанками</option>
-        <option value="plinko">🥚 Кошик Удачі</option>
       </select>
 
       <div id="ui-dice"    style="display:none;margin:14px 0"></div>
@@ -91,10 +86,6 @@
           <button class="btn" style="background:linear-gradient(135deg,var(--success),#059669)" onclick="minesCashout()">💰 ЗАБРАТИ · x<span id="mines-curr-mult">1.00</span></button>
         </div>
       </div>
-      <div id="ui-clown"   style="display:none;padding:8px 0"></div>
-      <div id="ui-balloon" style="display:none;padding:8px 0"></div>
-      <div id="ui-pvp"     style="display:none;padding:8px 0"></div>
-      <div id="ui-plinko"  style="display:none;padding:8px 0"></div>
       <div id="ui-bj" style="display:none;text-align:center;padding:12px 0">
         <div id="bj-dealer-lbl" style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">ДИЛЕР</div>
         <div id="bj-dc" style="display:flex;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap"></div>

@@ -100,18 +100,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .mc-boom{background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.4);animation:boom .3s ease}
 @keyframes boom{0%,100%{transform:translate(0,0)}25%{transform:translate(-3px,2px)}75%{transform:translate(3px,-2px)}}
 .bj-card{padding:10px 14px;background:#fff;color:#111;border-radius:8px;font-weight:900;font-size:18px;box-shadow:0 4px 16px rgba(0,0,0,.4)}
-.clown-rounds-info{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.clown-ri{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;text-align:center;display:flex;flex-direction:column;gap:3px}
 .clown-ri span{font-size:11px;color:var(--muted);font-weight:700}
 .clown-ri small{font-size:10px;color:var(--muted)}
-.clown-doors{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:12px 0}
-.clown-door{width:56px;height:68px;display:flex;align-items:center;justify-content:center;border-radius:12px;font-size:26px;border:2px solid rgba(255,255,255,.1);transition:.15s}
-.door-closed{background:rgba(255,255,255,.07);cursor:pointer}
-.door-closed:active{transform:scale(.9)}
-.door-ok{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4)}
-.door-boom{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.4);animation:boom .35s ease}
-.balloon-game{text-align:center;padding:8px 0}
-.balloon-mult{font-size:28px;font-weight:900;color:var(--accent);margin-bottom:12px}
 #case-modal{display:none;position:fixed;inset:0;background:rgba(4,6,12,.97);z-index:1000;align-items:center;justify-content:center;flex-direction:column;backdrop-filter:blur(20px)}
 .case-roulette{width:100%;height:116px;overflow:hidden;position:relative;border-top:2px solid var(--accent);border-bottom:2px solid var(--accent);background:rgba(0,0,0,.4);margin:20px 0}
 #case-scroll{display:flex;position:absolute;left:0;top:0;height:116px;align-items:center;will-change:transform}
@@ -147,10 +137,12 @@ nav{position:fixed;bottom:0;width:100%;z-index:100;background:rgba(8,11,20,.96);
 @keyframes pet-glow-anim{0%,100%{filter:drop-shadow(0 0 4px currentColor)}50%{filter:drop-shadow(0 0 14px currentColor) brightness(1.1)}}
 @keyframes pet-bounce{0%,100%{transform:translateY(0)}25%{transform:translateY(-7px) rotate(-4deg)}75%{transform:translateY(-3px) rotate(4deg)}}
 @keyframes particle-twinkle{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:1;transform:scale(1.5)}}
-@keyframes pvp-clash{0%{transform:scale(.5);opacity:0}50%{transform:scale(1.3)}100%{transform:scale(1);opacity:1}}
-#easter-bg{position:fixed;top:0;left:0;pointer-events:none;z-index:0;opacity:.45}
+50%{transform:scale(1.3)}100%{transform:scale(1);opacity:1}}
 .page{display:block}
 .leader-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
 .leader-rank{font-size:18px;width:28px;text-align:center;flex-shrink:0}
 .leader-name{flex:1;font-weight:600;font-size:14px}
 .leader-bal{font-weight:800;color:var(--accent2);font-size:14px}
+
+/* Promo type button */
+.active-type { background:rgba(232,121,160,.15)!important; border-color:var(--accent)!important; color:var(--accent)!important; }
