@@ -15,6 +15,16 @@ firebase.initializeApp(firebaseConfig);
 const db  = firebase.database();
 const tg  = window.Telegram.WebApp;
 
+// Global error catch - prevent silent failures
+window.onerror = function(msg, src, line, col, err) {
+    console.error('CASINO ERROR:', msg, 'at', src, line, col, err);
+    return false;
+};
+window.onunhandledrejection = function(e) {
+    console.error('CASINO PROMISE ERROR:', e.reason);
+};
+
+
 // ============================================================
 // КОНСТАНТИ
 // ============================================================
@@ -501,6 +511,7 @@ const RARITY_GLOW={
 };
 
 function ren(){
+    try {
     // Баланс
     document.getElementById('bal-val').innerText = Number.isInteger(s.b) ? s.b : s.b.toFixed(2);
 
@@ -556,6 +567,7 @@ function ren(){
 
     if (ADMINS.includes(Number(myId)))
         document.getElementById('admin-tab').style.display = 'flex';
+    } catch(e) { console.error('ren() error:', e); }
 }
 
 // ============================================================
