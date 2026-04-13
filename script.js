@@ -273,6 +273,9 @@ function stopAllPetAnims() {
 // КЕЙСИ
 // ============================================================
 
+// Дедлайн великоднього кейсу (30 квітня 2026, 23:59 UTC)
+const DEADLINE_EASTER_CASE = new Date('2026-04-30T23:59:59Z').getTime();
+
 const CASES = {
     basic:    { n:"Common Case 🐾", p:285, drop:[
         {n:'Собака',s:'🐶',r:'Звичайний',  m:1.05,w:40,c:'#94a3b8'},
