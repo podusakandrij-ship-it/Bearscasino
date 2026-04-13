@@ -273,8 +273,8 @@ function stopAllPetAnims() {
 // КЕЙСИ
 // ============================================================
 
-// Дедлайн великоднього кейсу (30 квітня 2026, 23:59 UTC)
-const DEADLINE_EASTER_CASE = new Date('2026-04-30T23:59:59Z').getTime();
+// Дедлайн великоднього кейсу (2 квітня 2026, 00:00 UTC)
+const DEADLINE_EASTER_CASE = new Date('2026-04-02T00:00:00Z').getTime();
 
 const CASES = {
     basic:    { n:"Common Case 🐾", p:285, drop:[
@@ -320,7 +320,7 @@ const THEMES = {
     green:  {name:'🌿 Смарагд', a:'#22c55e',a2:'#4ade80',bg:'#030c06',btnTxt:'#000'},
     red:    {name:'🔥 Рубін',   a:'#ef4444',a2:'#f87171',bg:'#0c0303',btnTxt:'#fff'},
 };
-let currentTheme = localStorage.getItem('bc_theme') || 'gold';
+let currentTheme = localStorage.getItem('bc_theme') || 'purple';
 let currentLang  = localStorage.getItem('bc_lang')  || 'uk';
 
 function applyTheme(key) {
@@ -759,7 +759,7 @@ const WHEEL_SEGS=[
     {label:'0x',      color:'#c0392b',m:0,   start:0,  end:180},
     {label:'1.4x',    color:'#27ae60',m:1.4, start:180,end:270},
     {label:'1.6x',    color:'#2980b9',m:1.6, start:270,end:342},
-    {label:'🍯🐻',   color:'#f59e0b',m:999, start:342,end:360},
+    {label:'1.8x',    color:'#f59e0b',m:1.8, start:342,end:360},
 ];
 let wheelAngle=0,wheelSpinning=false;
 function drawWheel(rot){
@@ -818,7 +818,7 @@ window.updateMinesCount=()=>{const n=parseInt(document.getElementById('mines-cou
 function buildMinesGrid(){
     if(!minesState){document.getElementById('mines-grid').innerHTML='';return;}
     let h='';
-    for(let i=0;i<25;i++){const cell=minesState.cells[i];if(cell.revealed){h+=cell.mine?`<div class="mc mc-boom">💣</div>`:`<div class="mc mc-safe">🌿</div>`;}else if(minesState.alive){h+=`<div class="mc mc-btn" onclick="minesReveal(${i})">🥚</div>`;}else{h+=`<div class="mc" style="opacity:.3">·</div>`;}}
+    for(let i=0;i<25;i++){const cell=minesState.cells[i];if(cell.revealed){h+=cell.mine?`<div class="mc mc-boom">💣</div>`:`<div class="mc mc-safe">✅</div>`;}else if(minesState.alive){h+=`<div class="mc mc-btn" onclick="minesReveal(${i})">?</div>`;}else{h+=`<div class="mc" style="opacity:.3">·</div>`;}}
     document.getElementById('mines-grid').innerHTML=h;
 }
 window.minesReveal=idx=>{
@@ -1029,7 +1029,7 @@ window.play=()=>{
     document.getElementById('g-stat').innerText=L('waiting');
     if(g==='f50'){
         const w=Math.random()>.5;let ticks=0;
-        document.getElementById('g-stat').innerHTML='<div id="coin-anim" style="font-size:56px;display:inline-block;transition:transform .08s">🥚</div>';
+        document.getElementById('g-stat').innerHTML='<div id="coin-anim" style="font-size:56px;display:inline-block;transition:transform .08s">🪙</div>';
         const iv=setInterval(()=>{
             const coin=document.getElementById('coin-anim');
             if(coin){coin.innerText=ticks%2===0?'✅':'❌';const sc=.7+Math.abs(Math.sin(ticks*.45))*.5,rot=ticks%2===0?-15:15;coin.style.transform=`scale(${sc}) rotate(${rot}deg)`;}
@@ -1040,15 +1040,8 @@ window.play=()=>{
     } else if(g==='wheel'){
         if(wheelSpinning)return;
         let p=Math.random()*100,m;
-        if(p<50)m=0;else if(p<75)m=1.4;else if(p<95)m=1.6;else m=999;
-        spinWheel(m,()=>{
-            if(m===999){
-                const bear={n:'Медовий пасх. медвідь',s:'🍯🐻',r:'Епічний',m:1.25,w:0,c:'#f59e0b',id:Date.now(),lvl:1,drawKey:'honeybear'};
-                s.inv.push(bear);save();
-                document.getElementById('g-stat').innerHTML=`<span style="color:#f59e0b">🎉 Ти виграв 🍯🐻 Медового ведмедя!</span>`;
-                showToast('🍯🐻 <b>Медовий ведмідь</b> в інвентарі!');
-            } else {res(m>0,bt,m,`Множник x${m}`);}
-        });
+        if(p<50)m=0;else if(p<75)m=1.4;else if(p<95)m=1.6;else m=1.8;
+        spinWheel(m,()=>{res(m>0,bt,m,`Множник x${m}`);});
     } else if(g==='slots'){
         if(slotsSpinning)return;
         document.getElementById('g-stat').innerText=L('spinning');
