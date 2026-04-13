@@ -273,8 +273,8 @@ function stopAllPetAnims() {
 // КЕЙСИ
 // ============================================================
 
-// Дедлайн великоднього кейсу (2 квітня 2026, 00:00 UTC)
-const DEADLINE_EASTER_CASE = new Date('2026-04-02T00:00:00Z').getTime();
+// Дедлайн великоднього кейсу (14 квітня 2026, 00:00 UTC)
+const DEADLINE_EASTER_CASE = new Date('2026-04-14T00:00:00Z').getTime();
 
 const CASES = {
     basic:    { n:"Common Case 🐾", p:285, drop:[
@@ -314,17 +314,17 @@ const ADMIN_ONLY_PETS = [
 // ТЕМИ
 // ============================================================
 const THEMES = {
-    gold:   {name:'🏆 Золото',  a:'#f59e0b',a2:'#fbbf24',bg:'#050710',btnTxt:'#000'},
-    blue:   {name:'💎 Сапфір',  a:'#58a6ff',a2:'#93c5fd',bg:'#030812',btnTxt:'#fff'},
-    purple: {name:'🔮 Аметист', a:'#a855f7',a2:'#c084fc',bg:'#070510',btnTxt:'#fff'},
-    green:  {name:'🌿 Смарагд', a:'#22c55e',a2:'#4ade80',bg:'#030c06',btnTxt:'#000'},
+    gold:   {name:'🏆 Золото',  a:'#d4a017',a2:'#f0c840',bg:'#07090a',btnTxt:'#0a0800'},
+    blue:   {name:'💎 Сапфір',  a:'#58a6ff',a2:'#93c5fd',bg:'#030810',btnTxt:'#fff'},
+    purple: {name:'🔮 Аметист', a:'#a855f7',a2:'#c084fc',bg:'#07050f',btnTxt:'#fff'},
+    green:  {name:'🌿 Смарагд', a:'#22c55e',a2:'#4ade80',bg:'#030c05',btnTxt:'#000'},
     red:    {name:'🔥 Рубін',   a:'#ef4444',a2:'#f87171',bg:'#0c0303',btnTxt:'#fff'},
 };
-let currentTheme = localStorage.getItem('bc_theme') || 'purple';
+let currentTheme = localStorage.getItem('bc_theme') || 'gold';
 let currentLang  = localStorage.getItem('bc_lang')  || 'uk';
 
 function applyTheme(key) {
-    const t=THEMES[key]||THEMES.easter;
+    const t=THEMES[key]||THEMES.gold;
     const r=document.documentElement.style;
     r.setProperty('--accent', t.a); r.setProperty('--accent2',t.a2);
     r.setProperty('--bg', t.bg);    r.setProperty('--btn-txt',t.btnTxt);
@@ -614,7 +614,7 @@ function renderShop(){
                 return `<span style="color:${p.c}">${petIcon}${p.w}%</span>`;
             }).join(' · ');
             let timer='';
-            if(c.limited){const diff=dl-now,d=Math.floor(diff/86400000),hr=Math.floor((diff/3600000)%24);timer=`<div class="case-timer">⏳ ${d}д ${hr}г</div>`;}
+            if(c.limited){const diff=dl-now,d=Math.floor(diff/86400000),hr=Math.floor((diff/3600000)%24),mn=Math.floor((diff/60000)%60);timer=`<div class="case-timer">⏳ ${d}д ${hr}г ${mn}хв</div>`;}
             h+=`<div class="shop-card"><div class="case-info">
                 <div class="case-name">${c.n} ${badge}</div>
                 <div style="font-size:10px;margin:4px 0;font-weight:600;opacity:.85">${chances}</div>${timer}
@@ -1599,3 +1599,8 @@ applyTheme(currentTheme);
 applyLang(currentLang);
 updUI();
 initMusic();
+
+// Оновлення таймеру кейсів кожну хвилину
+setInterval(()=>{
+    if(document.getElementById('v-shop')?.style.display!=='none') renderShop();
+}, 60000);
