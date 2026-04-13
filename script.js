@@ -15,6 +15,41 @@ firebase.initializeApp(firebaseConfig);
 const db  = firebase.database();
 const tg  = window.Telegram.WebApp;
 
+// ============================================================
+// SPLASH SCREEN
+// ============================================================
+(function initSplash(){
+    const splash = document.getElementById('splash-screen');
+    const bar    = document.getElementById('splash-bar');
+    const txt    = document.getElementById('splash-text');
+    if(!splash) return;
+
+    const msgs = ['Завантаження...','Підключення до сервера...','Готуємо стіл...','Тасуємо карти...'];
+    let progress = 0;
+    let msgIdx   = 0;
+
+    // Animate progress bar
+    const iv = setInterval(()=>{
+        const step = 2 + Math.random()*4;
+        progress = Math.min(progress + step, 92);
+        if(bar) bar.style.width = progress + '%';
+        if(txt && msgIdx < msgs.length && progress > msgIdx * 25){
+            txt.textContent = msgs[msgIdx++];
+        }
+    }, 120);
+
+    // Hide splash when Firebase player data loaded (or max 4s)
+    window._splashDone = function(){
+        clearInterval(iv);
+        if(bar) bar.style.width = '100%';
+        if(txt) txt.textContent = 'Готово!';
+        setTimeout(()=>{ if(splash) splash.classList.add('hidden'); }, 400);
+    };
+
+    // Safety fallback — max 4.5s
+    setTimeout(()=>{ if(splash && !splash.classList.contains('hidden')) window._splashDone(); }, 4500);
+})();
+
 // Global error catch - prevent silent failures
 window.onerror = function(msg, src, line, col, err) {
     console.error('CASINO ERROR:', msg, 'at', src, line, col, err);
@@ -326,11 +361,29 @@ let currentLang  = localStorage.getItem('bc_lang')  || 'uk';
 function applyTheme(key) {
     const t=THEMES[key]||THEMES.gold;
     const r=document.documentElement.style;
-    r.setProperty('--accent', t.a); r.setProperty('--accent2',t.a2);
-    r.setProperty('--bg', t.bg);    r.setProperty('--btn-txt',t.btnTxt);
+    r.setProperty('--accent',  t.a);
+    r.setProperty('--accent2', t.a2);
+    r.setProperty('--bg',      t.bg);
+    r.setProperty('--btn-txt', t.btnTxt);
+    // Логотип — завжди градієнт з кольорів поточної теми
     const logo=document.querySelector('.logo');
     if(logo) logo.style.backgroundImage=`linear-gradient(90deg,${t.a},${t.a2},${t.a},${t.a2},${t.a})`;
+    // Баланс чіп
+    const balChip=document.querySelector('.bal-chip');
+    if(balChip){
+        balChip.style.background=`rgba(${hexToRgb(t.a)},.1)`;
+        balChip.style.borderColor=`rgba(${hexToRgb(t.a)},.3)`;
+        balChip.style.color=t.a2;
+    }
+    // Splash bar
+    const sb=document.getElementById('splash-bar');
+    if(sb) sb.style.background=`linear-gradient(90deg,${t.a},${t.a2})`;
     currentTheme=key; localStorage.setItem('bc_theme',key);
+}
+
+function hexToRgb(hex){
+    const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+    return `${r},${g},${b}`;
 }
 
 // ============================================================
@@ -467,11 +520,13 @@ let currentShopTab='cases',currentAdminTab='balance';
 let adminInvUserId=null,adminInvUserName='';
 
 // FIREBASE SYNC
+let _splashFired = false;
 db.ref('players/'+myId).on('value',snap=>{
     const d=snap.val();
     if(d){s=d;if(!s.inv)s.inv=[];}
     else{db.ref('players/'+myId).set(s);}
     ren();
+    if(!_splashFired){ _splashFired=true; if(window._splashDone) window._splashDone(); }
 });
 function save(){db.ref('players/'+myId).set(s);}
 
