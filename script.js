@@ -345,6 +345,198 @@ const ADMIN_ONLY_PETS = [
     {n:'Нокіа3310',          s:'📱',r:'Міфічний',   m:1.32, c:'#bf40bf',drawKey:'nokia'},
 ];
 
+
+// ============================================================
+// ЩОДЕННІ ЗАВДАННЯ
+// ============================================================
+const DAILY_QUESTS_DEF = [
+    {id:'play5', icon:'🎮', title:'Зіграй 5 ігор',        type:'play',   need:5, reward:{type:'xp',amount:300}},
+    {id:'open1', icon:'📦', title:'Відкрий 1 кейс',        type:'case',   need:1, reward:{type:'bb',amount:100}},
+    {id:'win3',  icon:'🏆', title:'Виграй 3 рази поспіль', type:'winrow', need:3, reward:{type:'bb',amount:200}},
+];
+
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+
+function getDailyState(){
+    if(!s.daily||s.daily.day!==todayKey())
+        s.daily={day:todayKey(),play:0,case:0,winrow:0,done:{}};
+    return s.daily;
+}
+
+function dailyProgress(type,amount=1){
+    const d=getDailyState();
+    if(type==='win')       d.winrow=(d.winrow||0)+1;
+    else if(type==='lose') d.winrow=0;
+    else                   d[type]=(d[type]||0)+amount;
+    DAILY_QUESTS_DEF.forEach(q=>{
+        if(d.done[q.id]) return;
+        const cur=q.type==='winrow'?(d.winrow||0):(d[q.type]||0);
+        if(cur>=q.need){
+            d.done[q.id]=true;
+            if(q.reward.type==='bb'){s.b+=q.reward.amount;showToast(`\u2705 Завдання виконано! +${q.reward.amount} BB`);}
+            if(q.reward.type==='xp'){s.x=(s.x||0)+q.reward.amount;checkPetLevelUp();showToast(`\u2705 Завдання виконано! +${q.reward.amount} XP`);}
+        }
+    });
+    save();
+    if(document.getElementById('v-main')?.style.display!=='none') renderDailyQuests();
+}
+
+function renderDailyQuests(){
+    const el=document.getElementById('daily-quests-card');
+    if(!el) return;
+    const d=getDailyState();
+    const now=new Date(),midnight=new Date(now);
+    midnight.setHours(24,0,0,0);
+    const diff=midnight-now;
+    const hh=Math.floor(diff/3600000),mm=Math.floor((diff%3600000)/60000);
+    const rows=DAILY_QUESTS_DEF.map(q=>{
+        const done=!!d.done[q.id];
+        const cur=Math.min(q.type==='winrow'?(d.winrow||0):(d[q.type]||0),q.need);
+        const pct=Math.round(cur/q.need*100);
+        const rwStr=q.reward.type==='bb'?`+${q.reward.amount} BB`:`+${q.reward.amount} XP`;
+        return `<div class="dq-row${done?' dq-done':''}">
+            <div class="dq-icon">${q.icon}</div>
+            <div class="dq-info">
+                <div class="dq-title-q">${q.title}</div>
+                <div class="dq-bar-wrap"><div class="dq-bar" style="width:${pct}%"></div></div>
+                <div class="dq-sub">${cur}/${q.need} &middot; <b style="color:var(--accent2)">${rwStr}</b></div>
+            </div>
+            ${done?'<div class="dq-check">\u2705</div>':''}
+        </div>`;
+    }).join('');
+    el.innerHTML=`<div class="dq-header">
+        <span class="dq-title-main">\uD83D\uDCCB Щоденні завдання</span>
+        <span class="dq-timer">\uD83D\uDD04 ${hh}г ${mm}хв</span>
+    </div>${rows}`;
+}
+
+// ============================================================
+// РЕФЕРАЛЬНА СИСТЕМА
+// ============================================================
+function getRefCode(){
+    if(!s.refCode){
+        s.refCode='BEAR'+String(myId).slice(-4)+Math.random().toString(36).slice(2,5).toUpperCase();
+        save();
+    }
+    return s.refCode;
+}
+
+window.applyRef=async function(){
+    const code=(document.getElementById('ref-inp')?.value||'').trim().toUpperCase();
+    if(!code) return;
+    if(code===getRefCode()) return showToast('\u274C Не можна використати власний код!');
+    if(s.refUsed) return showToast('\u274C Ти вже використав реферальний код!');
+    const snap=await db.ref('players').orderByChild('refCode').equalTo(code).once('value');
+    if(!snap.exists()) return showToast('\u274C Код не знайдено');
+    const [refUid]=Object.entries(snap.val())[0];
+    if(String(refUid)===String(myId)) return showToast('\u274C Не можна використати власний код!');
+    const bonus=250;
+    s.b+=bonus; s.refUsed=code; save();
+    db.ref('players/'+refUid+'/b').transaction(c=>(c||0)+bonus);
+    db.ref('players/'+refUid+'/refCount').transaction(c=>(c||0)+1);
+    showToast(`\uD83C\uDF89 +${bonus} BB тобі і другу!`);
+    renderSettings();
+};
+
+// ============================================================
+// ПОКЕДЕКС
+// ============================================================
+function getAllPetsForDex(){
+    const all=[];
+    Object.values(CASES).forEach(c=>c.drop.forEach(p=>{
+        if(!all.find(x=>x.n===p.n)) all.push(p);
+    }));
+    return all;
+}
+
+let showingDex=false;
+window.togglePokedex=function(){showingDex=!showingDex;renderInv();};
+
+function renderPokedex(){
+    const all=getAllPetsForDex();
+    const owned=new Set(s.inv.map(p=>p.n));
+    const byRarity={};
+    all.forEach(p=>{if(!byRarity[p.r])byRarity[p.r]=[];byRarity[p.r].push(p);});
+    const rarityOrder=['Звичайний','Незвичайний','Рідкісний','Епічний','Легендарний','Міфічний'];
+    const total=all.length,gotCount=all.filter(p=>owned.has(p.n)).length;
+    let h=`<button class="btn-s" style="width:100%;margin-bottom:12px" onclick="togglePokedex()">\u2190 Назад до інвентаря</button>
+    <div style="text-align:center;margin-bottom:12px;font-size:13px;color:var(--muted);font-weight:700">${gotCount} / ${total} петів зібрано</div>`;
+    rarityOrder.forEach(rar=>{
+        if(!byRarity[rar]) return;
+        h+=`<div style="font-size:9px;font-weight:700;letter-spacing:1px;color:${RARITY_GLOW[rar]||'var(--muted)'};text-transform:uppercase;margin:10px 0 6px">${rar}</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px">`;
+        byRarity[rar].forEach(p=>{
+            const have=owned.has(p.n);
+            const imgSrc=getPetImageSrc(p);
+            const img=imgSrc.type==='img'
+                ?`<img src="${imgSrc.src}" style="width:36px;height:36px;object-fit:contain;${have?'':'filter:grayscale(1) opacity(.3)'}">`
+                :`<span style="font-size:26px;${have?'':'filter:grayscale(1) opacity(.3)'}">${p.s}</span>`;
+            h+=`<div style="background:${have?p.c+'18':'rgba(255,255,255,.03)'};border:1px solid ${have?p.c+'44':'rgba(255,255,255,.06)'};border-radius:10px;padding:8px 4px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px">
+                ${img}
+                <div style="font-size:9px;font-weight:700;color:${have?p.c:'var(--muted)'};line-height:1.2">${p.n}</div>
+                ${have?`<div style="font-size:8px;color:var(--muted)">x${p.m.toFixed(2)}</div>`:''}
+            </div>`;
+        });
+        h+=`</div>`;
+    });
+    h+=`<div class="glass" style="margin-top:12px"><div class="card-title">\uD83C\uDF81 Бонуси за повну колекцію</div>`;
+    rarityOrder.forEach(rar=>{
+        if(!byRarity[rar]) return;
+        const cnt=byRarity[rar].length,got=byRarity[rar].filter(p=>owned.has(p.n)).length;
+        const full=got===cnt,bonus=Math.round(cnt*50);
+        h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+            <span style="font-size:12px;color:${RARITY_GLOW[rar]||'var(--muted)'}">${rar} (${got}/${cnt})</span>
+            <span style="font-size:11px;font-weight:700;color:${full?'var(--success)':'var(--muted)'}">+${bonus} BB ${full?'\u2705':'\uD83D\uDD12'}</span>
+        </div>`;
+    });
+    h+=`</div>`;
+    return h;
+}
+
+// ============================================================
+// ПІДПИСКИ НА КАНАЛИ
+// ============================================================
+window.renderChannels=async function(){
+    const el=document.getElementById('channels-wrap');
+    if(!el) return;
+    const snap=await db.ref('channels').once('value');
+    const channels=snap.val()||{};
+    if(!Object.keys(channels).length){
+        el.innerHTML=`<div style="text-align:center;color:var(--muted);padding:16px;font-size:13px">Немає активних підписок</div>`;
+        return;
+    }
+    const claimed=s.claimedChannels||{};
+    el.innerHTML=Object.entries(channels).map(([id,ch])=>{
+        const done=!!claimed[id];
+        const rwStr=ch.rewardType==='bb'?`+${ch.reward} BB`:`+${ch.reward} XP`;
+        return `<div class="sett-card" style="margin-bottom:8px;flex-direction:column;align-items:flex-start;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px;width:100%">
+                <span style="font-size:22px">\uD83D\uDCE2</span>
+                <div style="flex:1"><div style="font-weight:700;font-size:14px">${ch.name}</div>
+                <div style="font-size:11px;color:var(--muted)">Нагорода: <b style="color:var(--accent2)">${rwStr}</b></div></div>
+                ${done?'<span style="color:var(--success);font-size:13px;font-weight:700">\u2705</span>':''}
+            </div>
+            ${!done?`<div style="display:flex;gap:7px;width:100%">
+                <a href="${ch.url}" target="_blank" style="flex:1;padding:9px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--text);font-size:12px;font-weight:700;text-align:center;text-decoration:none">\uD83D\uDD17 Підписатись</a>
+                <button class="btn" style="flex:1;padding:9px;font-size:12px;font-family:inherit" onclick="claimChannel('${id}')">Отримати</button>
+            </div>`:''}
+        </div>`;
+    }).join('');
+};
+
+window.claimChannel=async function(id){
+    if((s.claimedChannels||{})[id]) return showToast('Вже отримано!');
+    const snap=await db.ref('channels/'+id).once('value');
+    const ch=snap.val();
+    if(!ch) return;
+    if(!s.claimedChannels) s.claimedChannels={};
+    s.claimedChannels[id]=true;
+    if(ch.rewardType==='bb'){s.b+=ch.reward;showToast(`+${ch.reward} BB за підписку!`);}
+    else{s.x=(s.x||0)+ch.reward;checkPetLevelUp();showToast(`+${ch.reward} XP за підписку!`);}
+    save();
+    window.renderChannels();
+};
+
 // ============================================================
 // ТЕМИ
 // ============================================================
@@ -592,14 +784,11 @@ function ren(){
     const hudWrap = document.getElementById('p-hud-wrap');
 
     if (s.p) {
-        // HUD зображення
         if (hudWrap) {
             const imgSrc = getPetImageSrc(s.p);
             if (imgSrc.type === 'img') {
-                // Фото — без анімації руху
                 hudWrap.innerHTML = `<img src="${imgSrc.src}" style="width:52px;height:52px;object-fit:contain;">`;
             } else {
-                // Emoji — з анімацією float
                 hudWrap.innerHTML = `<span style="font-size:34px;animation:pet-float 3s ease-in-out infinite">${imgSrc.src}</span>`;
             }
         }
@@ -625,6 +814,9 @@ function ren(){
 
     if (ADMINS.includes(Number(myId)))
         document.getElementById('admin-tab').style.display = 'flex';
+
+    // Daily quests
+    renderDailyQuests();
     } catch(e) { console.error('ren() error:', e); }
 }
 
@@ -753,21 +945,27 @@ function renderInv(){
     const el=document.getElementById('inv-list');
     const countEl=document.getElementById('inv-count');
     if(countEl) countEl.textContent=s.inv.length ? `${s.inv.length} ${L('invCountLabel')}` : '';
+
+    // Pokédex mode
+    if(showingDex){ el.innerHTML=renderPokedex(); return; }
+
+    // Pokédex button
+    const dexBtn=`<button class="btn-dex" onclick="togglePokedex()">📖 Покедекс</button>`;
+
     if(!s.inv||!s.inv.length){
-        el.innerHTML=`<div class="inv-empty">
+        el.innerHTML=dexBtn+`<div class="inv-empty">
             <div style="font-size:52px;margin-bottom:12px">🥚</div>
             <div style="font-weight:700;font-size:15px">${L('invEmpty')}</div>
             <div style="font-size:12px;opacity:.6;margin-top:4px">${L('invEmptySub')}</div>
         </div>`;
         return;
     }
-    let h='';
+    let h=dexBtn;
     s.inv.forEach((p,i)=>{
         const eq=s.p&&s.p.id===p.id;
         const cid=`pet-vis-${i}`;
         const pvl=p.lvl||1, pxp=s.p&&s.p.id===p.id?s.x:0;
         const pct=eq?Math.min((pxp/xpForLevel(pvl))*100,100):0;
-        // Quick sell price = base multiplier * 50
         const qsPrice = Math.floor(p.m * 50);
         h+=`<div class="pet-card${eq?' pet-eq':''}">
             <div class="pet-stripe" style="background:${p.c}"></div>
@@ -1038,6 +1236,7 @@ function buyCase(k){
     const c=CASES[k];
     if(s.b<c.p)return alert('Мало BB!');
     s.b-=c.p; save();
+    dailyProgress('case');
 
     // Pick winner
     let rand=Math.random()*100, win=null, cur=0;
@@ -1107,8 +1306,8 @@ window.play=()=>{
 
 function res(win,bt,m,msg){
     const bon=s.p?s.p.m:1;
-    if(win){const w=(bt*m-bt)*bon;s.b+=w;s.x+=Math.floor(bt/2);document.getElementById('g-stat').innerHTML=`<span style="color:var(--success)">+${w.toFixed(2)} BB</span><br><small>${msg}</small>`;checkPetLevelUp();}
-    else{s.b-=bt;document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bt.toFixed(2)} BB</span><br><small>${msg}</small>`;}
+    if(win){const w=(bt*m-bt)*bon;s.b+=w;s.x+=Math.floor(bt/2);document.getElementById('g-stat').innerHTML=`<span style="color:var(--success)">+${w.toFixed(2)} BB</span><br><small>${msg}</small>`;checkPetLevelUp();dailyProgress('win');dailyProgress('play');}
+    else{s.b-=bt;document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bt.toFixed(2)} BB</span><br><small>${msg}</small>`;dailyProgress('lose');dailyProgress('play');}
     save();
 }
 
@@ -1159,13 +1358,45 @@ function loadAdmin(){
     if(currentAdminTab==='inv'&&adminInvUserId){loadAdminUserInv(adminInvUserId,adminInvUserName);return;}
 
     const makeTabs=()=>`<div class="admin-tabs">
-        <div class="a-tab ${currentAdminTab==='stats'?'active':''}"  onclick="setAdminTab('stats')">📊 Стат</div>
-        <div class="a-tab ${currentAdminTab==='balance'?'active':''}" onclick="setAdminTab('balance')">💰 BB</div>
-        <div class="a-tab ${currentAdminTab==='inv'?'active':''}"    onclick="setAdminTab('inv')">🐾 Пети</div>
-        <div class="a-tab ${currentAdminTab==='promo'?'active':''}"  onclick="setAdminTab('promo')">🎟 Промо</div>
+        <div class="a-tab ${currentAdminTab==='stats'?'active':''}"     onclick="setAdminTab('stats')">📊 Стат</div>
+        <div class="a-tab ${currentAdminTab==='balance'?'active':''}"   onclick="setAdminTab('balance')">💰 BB</div>
+        <div class="a-tab ${currentAdminTab==='inv'?'active':''}"       onclick="setAdminTab('inv')">🐾 Пети</div>
+        <div class="a-tab ${currentAdminTab==='promo'?'active':''}"     onclick="setAdminTab('promo')">🎟 Промо</div>
+        <div class="a-tab ${currentAdminTab==='channels'?'active':''}"  onclick="setAdminTab('channels')">📢</div>
     </div>`;
 
-    // ── ПРОМОКОДИ ──
+    // ── КАНАЛИ ──
+    if(currentAdminTab==='channels'){
+        db.ref('channels').once('value',snap=>{
+            const chs=snap.val()||{};
+            let rows='';
+            Object.entries(chs).forEach(([id,ch])=>{
+                rows+=`<div class="admin-card" style="padding:12px">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <div style="font-weight:700;font-size:14px;color:var(--text)">${ch.name}</div>
+                            <div style="font-size:11px;color:var(--muted);margin-top:2px">${ch.url} · ${ch.rewardType==='bb'?'+'+ch.reward+' BB':'+'+ch.reward+' XP'}</div>
+                        </div>
+                        <button class="btn-ctrl b-sub" style="padding:7px 10px" onclick="db.ref('channels/${id}').remove().then(()=>{showToast('🗑 Видалено');loadAdmin();})">🗑</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('admin-list').innerHTML=makeTabs()+`
+            <div class="admin-card">
+                <div class="card-title">➕ Додати канал</div>
+                <input type="text" id="ch-name" placeholder="Назва каналу" style="margin-bottom:8px">
+                <input type="text" id="ch-url"  placeholder="https://t.me/канал" style="margin-bottom:8px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                    <select id="ch-type" style="margin:0"><option value="bb">💰 BB</option><option value="xp">⭐ XP</option></select>
+                    <input type="number" id="ch-reward" placeholder="Нагорода" style="margin:0">
+                </div>
+                <button class="btn" onclick="adminAddChannel()">✅ Додати</button>
+            </div>
+            <div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin:14px 0 8px">АКТИВНІ КАНАЛИ (${Object.keys(chs).length})</div>
+            ${rows||'<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">Немає каналів</div>'}`;
+        });
+        return;
+    }
     if(currentAdminTab==='promo'){
         db.ref('promo').once('value',snap=>{
             const codes=snap.val()||{};
@@ -1519,6 +1750,18 @@ window.mathB=(id,type)=>{
 // adminGivePet — alias для зворотньої сумісності
 window.adminGivePet=uid=>window.adminGivePetModal(uid,'');
 
+window.adminAddChannel=()=>{
+    const name=(document.getElementById('ch-name')?.value||'').trim();
+    const url=(document.getElementById('ch-url')?.value||'').trim();
+    const type=document.getElementById('ch-type')?.value||'bb';
+    const reward=parseInt(document.getElementById('ch-reward')?.value||'0');
+    if(!name||!url||!reward) return showToast('❌ Заповни всі поля');
+    db.ref('channels').push({name,url,rewardType:type,reward}).then(()=>{
+        showToast('✅ Канал додано!');
+        loadAdmin();
+    });
+};
+
 // ============================================================
 // НАЛАШТУВАННЯ
 // ============================================================
@@ -1556,7 +1799,7 @@ function renderSettings(){
         <div class="glass">
             <div class="sett-section-title">${L('music')}</div>
             <div style="display:flex;gap:8px;margin-bottom:10px">
-                <button class="btn-s" style="flex:1;background:${musicEnabled?'rgba(232,121,160,.15)':'rgba(255,255,255,.04)'};border-color:${musicEnabled?'var(--accent)':'rgba(255,255,255,.12)'};color:${musicEnabled?'var(--accent)':'var(--muted)'}" onclick="toggleMusic()">
+                <button class="btn-s" style="flex:1;background:${musicEnabled?'rgba(var(--accent-rgb),.15)':'rgba(255,255,255,.04)'};border-color:${musicEnabled?'var(--accent)':'rgba(255,255,255,.12)'};color:${musicEnabled?'var(--accent)':'var(--muted)'}" onclick="toggleMusic()">
                     ${musicEnabled?'🔊 Увімк.':'🔇 Вимк.'}
                 </button>
                 <div style="flex:2;display:flex;align-items:center;font-size:12px;color:var(--muted);padding:0 8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">
@@ -1566,12 +1809,34 @@ function renderSettings(){
             <div class="sett-list">${musicTracksHtml}</div>
         </div>
         <div class="glass">
+            <div class="sett-section-title">📢 Підписки на канали</div>
+            <div id="channels-wrap"><div style="color:var(--muted);font-size:12px;text-align:center;padding:12px">Завантаження...</div></div>
+        </div>
+        <div class="glass">
+            <div class="sett-section-title">👥 Реферальна система</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Твій реферальний код — поділись з другом. Обидва отримаєте <b style="color:var(--accent2)">+250 BB</b>!</div>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+                <div style="flex:1;padding:11px 14px;background:rgba(255,255,255,.04);border:1px solid var(--border-gold);border-radius:10px;font-size:15px;font-weight:800;color:var(--accent2);letter-spacing:1.5px;text-align:center">${getRefCode()}</div>
+                <button class="btn-s" onclick="if(navigator.clipboard)navigator.clipboard.writeText('${getRefCode()}').then(()=>showToast('✅ Скопійовано!'))">📋</button>
+            </div>
+            ${s.refUsed
+                ? `<div style="font-size:12px;color:var(--success);font-weight:700;text-align:center">✅ Ти вже активував код друга</div>`
+                : `<div style="display:flex;gap:8px">
+                    <input type="text" id="ref-inp" placeholder="Код друга..." style="flex:1;margin:0;text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase()">
+                    <button class="btn" style="width:auto;padding:12px 16px;flex-shrink:0;font-size:13px" onclick="applyRef()">▶</button>
+                </div>`
+            }
+            <div style="margin-top:10px;font-size:11px;color:var(--muted)">Запрошено друзів: <b style="color:var(--accent2)">${s.refCount||0}</b></div>
+        </div>
+        <div class="glass">
             <div class="sett-section-title">🎟 ПРОМОКОД</div>
             <div style="display:flex;gap:8px">
                 <input type="text" id="promo-inp" placeholder="Введи промокод..." style="flex:1;margin:0;text-transform:uppercase;letter-spacing:1px" oninput="this.value=this.value.toUpperCase()">
-                <button class="btn-buy" style="padding:12px 16px;font-size:14px;flex-shrink:0" onclick="applyPromo()">▶</button>
+                <button class="btn" style="width:auto;padding:12px 16px;flex-shrink:0;font-size:13px" onclick="applyPromo()">▶</button>
             </div>
         </div>`;
+    // Load channels async
+    setTimeout(()=>window.renderChannels(), 50);
 }
 window.pickTheme=k=>{applyTheme(k);renderSettings();showToast(L('saved'));};
 window.pickLang=k=>{applyLang(k);renderSettings();showToast(L('saved'));};
