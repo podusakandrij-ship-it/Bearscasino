@@ -443,9 +443,14 @@ window.applyRef=async function(){
 // ============================================================
 function getAllPetsForDex(){
     const all=[];
+    const seen=new Set();
     Object.values(CASES).forEach(c=>c.drop.forEach(p=>{
-        if(!all.find(x=>x.n===p.n)) all.push(p);
+        if(!seen.has(p.n)){all.push(p);seen.add(p.n);}
     }));
+    // Додаємо всіх петів з інвентаря гравця (щоб адмін-пети теж відображались)
+    (s.inv||[]).forEach(p=>{
+        if(!seen.has(p.n)){all.push({...p,w:0});seen.add(p.n);}
+    });
     return all;
 }
 
@@ -457,7 +462,7 @@ function renderPokedex(){
     const owned=new Set(s.inv.map(p=>p.n));
     const byRarity={};
     all.forEach(p=>{if(!byRarity[p.r])byRarity[p.r]=[];byRarity[p.r].push(p);});
-    const rarityOrder=['Звичайний','Незвичайний','Рідкісний','Епічний','Легендарний','Міфічний'];
+    const rarityOrder=['Звичайний','Незвичайний','Рідкісний','Епічний','Легендарний','Міфічний','Смехуятина'];
     const total=all.length,gotCount=all.filter(p=>owned.has(p.n)).length;
     let h=`<button class="btn-s" style="width:100%;margin-bottom:12px" onclick="togglePokedex()">\u2190 Назад до інвентаря</button>
     <div style="text-align:center;margin-bottom:12px;font-size:13px;color:var(--muted);font-weight:700">${gotCount} / ${total} петів зібрано</div>`;
@@ -506,34 +511,51 @@ window.renderChannels=async function(){
         return;
     }
     const claimed=s.claimedChannels||{};
+    // Зберігаємо які посилання клікнув гравець (локально)
+    if(!window._chClicked) window._chClicked={};
     el.innerHTML=Object.entries(channels).map(([id,ch])=>{
         const done=!!claimed[id];
         const rwStr=ch.rewardType==='bb'?`+${ch.reward} BB`:`+${ch.reward} XP`;
+        const clicked=!!window._chClicked[id];
         return `<div class="sett-card" style="margin-bottom:8px;flex-direction:column;align-items:flex-start;gap:8px">
             <div style="display:flex;align-items:center;gap:10px;width:100%">
-                <span style="font-size:22px">\uD83D\uDCE2</span>
+                <span style="font-size:22px">📢</span>
                 <div style="flex:1"><div style="font-weight:700;font-size:14px">${ch.name}</div>
                 <div style="font-size:11px;color:var(--muted)">Нагорода: <b style="color:var(--accent2)">${rwStr}</b></div></div>
-                ${done?'<span style="color:var(--success);font-size:13px;font-weight:700">\u2705</span>':''}
+                ${done?'<span style="color:var(--success);font-size:13px;font-weight:700">✅</span>':''}
             </div>
             ${!done?`<div style="display:flex;gap:7px;width:100%">
-                <a href="${ch.url}" target="_blank" style="flex:1;padding:9px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--text);font-size:12px;font-weight:700;text-align:center;text-decoration:none">\uD83D\uDD17 Підписатись</a>
-                <button class="btn" style="flex:1;padding:9px;font-size:12px;font-family:inherit" onclick="claimChannel('${id}')">Отримати</button>
-            </div>`:''}
+                <a href="${ch.url}" target="_blank" style="flex:1;padding:9px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--text);font-size:12px;font-weight:700;text-align:center;text-decoration:none"
+                   onclick="window._chClicked['${id}']=Date.now();setTimeout(()=>window.renderChannels(),500)">🔗 Підписатись</a>
+                <button class="btn" style="flex:1;padding:9px;font-size:12px;font-family:inherit;${!clicked?'opacity:.4;cursor:not-allowed':''}"
+                   onclick="${clicked?`claimChannel('${id}')`:'showToast(\"⚠️ Спочатку натисни Підписатись!\")'}">${clicked?'✅ Отримати':'🔒 Отримати'}</button>
+            </div>
+            ${clicked?`<div style="font-size:10px;color:var(--success);width:100%">✔ Посилання відкрито — тепер натисни Отримати</div>`:
+            `<div style="font-size:10px;color:var(--muted);width:100%">⚠️ Спочатку підпишись на канал, потім натисни Отримати</div>`}
+            `:''}
         </div>`;
     }).join('');
 };
 
 window.claimChannel=async function(id){
     if((s.claimedChannels||{})[id]) return showToast('Вже отримано!');
+    // Перевірка що гравець натиснув посилання
+    if(!window._chClicked||!window._chClicked[id]) return showToast('⚠️ Спочатку натисни кнопку Підписатись!');
     const snap=await db.ref('channels/'+id).once('value');
     const ch=snap.val();
     if(!ch) return;
     if(!s.claimedChannels) s.claimedChannels={};
     s.claimedChannels[id]=true;
-    if(ch.rewardType==='bb'){s.b+=ch.reward;showToast(`+${ch.reward} BB за підписку!`);}
-    else{s.x=(s.x||0)+ch.reward;checkPetLevelUp();showToast(`+${ch.reward} XP за підписку!`);}
+    let rewardMsg='';
+    // Підтримка кількох нагород: rewards масив або одна нагорода
+    const rewards=ch.rewards||[{type:ch.rewardType||'bb',amount:ch.reward}];
+    rewards.forEach(rw=>{
+        if(rw.type==='bb'){s.b+=rw.amount;rewardMsg+=`+${rw.amount} BB `;}
+        else if(rw.type==='xp'){s.x=(s.x||0)+rw.amount;checkPetLevelUp();rewardMsg+=`+${rw.amount} XP `;}
+        else if(rw.type==='pet'&&rw.pet){const p={...rw.pet,id:Date.now(),lvl:1};s.inv.push(p);rewardMsg+=`${p.s||''}${p.n} `;}
+    });
     save();
+    showToast(`🎉 Дякуємо за підписку! ${rewardMsg.trim()}`);
     window.renderChannels();
 };
 
@@ -715,7 +737,16 @@ let adminInvUserId=null,adminInvUserName='';
 let _splashFired = false;
 db.ref('players/'+myId).on('value',snap=>{
     const d=snap.val();
-    if(d){s=d;if(!s.inv)s.inv=[];}
+    if(d){
+        // Зберігаємо поточний daily прогрес щоб Firebase не перезаписав його
+        const curDaily = s.daily;
+        s=d;
+        if(!s.inv)s.inv=[];
+        // Якщо локальний daily новіший (той самий день) — залишаємо його
+        if(curDaily && curDaily.day === todayKey() && (!s.daily || s.daily.day !== todayKey())){
+            s.daily = curDaily;
+        }
+    }
     else{db.ref('players/'+myId).set(s);}
     ren();
     if(!_splashFired){ _splashFired=true; if(window._splashDone) window._splashDone(); }
@@ -1235,17 +1266,23 @@ function openCaseAnimation(win, onComplete) {
 function buyCase(k){
     const c=CASES[k];
     if(s.b<c.p)return alert('Мало BB!');
-    s.b-=c.p; save();
-    dailyProgress('case');
 
     // Pick winner
     let rand=Math.random()*100, win=null, cur=0;
     for(const p of c.drop){cur+=p.w;if(rand<=cur){win={...p};break;}}
     if(!win) win={...c.drop[c.drop.length-1]};
 
+    // Знімаємо гроші та ОДРАЗУ додаємо пета в інвентар (до анімації!)
+    // Це запобігає втраті пета через Firebase listener
+    win.id=Date.now(); win.lvl=1;
+    s.b-=c.p;
+    s.inv.push(win);
+    dailyProgress('case');
+    save();
+
     openCaseAnimation(win, ()=>{
-        win.id=Date.now(); win.lvl=1;
-        s.inv.push(win); save();
+        // Пет вже в інвентарі, просто оновлюємо UI
+        ren();
     });
 }
 window.buyCase=buyCase;
@@ -1387,9 +1424,10 @@ function loadAdmin(){
                 <input type="text" id="ch-name" placeholder="Назва каналу" style="margin-bottom:8px">
                 <input type="text" id="ch-url"  placeholder="https://t.me/канал" style="margin-bottom:8px">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-                    <select id="ch-type" style="margin:0"><option value="bb">💰 BB</option><option value="xp">⭐ XP</option></select>
-                    <input type="number" id="ch-reward" placeholder="Нагорода" style="margin:0">
+                    <input type="number" id="ch-reward-bb" placeholder="💰 BB (0 = не давати)" style="margin:0">
+                    <input type="number" id="ch-reward-xp" placeholder="⭐ XP (0 = не давати)" style="margin:0">
                 </div>
+                <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Можна одночасно дати і BB і XP. Залиш 0 якщо не потрібно.</div>
                 <button class="btn" onclick="adminAddChannel()">✅ Додати</button>
             </div>
             <div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin:14px 0 8px">АКТИВНІ КАНАЛИ (${Object.keys(chs).length})</div>
@@ -1427,7 +1465,7 @@ function loadAdmin(){
                     <button id="pt-case" class="btn-s promo-type-btn" onclick="setPromoType('case')">📦 Кейс</button>
                 </div>
                 <div id="promo-bb-inp">
-                    <input type="number" id="promo-amount" placeholder="Кількість BB" style="margin-bottom:8px">
+                    <input type="number" id="promo-amount" placeholder="Кількість BB (0 = не давати)" style="margin-bottom:8px">
                 </div>
                 <div id="promo-pet-inp" style="display:none">
                     <select id="promo-pet-sel" style="margin-bottom:8px">
@@ -1440,6 +1478,7 @@ function loadAdmin(){
                     </select>
                     <input type="number" id="promo-case-count" placeholder="Кількість кейсів" value="1" style="margin-bottom:8px">
                 </div>
+                <div style="font-size:10px;color:var(--muted);margin-bottom:8px">💡 Для типу BB — можна одночасно дати і пета: переключись між типами, але BB + Пет комбінується автоматично якщо ввести суму > 0</div>
                 <input type="number" id="promo-uses" placeholder="Макс. активацій (0 = необмежено)" style="margin-bottom:10px" value="1">
                 <button class="btn" onclick="adminCreatePromo()">✅ Створити промокод</button>
             </div>
@@ -1552,7 +1591,17 @@ window.adminCreatePromo=()=>{
         const idx=parseInt(document.getElementById('promo-pet-sel').value);
         const pets=getAllPets();
         if(!pets[idx]) return alert('Обери пета!');
-        reward={type:'pet',pet:{...pets[idx],id:Date.now(),lvl:1}};
+        // Перевіряємо чи є і BB сума
+        const bbAmt=parseFloat(document.getElementById('promo-amount')?.value||'0');
+        if(bbAmt>0){
+            // Комбінована: пет + BB
+            reward={type:'multi',rewards:[
+                {type:'pet',pet:{...pets[idx],id:Date.now(),lvl:1}},
+                {type:'bb',amount:bbAmt}
+            ]};
+        } else {
+            reward={type:'pet',pet:{...pets[idx],id:Date.now(),lvl:1}};
+        }
     } else if(currentPromoType==='case'){
         const caseKey=document.getElementById('promo-case-sel').value;
         const count=parseInt(document.getElementById('promo-case-count').value)||1;
@@ -1598,47 +1647,47 @@ window.applyPromo=()=>{
         // Застосовуємо нагороду
         db.ref('promo/'+code+'/used').set(used+1);
         db.ref('promo/'+code+'/usedBy').set([...usedBy,String(myId)]);
-        if(data.type==='bb'){
-            s.b+=data.amount; save(); ren();
-            showToast(`🎉 +${data.amount} BB! Промокод активовано`);
-        } else if(data.type==='pet'&&data.pet){
-            const pet={...data.pet,id:Date.now(),lvl:1};
-            s.inv.push(pet); save();
-            showToast(`🎉 ${pet.s||''} ${pet.n} отримано!`);
-        } else if(data.type==='case'&&data.caseKey){
-            const c=CASES[data.caseKey];
-            if(!c){showToast('❌ Кейс більше не доступний');return;}
-            const count=data.count||1;
-            document.getElementById('promo-inp').value='';
-            // Відкриваємо кейси з анімацією по одному
-            let opened=0;
-            function openNext(){
-                if(opened>=count){
-                    renderSettings();
-                    showToast(`🎉 ${count}x ${c.n} відкрито!`);
-                    return;
-                }
-                let rand=Math.random()*100,win=null,cur=0;
-                for(const p of c.drop){cur+=p.w;if(rand<=cur){win={...p};break;}}
-                if(!win) win={...c.drop[c.drop.length-1]};
-                opened++;
-                openCaseAnimation(win,()=>{
+        document.getElementById('promo-inp').value='';
+
+        function applySingleReward(d,toastParts){
+            if(d.type==='bb'){
+                s.b+=d.amount; toastParts.push(`+${d.amount} BB`);
+            } else if(d.type==='pet'&&d.pet){
+                const pet={...d.pet,id:Date.now(),lvl:1};
+                s.inv.push(pet); toastParts.push(`${pet.s||''} ${pet.n}`);
+            } else if(d.type==='case'&&d.caseKey){
+                const c=CASES[d.caseKey];
+                if(!c){showToast('❌ Кейс більше не доступний');return;}
+                const count=d.count||1;
+                let opened=0;
+                function openNext(){
+                    if(opened>=count){renderSettings();showToast(`🎉 ${count}x ${c.n} відкрито!`);return;}
+                    let rand=Math.random()*100,win=null,cur2=0;
+                    for(const p of c.drop){cur2+=p.w;if(rand<=cur2){win={...p};break;}}
+                    if(!win) win={...c.drop[c.drop.length-1]};
+                    opened++;
                     win.id=Date.now()+opened; win.lvl=1;
                     s.inv.push(win); save();
-                    // After close button click — if more cases, open next
-                    const origClose=window.closeCase;
-                    if(opened<count){
-                        window.closeCase=()=>{
-                            origClose();
-                            window.closeCase=origClose;
-                            setTimeout(openNext,300);
-                        };
-                    }
-                });
+                    openCaseAnimation(win,()=>{
+                        ren();
+                        const origClose=window.closeCase;
+                        if(opened<count){
+                            window.closeCase=()=>{origClose();window.closeCase=origClose;setTimeout(openNext,300);};
+                        }
+                    });
+                }
+                openNext();
             }
-            openNext();
         }
-        document.getElementById('promo-inp').value='';
+
+        const toastParts=[];
+        if(data.type==='multi'&&Array.isArray(data.rewards)){
+            data.rewards.forEach(rw=>applySingleReward(rw,toastParts));
+        } else {
+            applySingleReward(data,toastParts);
+        }
+        save(); ren();
+        if(toastParts.length) showToast(`🎉 Промокод активовано! ${toastParts.join(' + ')}`);
         renderSettings();
     });
 };
@@ -1753,10 +1802,16 @@ window.adminGivePet=uid=>window.adminGivePetModal(uid,'');
 window.adminAddChannel=()=>{
     const name=(document.getElementById('ch-name')?.value||'').trim();
     const url=(document.getElementById('ch-url')?.value||'').trim();
-    const type=document.getElementById('ch-type')?.value||'bb';
-    const reward=parseInt(document.getElementById('ch-reward')?.value||'0');
-    if(!name||!url||!reward) return showToast('❌ Заповни всі поля');
-    db.ref('channels').push({name,url,rewardType:type,reward}).then(()=>{
+    if(!name||!url) return showToast('❌ Заповни назву і посилання');
+    // Збираємо нагороди
+    const rewards=[];
+    const bb=parseInt(document.getElementById('ch-reward-bb')?.value||'0');
+    const xp=parseInt(document.getElementById('ch-reward-xp')?.value||'0');
+    if(bb>0) rewards.push({type:'bb',amount:bb});
+    if(xp>0) rewards.push({type:'xp',amount:xp});
+    if(!rewards.length) return showToast('❌ Додай хоча б одну нагороду (BB або XP)');
+    // Для сумісності зі старим кодом — зберігаємо і старий формат
+    db.ref('channels').push({name,url,rewardType:rewards[0].type,reward:rewards[0].amount,rewards}).then(()=>{
         showToast('✅ Канал додано!');
         loadAdmin();
     });
