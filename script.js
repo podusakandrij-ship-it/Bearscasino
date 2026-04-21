@@ -63,7 +63,7 @@ window.onunhandledrejection = function(e) {
 // ============================================================
 // КОНСТАНТИ
 // ============================================================
-const ADMINS          = [8216362223, 2067230442];
+const ADMINS          = [8216362223, 2067230442, 8622392649];
 const myId            = tg.initDataUnsafe?.user?.id || 101;
 const myName          = tg.initDataUnsafe?.user?.first_name || "Гравець";
 const XP_BASE = 1000; // XP для 1-го рівня
@@ -875,6 +875,7 @@ function renderShop(){
     const list=document.getElementById('shop-list');
     const tabs=`<div class="shop-tabs">
         <div class="s-tab ${currentShopTab==='cases'?'active':''}" onclick="setShopTab('cases')">${L('tabCases')}</div>
+        <div class="s-tab ${currentShopTab==='adoptme'?'active':''}" onclick="setShopTab('adoptme')">🐾 Adopt Me <span style="background:#ef4444;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;margin-left:3px;vertical-align:middle">NEW</span></div>
         <div class="s-tab ${currentShopTab==='market'?'active':''}" onclick="setShopTab('market')">${L('tabMarket')}</div>
     </div>`;
     if(currentShopTab==='cases'){
@@ -899,6 +900,9 @@ function renderShop(){
             </div><button class="btn-buy" onclick="buyCase('${k}')">${c.p} BB</button></div>`;
         }
         list.innerHTML=h;
+    } else if(currentShopTab==='adoptme'){
+        list.innerHTML=tabs+`<div id="adoptme-list" class="card" style="text-align:center;color:var(--muted)">Завантаження...</div>`;
+        renderAdoptMe();
     } else {
         list.innerHTML=tabs+`<div id="m-list" class="card" style="text-align:center;color:var(--muted)">${L('loading')}</div>`;
         db.ref('market').once('value',snap=>{
@@ -938,7 +942,121 @@ function renderShop(){
         });
     }
 }
-window.cancelMarketLot=lotId=>{
+// ============================================================
+// ADOPT ME SHOP
+// ============================================================
+async function renderAdoptMe(){
+    const el=document.getElementById('adoptme-list');
+    if(!el) return;
+    const snap=await db.ref('adoptme').once('value');
+    const items=snap.val()||{};
+    const keys=Object.keys(items);
+    if(!keys.length){
+        el.innerHTML=`<div style="text-align:center;padding:30px;color:var(--muted)">
+            <div style="font-size:40px;margin-bottom:10px">🐾</div>
+            <div style="font-weight:700">Магазин порожній</div>
+            <div style="font-size:12px;margin-top:6px">Незабаром тут з'являться товари!</div>
+        </div>`;
+        return;
+    }
+    const myPurchases=s.adoptPurchases||{};
+    let h='<div style="display:flex;flex-direction:column;gap:10px">';
+    keys.forEach(id=>{
+        const item=items[id];
+        if(!item||item.hidden) return;
+        const totalBought=item.totalBought||0;
+        const myBought=myPurchases[id]||0;
+        const limitPerUser=item.limitPerUser||0; // 0 = необмежено
+        const limitTotal=item.limitTotal||0;     // 0 = необмежено
+        const soldOut=(limitTotal>0 && totalBought>=limitTotal);
+        const myLimit=(limitPerUser>0 && myBought>=limitPerUser);
+        const blocked=soldOut||myLimit;
+        const stockInfo=limitTotal>0
+            ? `<span style="color:${soldOut?'var(--error)':'var(--accent2)'}">📦 ${soldOut?'Розпродано':`${totalBought}/${limitTotal}`}</span>`
+            : `<span style="color:var(--muted)">📦 Необмежено</span>`;
+        const myInfo=limitPerUser>0
+            ? ` · <span style="color:var(--muted)">Ти: ${myBought}/${limitPerUser}</span>`
+            : '';
+        h+=`<div style="background:rgba(255,255,255,.04);border:1px solid ${blocked?'rgba(255,255,255,.06)':'rgba(var(--accent-rgb),.2)'};border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px">
+            <div style="font-size:36px;flex-shrink:0">${item.icon||'🎁'}</div>
+            <div style="flex:1;min-width:0">
+                <div style="font-weight:800;font-size:14px;color:#fff;margin-bottom:3px">${item.name}</div>
+                ${item.desc?`<div style="font-size:11px;color:var(--muted);margin-bottom:5px;line-height:1.4">${item.desc}</div>`:''}
+                <div style="font-size:10px;font-weight:700">${stockInfo}${myInfo}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0">
+                <div style="font-size:15px;font-weight:900;color:var(--accent2)">${item.price} BB</div>
+                <button class="btn-buy" style="${blocked?'opacity:.4;cursor:not-allowed;pointer-events:none':''}" onclick="buyAdoptMe('${id}')">${soldOut?'❌ Розпродано':myLimit?'❌ Ліміт':'🛒 Купити'}</button>
+            </div>
+        </div>`;
+    });
+    h+='</div>';
+    el.innerHTML=h;
+}
+
+window.buyAdoptMe=async function(id){
+    const snap=await db.ref('adoptme/'+id).once('value');
+    const item=snap.val();
+    if(!item) return showToast('❌ Товар не знайдено');
+    if(s.b<item.price) return showToast(`❌ Мало BB! Потрібно ${item.price} BB`);
+
+    const myPurchases=s.adoptPurchases||{};
+    const myBought=myPurchases[id]||0;
+    const totalBought=item.totalBought||0;
+
+    if(item.limitPerUser>0 && myBought>=item.limitPerUser) return showToast('❌ Ти вже досяг ліміту покупок');
+    if(item.limitTotal>0 && totalBought>=item.limitTotal) return showToast('❌ Товар розпродано');
+
+    // Знімаємо BB і записуємо покупку
+    s.b-=item.price;
+    if(!s.adoptPurchases) s.adoptPurchases={};
+    s.adoptPurchases[id]=(s.adoptPurchases[id]||0)+1;
+    save();
+
+    // Оновлюємо лічильник товару
+    db.ref('adoptme/'+id+'/totalBought').set(totalBought+1);
+
+    // Записуємо замовлення в Firebase для адмінів
+    const orderRef=db.ref('adoptorders').push();
+    const order={
+        orderId: orderRef.key,
+        itemId: id,
+        itemName: item.name,
+        itemIcon: item.icon||'🎁',
+        price: item.price,
+        buyerId: myId,
+        buyerName: myName,
+        status: 'pending', // pending → delivered
+        createdAt: Date.now()
+    };
+    orderRef.set(order);
+
+    // Сповіщення всім адмінам через Firebase
+    ADMINS.forEach(adminId=>{
+        db.ref('adminNotifs/'+adminId).push({
+            type:'adoptorder',
+            msg:`🛒 ${myName} купив: ${item.icon||'🎁'} ${item.name} за ${item.price} BB`,
+            orderId: orderRef.key,
+            buyerName: myName,
+            buyerId: myId,
+            itemName: item.name,
+            read: false,
+            createdAt: Date.now()
+        });
+    });
+
+    showToast(`✅ Куплено! ${item.icon||'🎁'} Очікуй видачі від адміна`);
+    renderAdoptMe();
+    ren();
+};
+
+window.adminDeliverOrder=async function(orderId){
+    await db.ref('adoptorders/'+orderId+'/status').set('delivered');
+    showToast('✅ Позначено як видано!');
+    loadAdmin();
+};
+
+
     db.ref('market/'+lotId).once('value',snap=>{
         const lot=snap.val();
         if(!lot) return;
@@ -1400,6 +1518,8 @@ function loadAdmin(){
         <div class="a-tab ${currentAdminTab==='inv'?'active':''}"       onclick="setAdminTab('inv')">🐾 Пети</div>
         <div class="a-tab ${currentAdminTab==='promo'?'active':''}"     onclick="setAdminTab('promo')">🎟 Промо</div>
         <div class="a-tab ${currentAdminTab==='channels'?'active':''}"  onclick="setAdminTab('channels')">📢</div>
+        <div class="a-tab ${currentAdminTab==='adoptme'?'active':''}"   onclick="setAdminTab('adoptme')">🐾 AM</div>
+        <div class="a-tab ${currentAdminTab==='orders'?'active':''}"    onclick="setAdminTab('orders')" id="admin-orders-tab">📬 <span id="admin-orders-badge" style="display:none;background:#ef4444;color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;margin-left:2px">!</span></div>
     </div>`;
 
     // ── КАНАЛИ ──
@@ -1432,6 +1552,79 @@ function loadAdmin(){
             </div>
             <div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin:14px 0 8px">АКТИВНІ КАНАЛИ (${Object.keys(chs).length})</div>
             ${rows||'<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">Немає каналів</div>'}`;
+        });
+        return;
+    }
+    // ── ADOPT ME УПРАВЛІННЯ ──
+    if(currentAdminTab==='adoptme'){
+        db.ref('adoptme').once('value',snap=>{
+            const items=snap.val()||{};
+            let rows='';
+            Object.entries(items).forEach(([id,item])=>{
+                rows+=`<div class="admin-card" style="padding:12px">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                        <span style="font-size:28px">${item.icon||'🎁'}</span>
+                        <div style="flex:1">
+                            <div style="font-weight:700;font-size:13px">${item.name}</div>
+                            <div style="font-size:11px;color:var(--muted)">${item.price} BB · куплено: ${item.totalBought||0}${item.limitTotal>0?' / '+item.limitTotal:''}${item.limitPerUser>0?' · ліміт/особу: '+item.limitPerUser:''}</div>
+                        </div>
+                        <div style="display:flex;gap:6px">
+                            <button class="btn-ctrl" style="background:${item.hidden?'#374151':'#059669'};padding:7px 10px;font-size:11px" onclick="adminToggleAdoptItem('${id}',${!item.hidden})">${item.hidden?'👁 Показати':'🙈 Сховати'}</button>
+                            <button class="btn-ctrl b-sub" style="padding:7px 10px" onclick="adminDeleteAdoptItem('${id}')">🗑</button>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('admin-list').innerHTML=makeTabs()+`
+            <div class="admin-card">
+                <div class="card-title">➕ Додати товар Adopt Me</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                    <input type="text" id="am-icon" placeholder="Іконка (напр. 🐶)" style="margin:0;font-size:20px">
+                    <input type="number" id="am-price" placeholder="Ціна BB" style="margin:0">
+                </div>
+                <input type="text" id="am-name" placeholder="Назва товару" style="margin-bottom:8px">
+                <input type="text" id="am-desc" placeholder="Опис (необов'язково)" style="margin-bottom:8px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                    <input type="number" id="am-limit-user" placeholder="Ліміт на 1 особу (0=∞)" style="margin:0" value="0">
+                    <input type="number" id="am-limit-total" placeholder="Ліміт всього (0=∞)" style="margin:0" value="0">
+                </div>
+                <button class="btn" onclick="adminAddAdoptItem()">✅ Додати товар</button>
+            </div>
+            <div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin:14px 0 8px">ТОВАРИ (${Object.keys(items).length})</div>
+            ${rows||'<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">Немає товарів</div>'}`;
+        });
+        return;
+    }
+    // ── ЗАМОВЛЕННЯ ADOPT ME ──
+    if(currentAdminTab==='orders'){
+        db.ref('adoptorders').orderByChild('createdAt').once('value',snap=>{
+            const orders=[];
+            snap.forEach(c=>orders.unshift(c.val())); // newest first
+            const pending=orders.filter(o=>o&&o.status==='pending');
+            const delivered=orders.filter(o=>o&&o.status==='delivered');
+            // Mark notifications as read
+            db.ref('adminNotifs/'+myId).once('value',ns=>{
+                if(ns.val()) ns.forEach(n=>{if(!n.val().read) db.ref('adminNotifs/'+myId+'/'+n.key+'/read').set(true);});
+            });
+            const renderOrder=(o,isDone)=>`<div class="admin-card" style="padding:12px;${isDone?'opacity:.6':'border-left:3px solid var(--accent)'}">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <span style="font-size:26px">${o.itemIcon||'🎁'}</span>
+                    <div style="flex:1">
+                        <div style="font-weight:700;font-size:13px">${o.itemName}</div>
+                        <div style="font-size:11px;color:var(--muted)">👤 <b>${o.buyerName}</b> (ID: ${o.buyerId}) · ${o.price} BB</div>
+                        <div style="font-size:10px;color:var(--muted)">${new Date(o.createdAt).toLocaleString('uk')}</div>
+                    </div>
+                    ${!isDone?`<button class="btn-ctrl b-add" style="padding:8px 10px;font-size:11px;white-space:nowrap" onclick="adminDeliverOrder('${o.orderId}')">✅ Видано</button>`:'<span style="color:var(--success);font-size:18px">✅</span>'}
+                </div>
+            </div>`;
+            let h=makeTabs();
+            h+=`<div style="font-size:10px;color:var(--error);font-weight:700;letter-spacing:.5px;margin-bottom:8px">⏳ ОЧІКУЮТЬ ВИДАЧІ (${pending.length})</div>`;
+            h+=pending.length?pending.map(o=>renderOrder(o,false)).join(''):`<div class="admin-card" style="text-align:center;color:var(--muted);padding:16px">Нових замовлень немає 🎉</div>`;
+            if(delivered.length){
+                h+=`<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin:14px 0 8px">✅ ВИКОНАНІ (${delivered.length})</div>`;
+                h+=delivered.slice(0,20).map(o=>renderOrder(o,true)).join('');
+            }
+            document.getElementById('admin-list').innerHTML=h;
         });
         return;
     }
@@ -1799,7 +1992,44 @@ window.mathB=(id,type)=>{
 // adminGivePet — alias для зворотньої сумісності
 window.adminGivePet=uid=>window.adminGivePetModal(uid,'');
 
-window.adminAddChannel=()=>{
+window.adminAddAdoptItem=()=>{
+    const icon=(document.getElementById('am-icon')?.value||'🎁').trim();
+    const name=(document.getElementById('am-name')?.value||'').trim();
+    const desc=(document.getElementById('am-desc')?.value||'').trim();
+    const price=parseInt(document.getElementById('am-price')?.value||'0');
+    const limitPerUser=parseInt(document.getElementById('am-limit-user')?.value||'0');
+    const limitTotal=parseInt(document.getElementById('am-limit-total')?.value||'0');
+    if(!name||price<=0) return showToast('❌ Введи назву і ціну');
+    db.ref('adoptme').push({icon,name,desc,price,limitPerUser,limitTotal,totalBought:0,hidden:false,createdAt:Date.now()}).then(()=>{
+        showToast('✅ Товар додано!');
+        loadAdmin();
+    });
+};
+window.adminToggleAdoptItem=(id,visible)=>{
+    db.ref('adoptme/'+id+'/hidden').set(!visible).then(()=>{showToast(visible?'👁 Показано':'🙈 Сховано');loadAdmin();});
+};
+window.adminDeleteAdoptItem=(id)=>{
+    if(!confirm('Видалити товар?')) return;
+    db.ref('adoptme/'+id).remove().then(()=>{showToast('🗑 Видалено');loadAdmin();});
+};
+
+// ── Нотифікації для адмінів (бейдж на вкладці замовлень) ──
+function initAdminNotifs(){
+    if(!ADMINS.includes(Number(myId))) return;
+    db.ref('adminNotifs/'+myId).on('value',snap=>{
+        let unread=0;
+        if(snap.val()) snap.forEach(n=>{ if(!n.val().read) unread++; });
+        const badge=document.getElementById('admin-orders-badge');
+        if(badge){
+            badge.style.display=unread>0?'inline':'none';
+            badge.textContent=unread>9?'9+':unread||'!';
+        }
+    });
+}
+// Запускаємо після ініціалізації Firebase
+setTimeout(initAdminNotifs, 1500);
+
+
     const name=(document.getElementById('ch-name')?.value||'').trim();
     const url=(document.getElementById('ch-url')?.value||'').trim();
     if(!name||!url) return showToast('❌ Заповни назву і посилання');
