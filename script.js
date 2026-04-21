@@ -966,27 +966,43 @@ async function renderAdoptMe(){
         if(!item||item.hidden) return;
         const totalBought=item.totalBought||0;
         const myBought=myPurchases[id]||0;
-        const limitPerUser=item.limitPerUser||0; // 0 = необмежено
-        const limitTotal=item.limitTotal||0;     // 0 = необмежено
+        const limitPerUser=item.limitPerUser||0;
+        const limitTotal=item.limitTotal||0;
         const soldOut=(limitTotal>0 && totalBought>=limitTotal);
-        const myLimit=(limitPerUser>0 && myBought>=limitPerUser);
-        const blocked=soldOut||myLimit;
-        const stockInfo=limitTotal>0
-            ? `<span style="color:${soldOut?'var(--error)':'var(--accent2)'}">📦 ${soldOut?'Розпродано':`${totalBought}/${limitTotal}`}</span>`
-            : `<span style="color:var(--muted)">📦 Необмежено</span>`;
-        const myInfo=limitPerUser>0
-            ? ` · <span style="color:var(--muted)">Ти: ${myBought}/${limitPerUser}</span>`
-            : '';
-        h+=`<div style="background:rgba(255,255,255,.04);border:1px solid ${blocked?'rgba(255,255,255,.06)':'rgba(var(--accent-rgb),.2)'};border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px">
-            <div style="font-size:36px;flex-shrink:0">${item.icon||'🎁'}</div>
-            <div style="flex:1;min-width:0">
-                <div style="font-weight:800;font-size:14px;color:#fff;margin-bottom:3px">${item.name}</div>
-                ${item.desc?`<div style="font-size:11px;color:var(--muted);margin-bottom:5px;line-height:1.4">${item.desc}</div>`:''}
-                <div style="font-size:10px;font-weight:700">${stockInfo}${myInfo}</div>
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0">
-                <div style="font-size:15px;font-weight:900;color:var(--accent2)">${item.price} BB</div>
-                <button class="btn-buy" style="${blocked?'opacity:.4;cursor:not-allowed;pointer-events:none':''}" onclick="buyAdoptMe('${id}')">${soldOut?'❌ Розпродано':myLimit?'❌ Ліміт':'🛒 Купити'}</button>
+        const myLimitReached=(limitPerUser>0 && myBought>=limitPerUser);
+        const blocked=soldOut||myLimitReached;
+        let maxCanBuy=99;
+        if(limitPerUser>0) maxCanBuy=Math.min(maxCanBuy, limitPerUser-myBought);
+        if(limitTotal>0)   maxCanBuy=Math.min(maxCanBuy, limitTotal-totalBought);
+        if(maxCanBuy<1)    maxCanBuy=1;
+        const stockLine=limitTotal>0
+            ? `📦 ${soldOut?`<span style="color:var(--error)">Розпродано</span>`:`<span style="color:var(--accent2)">${totalBought}/${limitTotal} куплено</span>`}`
+            : `📦 <span style="color:var(--muted)">Необмежено</span>`;
+        const myLine=myBought>0
+            ? `&nbsp;·&nbsp;<span style="color:var(--accent)">Ти купив: <b>${myBought}</b>${limitPerUser>0?' / '+limitPerUser:''}</span>`
+            : (limitPerUser>0?`&nbsp;·&nbsp;<span style="color:var(--muted)">Ліміт: ${limitPerUser}</span>`:'');
+        h+=`<div style="background:rgba(255,255,255,.04);border:1px solid ${blocked?'rgba(255,255,255,.07)':'rgba(255,200,50,.18)'};border-radius:14px;padding:14px">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+                <div style="font-size:38px;flex-shrink:0;line-height:1">${item.icon||'🎁'}</div>
+                <div style="flex:1;min-width:0">
+                    <div style="font-weight:800;font-size:14px;color:#fff;margin-bottom:3px">${item.name}</div>
+                    ${item.desc?`<div style="font-size:11px;color:var(--muted);margin-bottom:5px;line-height:1.4">${item.desc}</div>`:''}
+                    <div style="font-size:10px;font-weight:700;margin-bottom:8px">${stockLine}${myLine}</div>
+                    ${!blocked?`
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                        <div style="display:flex;align-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;flex-shrink:0">
+                            <button onclick="amQty('${id}',-1,${maxCanBuy})" style="background:none;border:none;color:#fff;font-size:20px;padding:4px 12px;cursor:pointer;line-height:1">−</button>
+                            <span id="am-qty-${id}" style="min-width:30px;text-align:center;font-weight:800;font-size:15px;color:#fff">1</span>
+                            <button onclick="amQty('${id}',1,${maxCanBuy})" style="background:none;border:none;color:#fff;font-size:20px;padding:4px 12px;cursor:pointer;line-height:1">+</button>
+                        </div>
+                        <div style="flex:1;min-width:60px">
+                            <div style="font-size:10px;color:var(--muted)">Разом:</div>
+                            <div id="am-total-${id}" style="font-weight:900;font-size:15px;color:var(--accent2)">${item.price} BB</div>
+                        </div>
+                        <button class="btn-buy" onclick="buyAdoptMe('${id}',${item.price},${maxCanBuy})">🛒 Купити</button>
+                    </div>`:`
+                    <div style="font-size:12px;font-weight:700;color:var(--error)">${soldOut?'❌ Розпродано':'❌ Досяг ліміту'}</div>`}
+                </div>
             </div>
         </div>`;
     });
@@ -994,62 +1010,55 @@ async function renderAdoptMe(){
     el.innerHTML=h;
 }
 
-window.buyAdoptMe=async function(id){
+window.amQty=function(id,delta,maxCanBuy){
+    maxCanBuy=maxCanBuy||99;
+    const el=document.getElementById('am-qty-'+id);
+    const totalEl=document.getElementById('am-total-'+id);
+    if(!el) return;
+    let qty=parseInt(el.textContent)||1;
+    qty=Math.max(1,Math.min(maxCanBuy,qty+delta));
+    el.textContent=qty;
+    if(totalEl){
+        const btn=document.querySelector(`[onclick*="buyAdoptMe('${id}'"]`);
+        if(btn){
+            const m=btn.getAttribute('onclick').match(/buyAdoptMe\('[^']+',(\d+)/);
+            if(m) totalEl.textContent=(parseInt(m[1])*qty)+' BB';
+        }
+    }
+};
+
+window.buyAdoptMe=async function(id,priceArg,maxCanBuy){
+    const qtyEl=document.getElementById('am-qty-'+id);
+    const qty=qtyEl?Math.max(1,parseInt(qtyEl.textContent)||1):1;
     const snap=await db.ref('adoptme/'+id).once('value');
     const item=snap.val();
     if(!item) return showToast('❌ Товар не знайдено');
-    if(s.b<item.price) return showToast(`❌ Мало BB! Потрібно ${item.price} BB`);
-
     const myPurchases=s.adoptPurchases||{};
     const myBought=myPurchases[id]||0;
     const totalBought=item.totalBought||0;
-
-    if(item.limitPerUser>0 && myBought>=item.limitPerUser) return showToast('❌ Ти вже досяг ліміту покупок');
-    if(item.limitTotal>0 && totalBought>=item.limitTotal) return showToast('❌ Товар розпродано');
-
-    // Знімаємо BB і записуємо покупку
-    s.b-=item.price;
+    const limitPerUser=item.limitPerUser||0;
+    const limitTotal=item.limitTotal||0;
+    const totalCost=item.price*qty;
+    if(limitPerUser>0 && myBought>=limitPerUser) return showToast('❌ Ти вже досяг ліміту покупок');
+    if(limitTotal>0 && totalBought>=limitTotal)  return showToast('❌ Товар розпродано');
+    if(limitPerUser>0 && myBought+qty>limitPerUser) return showToast(`❌ Можеш купити ще лише ${limitPerUser-myBought}`);
+    if(limitTotal>0 && totalBought+qty>limitTotal)  return showToast(`❌ Залишилось лише ${limitTotal-totalBought} шт.`);
+    if(s.b<totalCost) return showToast(`❌ Мало BB! Потрібно ${totalCost} BB`);
+    s.b-=totalCost;
     if(!s.adoptPurchases) s.adoptPurchases={};
-    s.adoptPurchases[id]=(s.adoptPurchases[id]||0)+1;
+    s.adoptPurchases[id]=(s.adoptPurchases[id]||0)+qty;
     save();
-
-    // Оновлюємо лічильник товару
-    db.ref('adoptme/'+id+'/totalBought').set(totalBought+1);
-
-    // Записуємо замовлення в Firebase для адмінів
+    db.ref('adoptme/'+id+'/totalBought').set(totalBought+qty);
     const orderRef=db.ref('adoptorders').push();
-    const order={
-        orderId: orderRef.key,
-        itemId: id,
-        itemName: item.name,
-        itemIcon: item.icon||'🎁',
-        price: item.price,
-        buyerId: myId,
-        buyerName: myName,
-        status: 'pending', // pending → delivered
-        createdAt: Date.now()
-    };
+    const order={orderId:orderRef.key,itemId:id,itemName:item.name,itemIcon:item.icon||'🎁',price:item.price,qty,totalCost,buyerId:myId,buyerName:myName,status:'pending',createdAt:Date.now()};
     orderRef.set(order);
-
-    // Сповіщення всім адмінам через Firebase
     ADMINS.forEach(adminId=>{
-        db.ref('adminNotifs/'+adminId).push({
-            type:'adoptorder',
-            msg:`🛒 ${myName} купив: ${item.icon||'🎁'} ${item.name} за ${item.price} BB`,
-            orderId: orderRef.key,
-            buyerName: myName,
-            buyerId: myId,
-            itemName: item.name,
-            read: false,
-            createdAt: Date.now()
-        });
+        db.ref('adminNotifs/'+adminId).push({type:'adoptorder',msg:`🛒 ${myName} купив: ${item.icon||'🎁'} ${item.name} x${qty} за ${totalCost} BB`,orderId:orderRef.key,buyerName:myName,buyerId:myId,itemName:item.name,qty,read:false,createdAt:Date.now()});
     });
-
-    showToast(`✅ Куплено! ${item.icon||'🎁'} Очікуй видачі від адміна`);
+    showToast(`✅ Куплено ${qty}x ${item.icon||'🎁'} ${item.name}! Очікуй видачі від адміна`);
     renderAdoptMe();
     ren();
 };
-
 window.adminDeliverOrder=async function(orderId){
     await db.ref('adoptorders/'+orderId+'/status').set('delivered');
     showToast('✅ Позначено як видано!');
