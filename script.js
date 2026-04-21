@@ -1057,6 +1057,7 @@ window.adminDeliverOrder=async function(orderId){
 };
 
 
+window.cancelMarketLot=lotId=>{
     db.ref('market/'+lotId).once('value',snap=>{
         const lot=snap.val();
         if(!lot) return;
@@ -2030,6 +2031,7 @@ function initAdminNotifs(){
 setTimeout(initAdminNotifs, 1500);
 
 
+window.adminAddChannel=()=>{
     const name=(document.getElementById('ch-name')?.value||'').trim();
     const url=(document.getElementById('ch-url')?.value||'').trim();
     if(!name||!url) return showToast('❌ Заповни назву і посилання');
