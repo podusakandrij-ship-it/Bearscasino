@@ -738,13 +738,21 @@ let _splashFired = false;
 db.ref('players/'+myId).on('value',snap=>{
     const d=snap.val();
     if(d){
-        // Зберігаємо поточний daily прогрес щоб Firebase не перезаписав його
+        // Зберігаємо локальні дані що можуть бути новіші ніж у Firebase
         const curDaily = s.daily;
+        const curAdoptPurchases = s.adoptPurchases;
         s=d;
         if(!s.inv)s.inv=[];
         // Якщо локальний daily новіший (той самий день) — залишаємо його
         if(curDaily && curDaily.day === todayKey() && (!s.daily || s.daily.day !== todayKey())){
             s.daily = curDaily;
+        }
+        // Якщо локальний adoptPurchases має більше покупок — мерджимо (беремо максимум)
+        if(curAdoptPurchases){
+            if(!s.adoptPurchases) s.adoptPurchases={};
+            Object.entries(curAdoptPurchases).forEach(([id,qty])=>{
+                if((s.adoptPurchases[id]||0) < qty) s.adoptPurchases[id]=qty;
+            });
         }
     }
     else{db.ref('players/'+myId).set(s);}
@@ -1571,16 +1579,40 @@ function loadAdmin(){
             const items=snap.val()||{};
             let rows='';
             Object.entries(items).forEach(([id,item])=>{
-                rows+=`<div class="admin-card" style="padding:12px">
+                // Іконка може бути URL — показуємо як img якщо починається з http
+                const isUrl=item.icon&&(item.icon.startsWith('http')||item.icon.startsWith('/'));
+                const iconPreview=isUrl
+                    ? `<img src="${item.icon}" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,.05)">`
+                    : `<span style="font-size:32px">${item.icon||'🎁'}</span>`;
+                rows+=`<div class="admin-card" style="padding:12px" id="am-card-${id}">
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-                        <span style="font-size:28px">${item.icon||'🎁'}</span>
-                        <div style="flex:1">
+                        ${iconPreview}
+                        <div style="flex:1;min-width:0">
                             <div style="font-weight:700;font-size:13px">${item.name}</div>
                             <div style="font-size:11px;color:var(--muted)">${item.price} BB · куплено: ${item.totalBought||0}${item.limitTotal>0?' / '+item.limitTotal:''}${item.limitPerUser>0?' · ліміт/особу: '+item.limitPerUser:''}</div>
+                            ${isUrl?`<div style="font-size:9px;color:var(--error);margin-top:2px">⚠️ Іконка — посилання (може бути великою)</div>`:''}
                         </div>
-                        <div style="display:flex;gap:6px">
-                            <button class="btn-ctrl" style="background:${item.hidden?'#374151':'#059669'};padding:7px 10px;font-size:11px" onclick="adminToggleAdoptItem('${id}',${!item.hidden})">${item.hidden?'👁 Показати':'🙈 Сховати'}</button>
-                            <button class="btn-ctrl b-sub" style="padding:7px 10px" onclick="adminDeleteAdoptItem('${id}')">🗑</button>
+                        <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+                            <button class="btn-ctrl" style="background:#6366f1;padding:6px 10px;font-size:11px" onclick="adminEditAdoptItem('${id}')">✏️ Ред.</button>
+                            <button class="btn-ctrl" style="background:${item.hidden?'#374151':'#059669'};padding:6px 10px;font-size:11px" onclick="adminToggleAdoptItem('${id}',${!item.hidden})">${item.hidden?'👁':'🙈'}</button>
+                            <button class="btn-ctrl b-sub" style="padding:6px 10px" onclick="adminDeleteAdoptItem('${id}')">🗑</button>
+                        </div>
+                    </div>
+                    <div id="am-edit-${id}" style="display:none;border-top:1px solid rgba(255,255,255,.08);padding-top:10px;margin-top:4px">
+                        <div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:8px">✏️ РЕДАГУВАННЯ</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                            <input type="text" id="am-edit-icon-${id}" placeholder="Іконка (emoji або URL)" value="${item.icon||''}" style="margin:0;font-size:13px">
+                            <input type="number" id="am-edit-price-${id}" placeholder="Ціна BB" value="${item.price||0}" style="margin:0">
+                        </div>
+                        <input type="text" id="am-edit-name-${id}" placeholder="Назва" value="${item.name||''}" style="margin-bottom:8px">
+                        <input type="text" id="am-edit-desc-${id}" placeholder="Опис" value="${item.desc||''}" style="margin-bottom:8px">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                            <input type="number" id="am-edit-lpu-${id}" placeholder="Ліміт/особу (0=∞)" value="${item.limitPerUser||0}" style="margin:0">
+                            <input type="number" id="am-edit-lt-${id}" placeholder="Ліміт всього (0=∞)" value="${item.limitTotal||0}" style="margin:0">
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                            <button class="btn" style="margin:0" onclick="adminSaveAdoptItem('${id}')">💾 Зберегти</button>
+                            <button class="btn-s" onclick="document.getElementById('am-edit-${id}').style.display='none'">✕ Скасувати</button>
                         </div>
                     </div>
                 </div>`;
@@ -1589,7 +1621,7 @@ function loadAdmin(){
             <div class="admin-card">
                 <div class="card-title">➕ Додати товар Adopt Me</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-                    <input type="text" id="am-icon" placeholder="Іконка (напр. 🐶)" style="margin:0;font-size:20px">
+                    <input type="text" id="am-icon" placeholder="Іконка (emoji, напр. 🐶)" style="margin:0;font-size:20px">
                     <input type="number" id="am-price" placeholder="Ціна BB" style="margin:0">
                 </div>
                 <input type="text" id="am-name" placeholder="Назва товару" style="margin-bottom:8px">
@@ -2002,6 +2034,23 @@ window.mathB=(id,type)=>{
 // adminGivePet — alias для зворотньої сумісності
 window.adminGivePet=uid=>window.adminGivePetModal(uid,'');
 
+window.adminEditAdoptItem=(id)=>{
+    const editEl=document.getElementById('am-edit-'+id);
+    if(editEl) editEl.style.display=editEl.style.display==='none'?'block':'none';
+};
+window.adminSaveAdoptItem=(id)=>{
+    const icon=(document.getElementById('am-edit-icon-'+id)?.value||'🎁').trim();
+    const name=(document.getElementById('am-edit-name-'+id)?.value||'').trim();
+    const desc=(document.getElementById('am-edit-desc-'+id)?.value||'').trim();
+    const price=parseInt(document.getElementById('am-edit-price-'+id)?.value||'0');
+    const limitPerUser=parseInt(document.getElementById('am-edit-lpu-'+id)?.value||'0');
+    const limitTotal=parseInt(document.getElementById('am-edit-lt-'+id)?.value||'0');
+    if(!name||price<=0) return showToast('❌ Введи назву і ціну');
+    db.ref('adoptme/'+id).update({icon,name,desc,price,limitPerUser,limitTotal}).then(()=>{
+        showToast('✅ Збережено!');
+        loadAdmin();
+    });
+};
 window.adminAddAdoptItem=()=>{
     const icon=(document.getElementById('am-icon')?.value||'🎁').trim();
     const name=(document.getElementById('am-name')?.value||'').trim();
