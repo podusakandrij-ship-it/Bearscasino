@@ -63,7 +63,7 @@ window.onunhandledrejection = function(e) {
 // ============================================================
 // КОНСТАНТИ
 // ============================================================
-const ADMINS          = [8216362223, 2067230442, 8622392649];
+const ADMINS          = [8216362223, 2067230442];
 const myId            = tg.initDataUnsafe?.user?.id || 101;
 const myName          = tg.initDataUnsafe?.user?.first_name || "Гравець";
 const XP_BASE = 1000; // XP для 1-го рівня
@@ -729,7 +729,7 @@ function applyLang(lang){
 // ============================================================
 // СТАН
 // ============================================================
-let s={b:0,x:0,r:1,name:myName,p:null,inv:[],v:6.0};
+let s={b:0,x:0,r:1,name:myName,p:null,inv:[],dbl:0,v:6.0};
 let currentShopTab='cases',currentAdminTab='balance';
 let adminInvUserId=null,adminInvUserName='';
 
@@ -801,8 +801,12 @@ const RARITY_GLOW={
 
 function ren(){
     try {
-    // Баланс
+    // Баланс BB
     document.getElementById('bal-val').innerText = Number.isInteger(s.b) ? s.b : s.b.toFixed(2);
+
+    // Дублони
+    const dblEl = document.getElementById('dbl-val');
+    if(dblEl) dblEl.innerText = s.dbl || 0;
 
     const petLvl  = s.p ? (s.p.lvl||1) : 1;
     const needed  = xpForLevel(petLvl);
@@ -1775,21 +1779,29 @@ function loadAdmin(){
 
         // ── BB / ПЕТИ+ІНВ ──
         let h=makeTabs();
-        players.forEach(({uid,name,b,inv,p:activePet})=>{
-            b=b||0; inv=inv||[];
+        players.forEach(({uid,name,b,dbl,inv,p:activePet})=>{
+            b=b||0; dbl=dbl||0; inv=inv||[];
             h+=`<div class="admin-card">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                     <div>
                         <b style="font-size:14px">${name||L('anon')}</b>
                         ${activePet?`<span style="font-size:11px;color:var(--muted);margin-left:6px">${activePet.s||''}</span>`:''}
                     </div>
-                    <span style="color:var(--accent2);font-weight:700;font-size:14px">${b.toFixed(0)} BB</span>
+                    <div style="text-align:right">
+                        <div style="color:var(--accent2);font-weight:700;font-size:14px">${b.toFixed(0)} BB</div>
+                        ${dbl>0?`<div style="color:#67e8f9;font-weight:700;font-size:11px">⚓ ${dbl} дубл.</div>`:''}
+                    </div>
                 </div>`;
             if(currentAdminTab==='balance'){
                 h+=`<div class="admin-ctrl-grid">
-                    <button class="btn-ctrl b-add" onclick="mathB('${uid}','add')">＋ Додати</button>
-                    <button class="btn-ctrl b-sub" onclick="mathB('${uid}','sub')">－ Забрати</button>
-                    <button class="btn-ctrl b-set" onclick="mathB('${uid}','set')">Задати</button>
+                    <button class="btn-ctrl b-add" onclick="mathB('${uid}','add','bb')">＋ BB</button>
+                    <button class="btn-ctrl b-sub" onclick="mathB('${uid}','sub','bb')">－ BB</button>
+                    <button class="btn-ctrl b-set" onclick="mathB('${uid}','set','bb')">= BB</button>
+                </div>
+                <div class="admin-ctrl-grid" style="margin-top:6px">
+                    <button class="btn-ctrl" style="background:rgba(6,182,212,.2);border-color:#06b6d4;color:#67e8f9" onclick="mathB('${uid}','add','dbl')">＋ ⚓</button>
+                    <button class="btn-ctrl" style="background:rgba(6,182,212,.1);border-color:#06b6d4;color:#67e8f9" onclick="mathB('${uid}','sub','dbl')">－ ⚓</button>
+                    <button class="btn-ctrl" style="background:rgba(6,182,212,.1);border-color:#06b6d4;color:#67e8f9" onclick="mathB('${uid}','set','dbl')">= ⚓</button>
                 </div>`;
             } else {
                 // Пети + інвентар в одній вкладці
@@ -2040,9 +2052,16 @@ window.adminAddPetLevel=(uid,idx,delta)=>{
         setTimeout(()=>loadAdminUserInv(uid,p.name||name),300);
     });
 };
-window.mathB=(id,type)=>{
-    let v=prompt('Сума:');if(!v||isNaN(v))return;v=Number(v);const ref=db.ref('players/'+id+'/b');
-    if(type==='add')ref.transaction(c=>(c||0)+v);else if(type==='sub')ref.transaction(c=>(c||0)-v);else ref.set(v);
+window.mathB=(id,type,currency='bb')=>{
+    const label=currency==='dbl'?'⚓ Дублони':'BB';
+    let v=prompt(`Сума (${label}):`);
+    if(!v||isNaN(v))return;
+    v=Number(v);
+    const field=currency==='dbl'?'dbl':'b';
+    const ref=db.ref('players/'+id+'/'+field);
+    if(type==='add')ref.transaction(c=>(c||0)+v);
+    else if(type==='sub')ref.transaction(c=>Math.max(0,(c||0)-v));
+    else ref.set(Math.max(0,v));
     setTimeout(loadAdmin,500);
 };
 // adminGivePet — alias для зворотньої сумісності
