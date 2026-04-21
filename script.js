@@ -1068,6 +1068,7 @@ window.buyAdoptMe=async function(id,priceArg,maxCanBuy){
     ren();
 };
 window.adminDeliverOrder=async function(orderId){
+    if(!orderId||orderId==='undefined'){return showToast('❌ Помилка: ID замовлення не знайдено');}
     await db.ref('adoptorders/'+orderId+'/status').set('delivered');
     showToast('✅ Позначено як видано!');
     loadAdmin();
@@ -1641,30 +1642,43 @@ function loadAdmin(){
     if(currentAdminTab==='orders'){
         db.ref('adoptorders').orderByChild('createdAt').once('value',snap=>{
             const orders=[];
-            snap.forEach(c=>orders.unshift(c.val())); // newest first
-            const pending=orders.filter(o=>o&&o.status==='pending');
-            const delivered=orders.filter(o=>o&&o.status==='delivered');
-            // Mark notifications as read
-            db.ref('adminNotifs/'+myId).once('value',ns=>{
-                if(ns.val()) ns.forEach(n=>{if(!n.val().read) db.ref('adminNotifs/'+myId+'/'+n.key+'/read').set(true);});
+            // Беремо KEY як orderId — val() може не мати orderId якщо запис старий
+            snap.forEach(c=>{
+                const v=c.val();
+                if(v) orders.unshift({...v, orderId: c.key});
             });
-            const renderOrder=(o,isDone)=>`<div class="admin-card" style="padding:12px;${isDone?'opacity:.6':'border-left:3px solid var(--accent)'}">
+            const pending=orders.filter(o=>o.status==='pending');
+            const delivered=orders.filter(o=>o.status==='delivered');
+            // Позначаємо нотифікації як прочитані
+            db.ref('adminNotifs/'+myId).once('value',ns=>{
+                if(ns.val()) ns.forEach(n=>{if(n.val()&&!n.val().read) db.ref('adminNotifs/'+myId+'/'+n.key+'/read').set(true);});
+            });
+            const renderOrder=(o,isDone)=>`<div class="admin-card" style="padding:12px;${isDone?'opacity:.55':'border-left:3px solid var(--accent)'}">
                 <div style="display:flex;align-items:center;gap:10px">
                     <span style="font-size:26px">${o.itemIcon||'🎁'}</span>
-                    <div style="flex:1">
-                        <div style="font-weight:700;font-size:13px">${o.itemName}</div>
-                        <div style="font-size:11px;color:var(--muted)">👤 <b>${o.buyerName}</b> (ID: ${o.buyerId}) · ${o.price} BB</div>
+                    <div style="flex:1;min-width:0">
+                        <div style="font-weight:700;font-size:13px">${o.itemName}${(o.qty&&o.qty>1)?` <span style="color:var(--accent2)">x${o.qty}</span>`:''}</div>
+                        <div style="font-size:11px;color:var(--muted)">👤 <b>${o.buyerName}</b> · ID: <span style="user-select:all">${o.buyerId}</span></div>
+                        <div style="font-size:11px;color:var(--accent2);font-weight:700">${o.totalCost||o.price} BB</div>
                         <div style="font-size:10px;color:var(--muted)">${new Date(o.createdAt).toLocaleString('uk')}</div>
                     </div>
-                    ${!isDone?`<button class="btn-ctrl b-add" style="padding:8px 10px;font-size:11px;white-space:nowrap" onclick="adminDeliverOrder('${o.orderId}')">✅ Видано</button>`:'<span style="color:var(--success);font-size:18px">✅</span>'}
+                    ${!isDone
+                        ?`<button class="btn-ctrl b-add" style="padding:8px 10px;font-size:11px;white-space:nowrap" onclick="adminDeliverOrder('${o.orderId}')">✅ Видано</button>`
+                        :`<span style="color:var(--success);font-size:20px">✅</span>`
+                    }
                 </div>
             </div>`;
             let h=makeTabs();
-            h+=`<div style="font-size:10px;color:var(--error);font-weight:700;letter-spacing:.5px;margin-bottom:8px">⏳ ОЧІКУЮТЬ ВИДАЧІ (${pending.length})</div>`;
-            h+=pending.length?pending.map(o=>renderOrder(o,false)).join(''):`<div class="admin-card" style="text-align:center;color:var(--muted);padding:16px">Нових замовлень немає 🎉</div>`;
+            h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <div style="font-size:10px;color:var(--error);font-weight:700;letter-spacing:.5px">⏳ ОЧІКУЮТЬ ВИДАЧІ (${pending.length})</div>
+                <button class="btn-s" style="font-size:10px;padding:5px 10px" onclick="loadAdmin()">🔄 Оновити</button>
+            </div>`;
+            h+=pending.length
+                ? pending.map(o=>renderOrder(o,false)).join('')
+                : `<div class="admin-card" style="text-align:center;color:var(--muted);padding:16px">Нових замовлень немає 🎉</div>`;
             if(delivered.length){
                 h+=`<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin:14px 0 8px">✅ ВИКОНАНІ (${delivered.length})</div>`;
-                h+=delivered.slice(0,20).map(o=>renderOrder(o,true)).join('');
+                h+=delivered.slice(0,30).map(o=>renderOrder(o,true)).join('');
             }
             document.getElementById('admin-list').innerHTML=h;
         });
