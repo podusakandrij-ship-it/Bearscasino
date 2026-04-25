@@ -735,9 +735,27 @@ let adminInvUserId=null,adminInvUserName='';
 
 // FIREBASE SYNC
 let _splashFired = false;
+let _saving = false;
+let _saveTimer = null;
+function save(){
+    _saving = true;
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(()=>{ _saving = false; }, 2000);
+    db.ref('players/'+myId).set(s);
+}
+
 db.ref('players/'+myId).on('value',snap=>{
     const d=snap.val();
     if(d){
+        // Якщо щойно зберігали — не перезаписуємо локальний стан
+        // щоб Firebase не відкотив зміни балансу назад
+        if(_saving){
+            // Оновлюємо тільки те що не може змінитись локально
+            // (наприклад дані від інших гравців — але для поточного гравця пропускаємо)
+            ren();
+            if(!_splashFired){ _splashFired=true; if(window._splashDone) window._splashDone(); }
+            return;
+        }
         // Зберігаємо локальні дані що можуть бути новіші ніж у Firebase
         const curDaily = s.daily;
         const curAdoptPurchases = s.adoptPurchases;
@@ -759,7 +777,6 @@ db.ref('players/'+myId).on('value',snap=>{
     ren();
     if(!_splashFired){ _splashFired=true; if(window._splashDone) window._splashDone(); }
 });
-function save(){db.ref('players/'+myId).set(s);}
 
 // ============================================================
 // XP / LEVELUP
@@ -1252,7 +1269,7 @@ window.minesReveal=idx=>{
     if(cell.mine){
         minesState.alive=false;minesState.cells.forEach(c=>{if(c.mine)c.revealed=true;});buildMinesGrid();
         document.getElementById('mines-ctrl').style.display='none';
-        const bt=minesState.bet;s.b-=bt;save();
+        const bt=minesState.bet;s.b-=bt;save();ren();
         setTimeout(()=>{document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bt.toFixed(2)} BB 💣</span><br><small>${L('minesBoom')}</small>`;minesState=null;buildMinesGrid();},600);
     } else {
         minesState.opened++;const mult=calcMinesMult(minesState.opened,minesState.mineCount);
@@ -1263,7 +1280,7 @@ window.minesReveal=idx=>{
 window.minesCashout=()=>{
     if(!minesState||!minesState.alive||minesState.opened===0)return;
     const bt=minesState.bet,mult=minesState.currentMult,win=(bt*mult-bt)*(s.p?s.p.m:1);
-    s.b+=win;s.x+=Math.floor(bt/2);save();checkPetLevelUp();
+    s.b+=win;s.x+=Math.floor(bt/2);save();ren();checkPetLevelUp();
     document.getElementById('g-stat').innerHTML=`<span style="color:var(--success)">+${win.toFixed(2)} BB</span><br><small>Забрав x${mult.toFixed(2)} 💰</small>`;
     minesState.alive=false;minesState.cells.forEach(c=>c.revealed=true);buildMinesGrid();
     document.getElementById('mines-ctrl').style.display='none';minesState=null;
@@ -1487,6 +1504,7 @@ function res(win,bt,m,msg){
     if(win){const w=(bt*m-bt)*bon;s.b+=w;s.x+=Math.floor(bt/2);document.getElementById('g-stat').innerHTML=`<span style="color:var(--success)">+${w.toFixed(2)} BB</span><br><small>${msg}</small>`;checkPetLevelUp();dailyProgress('win');dailyProgress('play');}
     else{s.b-=bt;document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bt.toFixed(2)} BB</span><br><small>${msg}</small>`;dailyProgress('lose');dailyProgress('play');}
     save();
+    ren();
 }
 
 // ============================================================
@@ -1539,11 +1557,85 @@ function loadAdmin(){
         <div class="a-tab ${currentAdminTab==='stats'?'active':''}"     onclick="setAdminTab('stats')">📊 Стат</div>
         <div class="a-tab ${currentAdminTab==='balance'?'active':''}"   onclick="setAdminTab('balance')">💰 BB</div>
         <div class="a-tab ${currentAdminTab==='inv'?'active':''}"       onclick="setAdminTab('inv')">🐾 Пети</div>
+        <div class="a-tab ${currentAdminTab==='petmult'?'active':''}"   onclick="setAdminTab('petmult')">⚡ Множ.</div>
         <div class="a-tab ${currentAdminTab==='promo'?'active':''}"     onclick="setAdminTab('promo')">🎟 Промо</div>
         <div class="a-tab ${currentAdminTab==='channels'?'active':''}"  onclick="setAdminTab('channels')">📢</div>
-        <div class="a-tab ${currentAdminTab==='adoptme'?'active':''}"   onclick="setAdminTab('adoptme')">🐾 AM</div>
+        <div class="a-tab ${currentAdminTab==='announce'?'active':''}"  onclick="setAdminTab('announce')">📣</div>
+        <div class="a-tab ${currentAdminTab==='adoptme'?'active':''}"   onclick="setAdminTab('adoptme')">AM</div>
         <div class="a-tab ${currentAdminTab==='orders'?'active':''}"    onclick="setAdminTab('orders')" id="admin-orders-tab">📬 <span id="admin-orders-badge" style="display:none;background:#ef4444;color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;margin-left:2px">!</span></div>
     </div>`;
+
+    // ── ОГОЛОШЕННЯ ──
+    if(currentAdminTab==='announce'){
+        db.ref('announce').once('value',snap=>{
+            const cur=snap.val()||{};
+            document.getElementById('admin-list').innerHTML=makeTabs()+`
+            <div class="admin-card">
+                <div class="card-title">📣 Активне оголошення</div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Показується всім гравцям при вході в гру як банер зверху</div>
+                <textarea id="ann-text" rows="3" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-family:inherit;font-size:13px;padding:10px;resize:vertical;margin-bottom:8px">${cur.text||''}</textarea>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                    <select id="ann-type" style="margin:0">
+                        <option value="info" ${(cur.type||'info')==='info'?'selected':''}>ℹ️ Інфо</option>
+                        <option value="warn" ${cur.type==='warn'?'selected':''}>⚠️ Увага</option>
+                        <option value="event" ${cur.type==='event'?'selected':''}>🎉 Івент</option>
+                    </select>
+                    <input type="text" id="ann-link" placeholder="Посилання (необов.)" value="${cur.link||''}" style="margin:0">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <button class="btn" style="margin:0" onclick="adminSaveAnnounce()">📣 Опублікувати</button>
+                    <button class="btn-s" style="background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#f87171" onclick="adminClearAnnounce()">🗑 Прибрати</button>
+                </div>
+            </div>
+            ${cur.text?`<div class="admin-card" style="border-color:rgba(255,200,50,.2)">
+                <div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:6px">ЗАРАЗ АКТИВНЕ:</div>
+                <div style="font-size:13px;color:#fff">${cur.text}</div>
+                ${cur.link?`<div style="font-size:11px;color:var(--muted);margin-top:4px">🔗 ${cur.link}</div>`:''}
+            </div>`:'<div class="admin-card" style="text-align:center;color:var(--muted);padding:16px">Активних оголошень немає</div>'}`;
+        });
+        return;
+    }
+
+    // ── РЕДАКТОР МНОЖНИКІВ ПЕТІВ ──
+    if(currentAdminTab==='petmult'){
+        // Отримуємо кастомні множники з Firebase
+        db.ref('petmults').once('value',snap=>{
+            const overrides=snap.val()||{};
+            const allPets=getAllPets();
+            let rows='';
+            allPets.forEach(pet=>{
+                const key=pet.n.replace(/[^a-zA-ZА-Яа-яёЁіІїЇєЄ0-9]/g,'_');
+                const currentMult=overrides[key]!==undefined ? overrides[key] : pet.m;
+                const isModified=overrides[key]!==undefined;
+                rows+=`<div class="admin-card" style="padding:10px 12px;${isModified?'border-color:rgba(251,191,36,.3)':''}">
+                    <div style="display:flex;align-items:center;gap:10px">
+                        <span style="font-size:24px;flex-shrink:0">${pet.s||'🐾'}</span>
+                        <div style="flex:1;min-width:0">
+                            <div style="font-weight:700;font-size:13px;color:#fff">${pet.n}</div>
+                            <div style="font-size:10px;color:var(--muted)">${pet.r} · База: <b>x${pet.m}</b>${isModified?` · <span style="color:var(--accent2)">Змінено: x${currentMult}</span>`:''}</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+                            <input type="number" id="pm-${key}" value="${currentMult}" step="0.005" min="1" max="5"
+                                style="width:72px;margin:0;text-align:center;font-size:13px;font-weight:700;padding:6px 8px">
+                            <button class="btn-ctrl b-add" style="padding:7px 10px;font-size:11px" onclick="adminSavePetMult('${key}','${pet.n}')">✓</button>
+                            ${isModified?`<button class="btn-ctrl b-sub" style="padding:7px 8px;font-size:11px" onclick="adminResetPetMult('${key}')">↩</button>`:''}
+                        </div>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('admin-list').innerHTML=makeTabs()+`
+            <div class="admin-card" style="padding:12px">
+                <div style="font-size:11px;color:var(--muted);line-height:1.5">
+                    ⚡ Зміна множника діє одразу для всіх гравців.<br>
+                    ↩ — повернути до базового значення.<br>
+                    🟡 Підсвічені — вже змінені від базових.
+                </div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin:10px 0 8px">ВСІ ПЕТИ (${allPets.length})</div>
+            ${rows}`;
+        });
+        return;
+    }
 
     // ── КАНАЛИ ──
     if(currentAdminTab==='channels'){
@@ -1779,7 +1871,19 @@ function loadAdmin(){
 
         // ── BB / ПЕТИ+ІНВ ──
         let h=makeTabs();
-        players.forEach(({uid,name,b,dbl,inv,p:activePet})=>{
+        // Пошук гравця
+        const searchVal=(window._adminSearch||'').toLowerCase();
+        const filtered=searchVal
+            ? players.filter(p=>(p.name||'').toLowerCase().includes(searchVal))
+            : players;
+        h+=`<div style="position:relative;margin-bottom:10px">
+            <input type="text" id="admin-search" placeholder="🔍 Пошук по імені..." value="${window._adminSearch||''}"
+                oninput="window._adminSearch=this.value;loadAdmin()"
+                style="margin:0;padding-left:14px;font-size:13px">
+            ${searchVal?`<button onclick="window._adminSearch='';loadAdmin()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer">✕</button>`:''}
+        </div>
+        ${filtered.length===0?`<div class="admin-card" style="text-align:center;color:var(--muted);padding:16px">Нікого не знайдено</div>`:''}`;
+        filtered.forEach(({uid,name,b,dbl,inv,p:activePet})=>{
             b=b||0; dbl=dbl||0; inv=inv||[];
             h+=`<div class="admin-card">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -1815,6 +1919,36 @@ function loadAdmin(){
         document.getElementById('admin-list').innerHTML=h;
     });
 }
+
+// ── Оголошення ──
+window.adminSaveAnnounce=()=>{
+    const text=(document.getElementById('ann-text')?.value||'').trim();
+    const type=document.getElementById('ann-type')?.value||'info';
+    const link=(document.getElementById('ann-link')?.value||'').trim();
+    if(!text) return showToast('❌ Введи текст оголошення');
+    db.ref('announce').set({text,type,link,createdAt:Date.now(),by:myName}).then(()=>{
+        showToast('✅ Оголошення опубліковано!');
+        loadAdmin();
+    });
+};
+window.adminClearAnnounce=()=>{
+    if(!confirm('Прибрати оголошення?')) return;
+    db.ref('announce').remove().then(()=>{showToast('🗑 Оголошення прибрано');loadAdmin();});
+};
+
+// ── Множники петів ──
+window.adminSavePetMult=(key,petName)=>{
+    const val=parseFloat(document.getElementById('pm-'+key)?.value||'1');
+    if(isNaN(val)||val<1||val>5) return showToast('❌ Значення має бути від 1 до 5');
+    db.ref('petmults/'+key).set(Math.round(val*1000)/1000).then(()=>{
+        showToast(`✅ ${petName}: x${val.toFixed(3)}`);
+        loadAdmin();
+    });
+};
+window.adminResetPetMult=(key)=>{
+    db.ref('petmults/'+key).remove().then(()=>{showToast('↩ Повернуто до базового');loadAdmin();});
+};
+
 // ── Хелпери промокодів ──
 function getAllPets(){
     let all=[],seen=new Set();
@@ -2105,7 +2239,36 @@ window.adminDeleteAdoptItem=(id)=>{
     db.ref('adoptme/'+id).remove().then(()=>{showToast('🗑 Видалено');loadAdmin();});
 };
 
-// ── Нотифікації для адмінів (бейдж на вкладці замовлень) ──
+// ── Показ оголошення гравцям ──
+function initAnnounce(){
+    db.ref('announce').on('value',snap=>{
+        const ann=snap.val();
+        let banner=document.getElementById('announce-banner');
+        if(!ann||!ann.text){
+            if(banner) banner.remove();
+            return;
+        }
+        if(!banner){
+            banner=document.createElement('div');
+            banner.id='announce-banner';
+            document.querySelector('.container').prepend(banner);
+        }
+        const colors={info:'rgba(6,182,212,.12)',warn:'rgba(251,191,36,.12)',event:'rgba(168,85,247,.12)'};
+        const borders={info:'rgba(6,182,212,.3)',warn:'rgba(251,191,36,.3)',event:'rgba(168,85,247,.3)'};
+        const icons={info:'ℹ️',warn:'⚠️',event:'🎉'};
+        const t=ann.type||'info';
+        banner.style.cssText=`background:${colors[t]};border:1px solid ${borders[t]};border-radius:12px;padding:10px 14px;margin:0 0 10px;display:flex;align-items:center;gap:10px;position:relative`;
+        banner.innerHTML=`<span style="font-size:18px;flex-shrink:0">${icons[t]}</span>
+            <div style="flex:1;font-size:12px;font-weight:700;color:#fff;line-height:1.4">${ann.text}
+                ${ann.link?`<br><a href="${ann.link}" target="_blank" style="color:var(--accent2);font-size:11px">🔗 Детальніше</a>`:''}
+            </div>
+            <button onclick="document.getElementById('announce-banner').style.display='none'"
+                style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;flex-shrink:0;padding:0">✕</button>`;
+    });
+}
+setTimeout(initAnnounce, 1800);
+
+
 function initAdminNotifs(){
     if(!ADMINS.includes(Number(myId))) return;
     db.ref('adminNotifs/'+myId).on('value',snap=>{
@@ -2297,6 +2460,49 @@ applyTheme(currentTheme);
 applyLang(currentLang);
 updUI();
 initMusic();
+
+// ── Кастомні множники петів ──
+function applyPetMults(overrides){
+    if(!overrides) return;
+    const applyToList=list=>list.forEach(pet=>{
+        const key=pet.n.replace(/[^a-zA-ZА-Яа-яёЁіІїЇєЄ0-9]/g,'_');
+        if(overrides[key]!==undefined) pet.m=overrides[key];
+    });
+    Object.values(CASES).forEach(c=>applyToList(c.drop));
+    applyToList(ADMIN_ONLY_PETS);
+    if(s.p){
+        const key=s.p.n.replace(/[^a-zA-ZА-Яа-яёЁіІїЇєЄ0-9]/g,'_');
+        if(overrides[key]!==undefined){ s.p.m=overrides[key]; ren(); }
+    }
+}
+db.ref('petmults').on('value',snap=>applyPetMults(snap.val()));
+
+// ── Оголошення для гравців ──
+function initAnnounce(){
+    db.ref('announce').on('value',snap=>{
+        const ann=snap.val();
+        let banner=document.getElementById('announce-banner');
+        if(!ann||!ann.text){
+            if(banner) banner.remove();
+            return;
+        }
+        if(!banner){
+            banner=document.createElement('div');
+            banner.id='announce-banner';
+            const container=document.querySelector('.container');
+            if(container) container.prepend(banner);
+        }
+        const colors={info:'rgba(6,182,212,.12)',warn:'rgba(251,191,36,.12)',event:'rgba(168,85,247,.12)'};
+        const borders={info:'rgba(6,182,212,.3)',warn:'rgba(251,191,36,.3)',event:'rgba(168,85,247,.3)'};
+        const icons={info:'ℹ️',warn:'⚠️',event:'🎉'};
+        const t=ann.type||'info';
+        banner.style.cssText=`background:${colors[t]};border:1px solid ${borders[t]};border-radius:12px;padding:10px 14px;margin:0 0 10px;display:flex;align-items:center;gap:10px`;
+        banner.innerHTML=`<span style="font-size:18px;flex-shrink:0">${icons[t]}</span>
+            <div style="flex:1;font-size:12px;font-weight:700;color:#fff;line-height:1.4">${ann.text}${ann.link?`<br><a href="${ann.link}" target="_blank" style="color:var(--accent2);font-size:11px">🔗 Детальніше</a>`:''}</div>
+            <button onclick="document.getElementById('announce-banner').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;flex-shrink:0;padding:0">✕</button>`;
+    });
+}
+setTimeout(initAnnounce, 1500);
 
 // Оновлення таймеру кейсів кожну хвилину
 setInterval(()=>{
