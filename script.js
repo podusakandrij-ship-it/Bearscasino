@@ -789,12 +789,14 @@ db.ref('players/'+myId).on('value',snap=>{
 function checkPetLevelUp(){
     if(!s.p) return;
     let levelled = false;
-    // Цикл — пет може підняти кілька рівнів за раз
+    // Ініціалізуємо базовий множник якщо ще не збережено
+    if(!s.p.bm) s.p.bm = Math.round((s.p.m - ((s.p.lvl||1)-1)*0.005)*1000)/1000;
     while(s.x >= xpForLevel(s.p.lvl||1)){
         const needed = xpForLevel(s.p.lvl||1);
         s.x  -= needed;
         s.p.lvl = (s.p.lvl||1) + 1;
-        s.p.m   = Math.round((s.p.m + 0.005)*1000)/1000;
+        // Рахуємо від базового щоб не накопичувались помилки
+        s.p.m = Math.round((s.p.bm + (s.p.lvl-1)*0.005)*1000)/1000;
         levelled = true;
     }
     if(levelled){
@@ -1437,7 +1439,7 @@ function buyCase(k){
 
     // Знімаємо гроші та ОДРАЗУ додаємо пета в інвентар (до анімації!)
     // Це запобігає втраті пета через Firebase listener
-    win.id=Date.now(); win.lvl=1;
+    win.id=Date.now(); win.lvl=1; win.bm=win.m; // bm — базовий множник без левел-бонусу
     s.b-=c.p;
     s.inv.push(win);
     dailyProgress('case');
@@ -2156,9 +2158,11 @@ window.adminSetPetLevel=(uid,idx,name)=>{
         if(!inv[idx]) return;
         const pet=inv[idx];
         const oldLvl=pet.lvl||1;
-        // Перераховуємо м від базового значення рідкості + (newLvl-1)*0.005
-        // Базовий множник — те що було на LVL1
-        const baseMult = Math.round((pet.m - (oldLvl-1)*0.005)*1000)/1000;
+        // Базовий множник — беремо збережений bm або розраховуємо від поточного
+        const baseMult = pet.bm
+            ? pet.bm
+            : Math.round((pet.m - (oldLvl-1)*0.005)*1000)/1000;
+        pet.bm  = baseMult; // зберігаємо для майбутніх змін
         pet.lvl = newLvl;
         pet.m   = Math.round((baseMult + (newLvl-1)*0.005)*1000)/1000;
         if(pet.m < 1) pet.m = 1;
@@ -2471,7 +2475,12 @@ function applyPetMults(overrides){
     if(!overrides) return;
     const applyToList=list=>list.forEach(pet=>{
         const key=pet.n.replace(/[^a-zA-ZА-Яа-яёЁіІїЇєЄ0-9]/g,'_');
-        if(overrides[key]!==undefined) pet.m=overrides[key];
+        if(overrides[key]!==undefined){
+            // Оновлюємо базовий множник
+            pet.bm=overrides[key];
+            // Перераховуємо фінальний з урахуванням рівня
+            pet.m=Math.round((pet.bm+((pet.lvl||1)-1)*0.005)*1000)/1000;
+        }
     });
     Object.values(CASES).forEach(c=>applyToList(c.drop));
     applyToList(ADMIN_ONLY_PETS);
@@ -2484,7 +2493,8 @@ function applyPetMults(overrides){
     if(s.p){
         const key=s.p.n.replace(/[^a-zA-ZА-Яа-яёЁіІїЇєЄ0-9]/g,'_');
         if(overrides[key]!==undefined){
-            s.p.m=overrides[key];
+            s.p.bm=overrides[key];
+            s.p.m=Math.round((s.p.bm+((s.p.lvl||1)-1)*0.005)*1000)/1000;
             db.ref('players/'+myId+'/p').set(s.p);
         }
     }
