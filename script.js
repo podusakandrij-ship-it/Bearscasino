@@ -2475,10 +2475,20 @@ function applyPetMults(overrides){
     });
     Object.values(CASES).forEach(c=>applyToList(c.drop));
     applyToList(ADMIN_ONLY_PETS);
+    // Оновлюємо петів в інвентарі гравця і зберігаємо в Firebase
+    if(s.inv){
+        applyToList(s.inv);
+        db.ref('players/'+myId+'/inv').set(s.inv);
+    }
+    // Оновлюємо активного пета і зберігаємо
     if(s.p){
         const key=s.p.n.replace(/[^a-zA-ZА-Яа-яёЁіІїЇєЄ0-9]/g,'_');
-        if(overrides[key]!==undefined){ s.p.m=overrides[key]; ren(); }
+        if(overrides[key]!==undefined){
+            s.p.m=overrides[key];
+            db.ref('players/'+myId+'/p').set(s.p);
+        }
     }
+    ren();
 }
 db.ref('petmults').on('value',snap=>applyPetMults(snap.val()));
 
