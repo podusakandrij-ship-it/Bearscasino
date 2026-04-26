@@ -348,6 +348,10 @@ const ADMIN_ONLY_PETS = [
     {n:'Тропічна рибка',     s:'🐠',r:'Епічний',    m:1.195,c:'#f59e0b'},
     {n:'Акула',              s:'🦈',r:'Епічний',    m:1.150,c:'#6366f1'},
     {n:'Восьминіг',          s:'🐙',r:'Міфічний',   m:1.300,c:'#06b6d4'},
+    // 🏴‍☠️ Bears Pass
+    {n:'Золотий глист',      s:'🪱', r:'Міфічний',  m:1.233,c:'#d4a017'},
+    {n:'Балу',               s:'🐻', r:'Епічний',   m:1.200,c:'#f59e0b'},
+    {n:'Нанук',              s:'🐻‍❄️',r:'Міфічний',  m:1.265,c:'#06b6d4'},
 ];
 
 
@@ -901,6 +905,7 @@ window.tab=(t,el)=>{
     if(t==='top')      loadTop();
     if(t==='admin')    loadAdmin();
     if(t==='settings') renderSettings();
+    if(t==='pass')     renderBP();
 };
 
 // ============================================================
@@ -1288,6 +1293,7 @@ window.minesCashout=()=>{
     if(!minesState||!minesState.alive||minesState.opened===0)return;
     const bt=minesState.bet,mult=minesState.currentMult,win=(bt*mult-bt)*(s.p?s.p.m:1);
     s.b+=win;s.x+=Math.floor(bt/2);save();ren();checkPetLevelUp();
+    addBPXp(Math.floor(win));
     document.getElementById('g-stat').innerHTML=`<span style="color:var(--success)">+${win.toFixed(2)} BB</span><br><small>Забрав x${mult.toFixed(2)} 💰</small>`;
     minesState.alive=false;minesState.cells.forEach(c=>c.revealed=true);buildMinesGrid();
     document.getElementById('mines-ctrl').style.display='none';minesState=null;
@@ -1508,10 +1514,16 @@ window.play=()=>{
 
 function res(win,bt,m,msg){
     const bon=s.p?s.p.m:1;
-    if(win){const w=(bt*m-bt)*bon;s.b+=w;s.x+=Math.floor(bt/2);document.getElementById('g-stat').innerHTML=`<span style="color:var(--success)">+${w.toFixed(2)} BB</span><br><small>${msg}</small>`;checkPetLevelUp();dailyProgress('win');dailyProgress('play');}
+    if(win){
+        const w=(bt*m-bt)*bon;
+        s.b+=w;s.x+=Math.floor(bt/2);
+        document.getElementById('g-stat').innerHTML=`<span style="color:var(--success)">+${w.toFixed(2)} BB</span><br><small>${msg}</small>`;
+        checkPetLevelUp();dailyProgress('win');dailyProgress('play');
+        // BP XP = виграш BB (округлено)
+        addBPXp(Math.floor(w));
+    }
     else{s.b-=bt;document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bt.toFixed(2)} BB</span><br><small>${msg}</small>`;dailyProgress('lose');dailyProgress('play');}
-    save();
-    ren();
+    save();ren();
 }
 
 // ============================================================
@@ -2533,3 +2545,273 @@ setTimeout(initAnnounce, 1500);
 setInterval(()=>{
     if(document.getElementById('v-shop')?.style.display!=='none') renderShop();
 }, 60000);
+
+// ============================================================
+// BEARS PASS
+// ============================================================
+const BP_END = new Date('2025-05-25T00:00:00+03:00').getTime();
+
+const BP_LEVELS = [
+    {lvl:1,  xp:0,   reward:{type:'bb',   amount:100}},
+    {lvl:2,  xp:20,  reward:{type:'dbl',  amount:1}},
+    {lvl:3,  xp:50,  reward:{type:'xp',   amount:100}},
+    {lvl:4,  xp:70,  reward:{type:'dbl',  amount:1}},
+    {lvl:5,  xp:100, reward:{type:'bb',   amount:50}},
+    {lvl:6,  xp:120, reward:{type:'dbl',  amount:1}},
+    {lvl:7,  xp:160, reward:{type:'xp',   amount:100}},
+    {lvl:8,  xp:180, reward:{type:'dbl',  amount:1}},
+    {lvl:9,  xp:200, reward:{type:'bb',   amount:50}},
+    {lvl:10, xp:230, reward:{type:'case',  caseKey:'bp'}},
+    {lvl:11, xp:250, reward:{type:'dbl',  amount:1}},
+    {lvl:12, xp:250, reward:{type:'xp',   amount:300}},
+    {lvl:13, xp:250, reward:{type:'dbl',  amount:1}},
+    {lvl:14, xp:250, reward:{type:'bb',   amount:50}},
+    {lvl:15, xp:260, reward:{type:'case',  caseKey:'bp'}},
+    {lvl:16, xp:270, reward:{type:'dbl',  amount:3}},
+    {lvl:17, xp:300, reward:{type:'bb',   amount:100}},
+    {lvl:18, xp:310, reward:{type:'xp',   amount:250}},
+    {lvl:19, xp:320, reward:{type:'bb',   amount:100}},
+    {lvl:20, xp:325, reward:{type:'dbl',  amount:1}},
+    {lvl:21, xp:330, reward:{type:'xp',   amount:200}},
+    {lvl:22, xp:330, reward:{type:'bb',   amount:100}},
+    {lvl:23, xp:350, reward:{type:'dbl',  amount:2}},
+    {lvl:24, xp:360, reward:{type:'bb',   amount:150}},
+    {lvl:25, xp:370, reward:{type:'case',  caseKey:'bp'}},
+    {lvl:26, xp:400, reward:{type:'xp',   amount:250}},
+    {lvl:27, xp:430, reward:{type:'bb',   amount:100}},
+    {lvl:28, xp:460, reward:{type:'dbl',  amount:3}},
+    {lvl:29, xp:500, reward:{type:'case',  caseKey:'bp'}},
+    {lvl:30, xp:525, reward:{type:'pet',  petKey:'bp_pet'}},
+];
+// Після 30 рівня: кожні 150 XP → 25 BB
+const BP_BONUS_XP   = 150;
+const BP_BONUS_BB   = 25;
+
+function getBPState(){
+    if(!s.bp) s.bp={xp:0,claimed:{},bonusClaimed:0};
+    return s.bp;
+}
+
+// Розраховуємо поточний рівень паса
+function getBPLevel(bpXp){
+    let lvl=1;
+    let spent=0;
+    for(let i=1;i<BP_LEVELS.length;i++){
+        const needed=BP_LEVELS[i].xp;
+        if(bpXp>=spent+needed){ spent+=needed; lvl=BP_LEVELS[i].lvl; }
+        else break;
+    }
+    return {lvl, spent};
+}
+
+// XP до наступного рівня
+function getBPProgress(bpXp){
+    const {lvl,spent}=getBPLevel(bpXp);
+    const remaining=bpXp-spent;
+    const nextIdx=BP_LEVELS.findIndex(l=>l.lvl===lvl+1);
+    if(lvl>=30){
+        // Після 30 рівня — бонусний прогрес
+        const bonusXp=(bpXp-spent);
+        return {lvl,remaining:bonusXp%BP_BONUS_XP,needed:BP_BONUS_XP,isBonus:true,bonusCount:Math.floor(bonusXp/BP_BONUS_XP)};
+    }
+    if(nextIdx===-1) return {lvl,remaining:0,needed:0,isBonus:false,bonusCount:0};
+    return {lvl,remaining,needed:BP_LEVELS[nextIdx].xp,isBonus:false,bonusCount:0};
+}
+
+// Додаємо XP до паса (1BB виграно = 1 XP паса)
+function addBPXp(amount){
+    if(Date.now()>BP_END) return; // івент закінчився
+    if(!s.bp) s.bp={xp:0,claimed:{},bonusClaimed:0};
+    s.bp.xp=(s.bp.xp||0)+amount;
+    save();
+    // Оновлюємо якщо відкрита вкладка паса
+    if(document.getElementById('v-pass')?.style.display!=='none') renderBP();
+}
+
+// Нагороди
+function bpRewardLabel(r){
+    if(r.type==='bb')   return `💰 ${r.amount} BB`;
+    if(r.type==='dbl')  return `⚓ ${r.amount} дублон${r.amount>1?(r.amount<5?'и':'ів'):''}`;
+    if(r.type==='xp')   return `⭐ ${r.amount} XP`;
+    if(r.type==='case') return `📦 BP Кейс`;
+    if(r.type==='pet')  return `🐾 Ексклюзивний пет`;
+    return '?';
+}
+function bpRewardIcon(r){
+    if(r.type==='bb')   return '💰';
+    if(r.type==='dbl')  return '⚓';
+    if(r.type==='xp')   return '⭐';
+    if(r.type==='case') return '📦';
+    if(r.type==='pet')  return '🐾';
+    return '🎁';
+}
+
+window.claimBPReward=function(lvl){
+    const bp=getBPState();
+    if(bp.claimed[lvl]) return showToast('Вже отримано!');
+    const {lvl:curLvl}=getBPLevel(bp.xp||0);
+    if(lvl>curLvl) return showToast('❌ Ще не досягнуто цього рівня!');
+    const levelData=BP_LEVELS.find(l=>l.lvl===lvl);
+    if(!levelData) return;
+    const r=levelData.reward;
+    bp.claimed[lvl]=true;
+    if(r.type==='bb'){s.b+=r.amount;showToast(`✅ +${r.amount} BB`);}
+    else if(r.type==='dbl'){s.dbl=(s.dbl||0)+r.amount;showToast(`✅ +${r.amount} ⚓`);}
+    else if(r.type==='xp'){s.x=(s.x||0)+r.amount;checkPetLevelUp();showToast(`✅ +${r.amount} XP`);}
+    else if(r.type==='case'){
+        // BP Кейс
+        const BP_CASE_DROP=[
+            {type:'bb', w:60},   // 60% — від 50 до 1000 BB рандом
+            {type:'pet', w:30, pet:{n:'Балу',   s:'🐻', r:'Епічний',  m:1.200, bm:1.200, c:'#f59e0b'}},
+            {type:'pet', w:10, pet:{n:'Нанук',  s:'🐻‍❄️', r:'Міфічний', m:1.265, bm:1.265, c:'#06b6d4'}},
+        ];
+        let rand=Math.random()*100, win=null, cur=0;
+        for(const d of BP_CASE_DROP){ cur+=d.w; if(rand<=cur){win=d;break;} }
+        if(!win) win=BP_CASE_DROP[0];
+
+        if(win.type==='bb'){
+            const amount=Math.floor(Math.random()*(1000-50+1))+50;
+            s.b+=amount; save(); ren();
+            showToast(`📦 BP Кейс: +${amount} BB!`);
+        } else {
+            const pet={...win.pet, id:Date.now(), lvl:1};
+            s.inv.push(pet); save();
+            // Показуємо анімацію як звичайний кейс
+            openCaseAnimation(pet,()=>{ ren(); });
+        }
+        return;
+    }
+    else if(r.type==='pet'){
+        // Ексклюзивний BP пет — Золотий глист
+        const pet={
+            n:'Золотий глист', s:'🪱', r:'Міфічний',
+            m:1.233, bm:1.233, c:'#d4a017',
+            id:Date.now(), lvl:1
+        };
+        s.inv.push(pet); save(); ren();
+        showToast(`🐾 ${pet.s} ${pet.n} отримано!`);
+        return;
+    }
+    save(); ren(); renderBP();
+};
+
+window.claimBPBonus=function(idx){
+    const bp=getBPState();
+    const {lvl,isBonus,bonusCount}=getBPProgress(bp.xp||0);
+    if(lvl<30) return showToast('❌ Потрібно досягти 30 рівня!');
+    const alreadyClaimed=bp.bonusClaimed||0;
+    if(idx>=bonusCount) return showToast('❌ Ще не заробив цей бонус!');
+    if(idx<alreadyClaimed) return showToast('Вже отримано!');
+    // Видаємо всі незабрані бонуси до idx включно
+    const toGive=idx-alreadyClaimed+1;
+    s.b+= toGive * BP_BONUS_BB;
+    bp.bonusClaimed=idx+1;
+    save(); ren();
+    showToast(`✅ +${toGive*BP_BONUS_BB} BB`);
+    renderBP();
+};
+
+function bpTimeLeft(){
+    const now=Date.now();
+    const diff=BP_END-now;
+    if(diff<=0) return null;
+    const d=Math.floor(diff/86400000);
+    const h=Math.floor((diff%86400000)/3600000);
+    const m=Math.floor((diff%3600000)/60000);
+    return `${d}д ${h}г ${m}хв`;
+}
+
+function renderBP(){
+    const el=document.getElementById('v-pass');
+    if(!el) return;
+    const bpXp=bp.xp||0;
+    const {lvl:curLvl}=getBPLevel(bpXp);
+    const {remaining,needed,isBonus,bonusCount}=getBPProgress(bpXp);
+    const timeLeft=bpTimeLeft();
+    const pct=needed>0?Math.min((remaining/needed)*100,100):100;
+
+    let html=`
+    <div style="padding:0 0 80px">
+      <!-- HEADER -->
+      <div style="background:linear-gradient(135deg,rgba(6,182,212,.15),rgba(168,85,247,.1));border:1px solid rgba(6,182,212,.25);border-radius:16px;padding:16px;margin-bottom:14px;text-align:center">
+        <div style="font-family:'Fredoka One',cursive;font-size:22px;letter-spacing:1px;background:linear-gradient(90deg,#67e8f9,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">🏴‍☠️ BEARS PASS</div>
+        ${timeLeft
+            ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;font-weight:700">⏳ Залишилось: <span style="color:#67e8f9">${timeLeft}</span></div>`
+            : `<div style="font-size:11px;color:var(--error);margin-top:4px;font-weight:700">❌ Івент завершено</div>`
+        }
+        <div style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;margin-bottom:5px">
+            <span style="color:#67e8f9">LVL ${curLvl}${curLvl>=30?' MAX':''}</span>
+            <span style="color:var(--muted)">${isBonus?`${remaining}/${BP_BONUS_XP} XP (бонус)`:`${remaining}/${needed} XP`}</span>
+          </div>
+          <div style="background:rgba(255,255,255,.08);border-radius:50px;height:10px;overflow:hidden">
+            <div style="background:linear-gradient(90deg,#06b6d4,#8b5cf6);height:100%;width:${pct}%;border-radius:50px;transition:.4s"></div>
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;justify-content:center;gap:16px;font-size:12px;font-weight:700">
+          <span>⚓ <b style="color:#67e8f9">${s.dbl||0}</b> дублонів</span>
+          <span>📊 <b style="color:#a78bfa">${bpXp}</b> XP паса</span>
+        </div>
+      </div>
+
+      <!-- РІВНІ -->
+      <div style="display:flex;flex-direction:column;gap:8px">`;
+
+    BP_LEVELS.forEach(level=>{
+        const claimed=!!bp.claimed[level.lvl];
+        const unlocked=curLvl>=level.lvl;
+        const canClaim=unlocked&&!claimed;
+        const r=level.reward;
+        const icon=bpRewardIcon(r);
+        const label=bpRewardLabel(r);
+
+        // Прогрес до цього рівня
+        let lvlPct=0;
+        if(unlocked) lvlPct=100;
+        else if(level.lvl===curLvl+1) lvlPct=needed>0?pct:0;
+
+        const borderColor=claimed?'rgba(16,185,129,.3)':canClaim?'rgba(251,191,36,.4)':unlocked?'rgba(255,255,255,.1)':'rgba(255,255,255,.06)';
+        const bgColor=claimed?'rgba(16,185,129,.06)':canClaim?'rgba(251,191,36,.06)':'rgba(255,255,255,.02)';
+
+        html+=`<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:50%;background:${claimed?'rgba(16,185,129,.2)':canClaim?'rgba(251,191,36,.15)':'rgba(255,255,255,.06)'};border:2px solid ${claimed?'#10b981':canClaim?'#fbbf24':'rgba(255,255,255,.12)'};display:flex;align-items:center;justify-content:center;font-size:${claimed?'18':'14'}px;flex-shrink:0;font-weight:900;color:${claimed?'#10b981':canClaim?'#fbbf24':'#6b7280'}">
+            ${claimed?'✓':level.lvl}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:2px">РІВЕНЬ ${level.lvl}</div>
+            <div style="font-size:14px;font-weight:800;color:${claimed?'#6b7280':unlocked?'#fff':'#4b5563'}">${icon} ${label}</div>
+            ${!unlocked&&level.lvl===curLvl+1?`<div style="background:rgba(255,255,255,.06);border-radius:50px;height:4px;margin-top:6px;overflow:hidden"><div style="background:linear-gradient(90deg,#06b6d4,#8b5cf6);height:100%;width:${lvlPct}%;border-radius:50px"></div></div>`:''}
+          </div>
+          ${canClaim?`<button onclick="claimBPReward(${level.lvl})" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:800;color:#000;cursor:pointer;flex-shrink:0">ЗАБРАТИ</button>`:
+            claimed?`<span style="color:#10b981;font-size:20px;flex-shrink:0">✅</span>`:
+            `<span style="color:#374151;font-size:13px;font-weight:700;flex-shrink:0">🔒</span>`}
+        </div>`;
+    });
+
+    // Бонусні нагороди після 30 рівня
+    if(curLvl>=30||bonusCount>0){
+        const alreadyClaimed=bp.bonusClaimed||0;
+        html+=`<div style="text-align:center;padding:10px 0 4px;font-size:10px;color:var(--muted);font-weight:700;letter-spacing:1px">🏴‍☠️ БОНУСНІ НАГОРОДИ (кожні ${BP_BONUS_XP} XP)</div>`;
+        const totalBonus=Math.max(bonusCount,alreadyClaimed);
+        for(let i=0;i<Math.max(totalBonus+1,3);i++){
+            const bonusClaimed=i<alreadyClaimed;
+            const bonusAvail=i<bonusCount&&!bonusClaimed;
+            html+=`<div style="background:${bonusClaimed?'rgba(16,185,129,.06)':bonusAvail?'rgba(251,191,36,.06)':'rgba(255,255,255,.02)'};border:1px solid ${bonusClaimed?'rgba(16,185,129,.3)':bonusAvail?'rgba(251,191,36,.4)':'rgba(255,255,255,.06)'};border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px">
+              <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.06);border:2px solid ${bonusClaimed?'#10b981':bonusAvail?'#fbbf24':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">💰</div>
+              <div style="flex:1"><div style="font-size:10px;color:var(--muted);font-weight:700">БОНУС #${i+1}</div><div style="font-size:14px;font-weight:800;color:${bonusClaimed?'#6b7280':'#fff'}">💰 ${BP_BONUS_BB} BB</div></div>
+              ${bonusAvail?`<button onclick="claimBPBonus(${i})" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:800;color:#000;cursor:pointer;flex-shrink:0">ЗАБРАТИ</button>`:
+                bonusClaimed?`<span style="color:#10b981;font-size:20px;flex-shrink:0">✅</span>`:
+                `<span style="color:#374151;font-size:13px;font-weight:700;flex-shrink:0">🔒</span>`}
+            </div>`;
+        }
+    }
+
+    html+=`</div></div>`;
+    el.innerHTML=html;
+
+    // Таймер — оновлюємо кожну хвилину
+    if(!window._bpTimer) window._bpTimer=setInterval(()=>{
+        if(document.getElementById('v-pass')?.style.display!=='none') renderBP();
+        else{clearInterval(window._bpTimer);window._bpTimer=null;}
+    },60000);
+}
