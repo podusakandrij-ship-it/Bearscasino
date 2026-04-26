@@ -349,9 +349,9 @@ const ADMIN_ONLY_PETS = [
     {n:'Акула',              s:'🦈',r:'Епічний',    m:1.150,c:'#6366f1'},
     {n:'Восьминіг',          s:'🐙',r:'Міфічний',   m:1.300,c:'#06b6d4'},
     // 🏴‍☠️ Bears Pass
-    {n:'Золотий глист',      s:'🪱', r:'Міфічний',  m:1.233,c:'#d4a017'},
-    {n:'Балу',               s:'🐻', r:'Епічний',   m:1.200,c:'#f59e0b'},
-    {n:'Нанук',              s:'🐻‍❄️',r:'Міфічний',  m:1.265,c:'#06b6d4'},
+    {n:'Золотий глист',      s:'🪱', r:'Міфічний',  m:1.233,c:'#d4a017',drawKey:'goldworm'},
+    {n:'Балу',               s:'🐻', r:'Епічний',   m:1.200,c:'#f59e0b',drawKey:'balu'},
+    {n:'Нанук',              s:'🐻‍❄️',r:'Міфічний',  m:1.265,c:'#06b6d4',drawKey:'nanuk'},
 ];
 
 
@@ -2661,9 +2661,9 @@ window.claimBPReward=function(lvl){
     else if(r.type==='case'){
         // BP Кейс
         const BP_CASE_DROP=[
-            {type:'bb', w:60},   // 60% — від 50 до 1000 BB рандом
-            {type:'pet', w:30, pet:{n:'Балу',   s:'🐻', r:'Епічний',  m:1.200, bm:1.200, c:'#f59e0b'}},
-            {type:'pet', w:10, pet:{n:'Нанук',  s:'🐻‍❄️', r:'Міфічний', m:1.265, bm:1.265, c:'#06b6d4'}},
+            {type:'bb', w:60},
+            {type:'pet', w:30, pet:{n:'Балу',   s:'🐻', r:'Епічний',  m:1.200, bm:1.200, c:'#f59e0b', drawKey:'balu'}},
+            {type:'pet', w:10, pet:{n:'Нанук',  s:'🐻‍❄️', r:'Міфічний', m:1.265, bm:1.265, c:'#06b6d4', drawKey:'nanuk'}},
         ];
         let rand=Math.random()*100, win=null, cur=0;
         for(const d of BP_CASE_DROP){ cur+=d.w; if(rand<=cur){win=d;break;} }
@@ -2685,7 +2685,7 @@ window.claimBPReward=function(lvl){
         // Ексклюзивний BP пет — Золотий глист
         const pet={
             n:'Золотий глист', s:'🪱', r:'Міфічний',
-            m:1.233, bm:1.233, c:'#d4a017',
+            m:1.233, bm:1.233, c:'#d4a017', drawKey:'goldworm',
             id:Date.now(), lvl:1
         };
         s.inv.push(pet); save(); ren();
@@ -2724,6 +2724,7 @@ function bpTimeLeft(){
 function renderBP(){
     const el=document.getElementById('v-pass');
     if(!el) return;
+    const bp=getBPState();
     const bpXp=bp.xp||0;
     const {lvl:curLvl}=getBPLevel(bpXp);
     const {remaining,needed,isBonus,bonusCount}=getBPProgress(bpXp);
