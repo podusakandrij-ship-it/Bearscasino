@@ -124,10 +124,12 @@ const RARITY_ANIM = {
 
 // Отримати зображення пета (кастомне фото або emoji)
 function getPetImageSrc(pet) {
-    const key = pet.drawKey;
-    if (key && typeof PET_IMAGES !== 'undefined' && PET_IMAGES[key]) {
-        return { type: 'img', src: PET_IMAGES[key] };
-    }
+    try{
+        const key = pet.drawKey;
+        if (key && typeof PET_IMAGES !== 'undefined' && PET_IMAGES && PET_IMAGES[key]) {
+            return { type: 'img', src: PET_IMAGES[key] };
+        }
+    }catch(e){}
     return { type: 'emoji', src: getPetEmoji(pet) };
 }
 
@@ -749,40 +751,49 @@ let _saveTimer = null;
 function save(){
     _saving = true;
     clearTimeout(_saveTimer);
-    _saveTimer = setTimeout(()=>{ _saving = false; }, 2000);
+    _saveTimer = setTimeout(()=>{ _saving = false; }, 3000);
     db.ref('players/'+myId).set(s);
 }
 
 db.ref('players/'+myId).on('value',snap=>{
     const d=snap.val();
     if(d){
-        // Якщо щойно зберігали — не перезаписуємо локальний стан
-        // щоб Firebase не відкотив зміни балансу назад
         if(_saving){
-            // Оновлюємо тільки те що не може змінитись локально
-            // (наприклад дані від інших гравців — але для поточного гравця пропускаємо)
+            // Під час збереження — тільки оновлюємо UI без перезапису s
             ren();
             if(!_splashFired){ _splashFired=true; if(window._splashDone) window._splashDone(); }
             return;
         }
-        // Зберігаємо локальні дані що можуть бути новіші ніж у Firebase
-        const curDaily = s.daily;
-        const curAdoptPurchases = s.adoptPurchases;
+        const curDaily=s.daily;
+        const curAdoptPurchases=s.adoptPurchases;
+        const curBP=s.bp;
+        const curB=s.b;
+        const curDbl=s.dbl;
         s=d;
-        if(!s.inv)s.inv=[];
-        // Якщо локальний daily новіший (той самий день) — залишаємо його
-        if(curDaily && curDaily.day === todayKey() && (!s.daily || s.daily.day !== todayKey())){
-            s.daily = curDaily;
-        }
-        // Якщо локальний adoptPurchases має більше покупок — мерджимо (беремо максимум)
+        if(!s.inv) s.inv=[];
+        // Зберігаємо найбільший баланс (захист від відкату)
+        if(curB>s.b) s.b=curB;
+        if(curDbl>(s.dbl||0)) s.dbl=curDbl;
+        // Daily
+        if(curDaily&&curDaily.day===todayKey()&&(!s.daily||s.daily.day!==todayKey())) s.daily=curDaily;
+        // AdoptPurchases — мерджимо максимум
         if(curAdoptPurchases){
             if(!s.adoptPurchases) s.adoptPurchases={};
             Object.entries(curAdoptPurchases).forEach(([id,qty])=>{
-                if((s.adoptPurchases[id]||0) < qty) s.adoptPurchases[id]=qty;
+                if((s.adoptPurchases[id]||0)<qty) s.adoptPurchases[id]=qty;
             });
         }
+        // BP — зберігаємо більший XP і більше claimed
+        if(curBP){
+            if(!s.bp) s.bp=curBP;
+            else{
+                if((curBP.xp||0)>(s.bp.xp||0)) s.bp.xp=curBP.xp;
+                if(curBP.claimed) Object.assign(s.bp.claimed=s.bp.claimed||{},curBP.claimed);
+                if((curBP.bonusClaimed||0)>(s.bp.bonusClaimed||0)) s.bp.bonusClaimed=curBP.bonusClaimed;
+            }
+        }
     }
-    else{db.ref('players/'+myId).set(s);}
+    else{ db.ref('players/'+myId).set(s); }
     ren();
     if(!_splashFired){ _splashFired=true; if(window._splashDone) window._splashDone(); }
 });
@@ -2549,7 +2560,7 @@ setInterval(()=>{
 // ============================================================
 // BEARS PASS
 // ============================================================
-const BP_END = new Date('2025-05-25T00:00:00+03:00').getTime();
+const BP_END = new Date('2025-06-01T00:00:00+03:00').getTime();
 
 const BP_LEVELS = [
     {lvl:1,  xp:0,   reward:{type:'bb',   amount:100}},
