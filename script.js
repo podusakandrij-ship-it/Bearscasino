@@ -1621,8 +1621,13 @@ function loadAdmin(){
                 <div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:6px">ЗАРАЗ АКТИВНЕ:</div>
                 <div style="font-size:13px;color:#fff">${cur.text}</div>
                 ${cur.link?`<div style="font-size:11px;color:var(--muted);margin-top:4px">🔗 ${cur.link}</div>`:''}
-            </div>`:'<div class="admin-card" style="text-align:center;color:var(--muted);padding:16px">Активних оголошень немає</div>'}`;
-        });
+            </div>`:'<div class="admin-card" style="text-align:center;color:var(--muted);padding:16px">Активних оголошень немає</div>'}
+            <div class="admin-card" style="margin-top:10px">
+                <div class="card-title">⏳ Дата завершення Bears Pass</div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Зараз: <b style="color:var(--accent2)">${new Date(BP_END).toLocaleString('uk')}</b></div>
+                <input type="datetime-local" id="bp-end-inp" style="margin-bottom:8px">
+                <button class="btn" onclick="adminSaveBPEnd()">💾 Зберегти дату</button>
+            </div>`;        });
         return;
     }
 
@@ -1964,6 +1969,17 @@ window.adminSaveAnnounce=()=>{
 window.adminClearAnnounce=()=>{
     if(!confirm('Прибрати оголошення?')) return;
     db.ref('announce').remove().then(()=>{showToast('🗑 Оголошення прибрано');loadAdmin();});
+};
+window.adminSaveBPEnd=()=>{
+    const val=document.getElementById('bp-end-inp')?.value;
+    if(!val) return showToast('❌ Вкажи дату');
+    const ts=new Date(val).getTime();
+    if(isNaN(ts)) return showToast('❌ Невірний формат дати');
+    db.ref('bpend').set(ts).then(()=>{
+        BP_END=ts;
+        showToast('✅ Дату завершення паса збережено!');
+        loadAdmin();
+    });
 };
 
 // ── Множники петів ──
@@ -2560,7 +2576,14 @@ setInterval(()=>{
 // ============================================================
 // BEARS PASS
 // ============================================================
-const BP_END = new Date('2025-06-01T00:00:00+03:00').getTime();
+// Дата закінчення івенту — керується з Firebase (admin може змінити)
+// Fallback: далеке майбутнє якщо не задано
+let BP_END = Date.now() + 365*24*3600*1000;
+db.ref('bpend').once('value', snap => {
+    if(snap.val()) BP_END = snap.val();
+    window._bpEndLoaded = true;
+    if(document.getElementById('v-pass')?.style.display!=='none') renderBP();
+});
 
 const BP_LEVELS = [
     {lvl:1,  xp:0,   reward:{type:'bb',   amount:100}},
@@ -2631,11 +2654,11 @@ function getBPProgress(bpXp){
 
 // Додаємо XP до паса (1BB виграно = 1 XP паса)
 function addBPXp(amount){
-    if(Date.now()>BP_END) return; // івент закінчився
     if(!s.bp) s.bp={xp:0,claimed:{},bonusClaimed:0};
+    // Перевіряємо чи закінчився івент тільки якщо BP_END завантажено з Firebase
+    if(window._bpEndLoaded && Date.now()>BP_END) return;
     s.bp.xp=(s.bp.xp||0)+amount;
     save();
-    // Оновлюємо якщо відкрита вкладка паса
     if(document.getElementById('v-pass')?.style.display!=='none') renderBP();
 }
 
