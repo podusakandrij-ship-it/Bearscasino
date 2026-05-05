@@ -351,9 +351,13 @@ const ADMIN_ONLY_PETS = [
     {n:'Акула',              s:'🦈',r:'Епічний',    m:1.150,c:'#6366f1'},
     {n:'Восьминіг',          s:'🐙',r:'Міфічний',   m:1.300,c:'#06b6d4'},
     // 🏴‍☠️ Bears Pass
-    {n:'Золотий глист',      s:'🪱', r:'Міфічний',  m:1.233,c:'#d4a017',drawKey:'goldworm'},
-    {n:'Балу',               s:'🐻', r:'Епічний',   m:1.200,c:'#f59e0b',drawKey:'balu'},
-    {n:'Нанук',              s:'🐻‍❄️',r:'Міфічний',  m:1.265,c:'#06b6d4',drawKey:'nanuk'},
+    {n:'Золотий глист',         s:'🪱', r:'Міфічний',    m:1.233,c:'#d4a017',drawKey:'goldworm'},
+    {n:'Балу',                  s:'🐻', r:'Епічний',     m:1.200,c:'#f59e0b',drawKey:'balu'},
+    {n:'Нанук',                 s:'🐻‍❄️',r:'Міфічний',    m:1.265,c:'#06b6d4',drawKey:'nanuk'},
+    // 🏴‍☠️ Піратський кейс
+    {n:'Енн Бонні',             s:'🏴‍☠️',r:'Епічний',     m:1.180,c:'#f59e0b'},
+    {n:'Душа Першого Матроса',  s:'💀', r:'Легендарний', m:1.220,c:'#f43f5e'},
+    {n:'Одноокий Вартовий',     s:'🏴‍☠️',r:'Міфічний',    m:1.250,c:'#06b6d4'},
 ];
 
 
@@ -2765,32 +2769,99 @@ function renderBP(){
     const timeLeft=bpTimeLeft();
     const pct=needed>0?Math.min((remaining/needed)*100,100):100;
 
-    let html=`
-    <div style="padding:0 0 80px">
-      <!-- HEADER -->
-      <div style="background:linear-gradient(135deg,rgba(6,182,212,.15),rgba(168,85,247,.1));border:1px solid rgba(6,182,212,.25);border-radius:16px;padding:16px;margin-bottom:14px;text-align:center">
-        <div style="font-family:'Fredoka One',cursive;font-size:22px;letter-spacing:1px;background:linear-gradient(90deg,#67e8f9,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">🏴‍☠️ BEARS PASS</div>
-        ${timeLeft
-            ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;font-weight:700">⏳ Залишилось: <span style="color:#67e8f9">${timeLeft}</span></div>`
-            : `<div style="font-size:11px;color:var(--error);margin-top:4px;font-weight:700">❌ Івент завершено</div>`
-        }
-        <div style="margin-top:12px">
-          <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;margin-bottom:5px">
-            <span style="color:#67e8f9">LVL ${curLvl}${curLvl>=30?' MAX':''}</span>
-            <span style="color:var(--muted)">${isBonus?`${remaining}/${BP_BONUS_XP} XP (бонус)`:`${remaining}/${needed} XP`}</span>
-          </div>
-          <div style="background:rgba(255,255,255,.08);border-radius:50px;height:10px;overflow:hidden">
-            <div style="background:linear-gradient(90deg,#06b6d4,#8b5cf6);height:100%;width:${pct}%;border-radius:50px;transition:.4s"></div>
-          </div>
-        </div>
-        <div style="margin-top:10px;display:flex;justify-content:center;gap:16px;font-size:12px;font-weight:700">
-          <span>⚓ <b style="color:#67e8f9">${s.dbl||0}</b> дублонів</span>
-          <span>📊 <b style="color:#a78bfa">${bpXp}</b> XP паса</span>
-        </div>
-      </div>
+    const rewardColor=r=>{
+        if(r.type==='dbl') return '#f0c840';
+        if(r.type==='bb')  return '#34d399';
+        if(r.type==='xp')  return '#a78bfa';
+        if(r.type==='case') return '#f97316';
+        if(r.type==='pet')  return '#ec4899';
+        return '#fff';
+    };
 
-      <!-- РІВНІ -->
-      <div style="display:flex;flex-direction:column;gap:8px">`;
+    let html=`<div style="padding:0 0 90px">
+
+    <!-- ═══ ШАПКА ═══ -->
+    <div style="
+        background:linear-gradient(160deg,#0a1628 0%,#0d1f3c 50%,#0a1628 100%);
+        border:1px solid rgba(212,160,23,.3);
+        border-radius:20px;padding:20px 16px 16px;margin-bottom:16px;
+        position:relative;overflow:hidden">
+        <!-- Декор -->
+        <div style="position:absolute;top:-20px;right:-20px;font-size:80px;opacity:.07;line-height:1">🏴‍☠️</div>
+        <div style="position:absolute;bottom:-10px;left:-10px;font-size:60px;opacity:.05;line-height:1">⚓</div>
+
+        <div style="text-align:center;margin-bottom:14px">
+            <div style="font-family:'Fredoka One',cursive;font-size:26px;letter-spacing:2px;
+                background:linear-gradient(90deg,#d4a017,#f0c840,#d4a017);
+                -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+                filter:drop-shadow(0 0 8px rgba(212,160,23,.4))">
+                🏴‍☠️ BEARS PASS
+            </div>
+            <div style="font-size:10px;color:rgba(212,160,23,.6);font-weight:800;letter-spacing:3px;margin-top:2px">ПІРАТСЬКИЙ СЕЗОН</div>
+        </div>
+
+        <!-- Таймер -->
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(212,160,23,.2);border-radius:10px;padding:8px 12px;margin-bottom:14px;text-align:center">
+            ${timeLeft
+                ? `<span style="font-size:11px;font-weight:800;color:#d4a017">⏳ До кінця: ${timeLeft}</span>`
+                : `<span style="font-size:11px;font-weight:800;color:#ef4444">❌ Івент завершено</span>`
+            }
+        </div>
+
+        <!-- Рівень і XP бар -->
+        <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <div style="font-size:13px;font-weight:900;color:#f0c840">
+                    ${curLvl>=30?'⭐ MAX РІВЕНЬ':'LVL '+curLvl}
+                </div>
+                <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5)">
+                    ${isBonus?`${remaining}/${BP_BONUS_XP} XP (бонус)`:`${remaining} / ${needed} XP`}
+                </div>
+            </div>
+            <div style="background:rgba(0,0,0,.4);border-radius:50px;height:12px;overflow:hidden;border:1px solid rgba(212,160,23,.2)">
+                <div style="background:linear-gradient(90deg,#d4a017,#f0c840);height:100%;width:${pct}%;border-radius:50px;transition:.5s;box-shadow:0 0 10px rgba(212,160,23,.5)"></div>
+            </div>
+        </div>
+
+        <!-- Баланс рядок -->
+        <div style="display:flex;gap:8px">
+            <div style="flex:1;background:rgba(0,0,0,.3);border:1px solid rgba(240,200,64,.2);border-radius:10px;padding:8px;text-align:center">
+                <div style="font-size:10px;color:rgba(255,255,255,.4);font-weight:700;margin-bottom:2px">ДУБЛОНИ</div>
+                <div style="font-size:16px;font-weight:900;color:#f0c840">⚓ ${s.dbl||0}</div>
+            </div>
+            <div style="flex:1;background:rgba(0,0,0,.3);border:1px solid rgba(167,139,250,.2);border-radius:10px;padding:8px;text-align:center">
+                <div style="font-size:10px;color:rgba(255,255,255,.4);font-weight:700;margin-bottom:2px">XP ПАСА</div>
+                <div style="font-size:16px;font-weight:900;color:#a78bfa">📊 ${bpXp}</div>
+            </div>
+            <div style="flex:1;background:rgba(0,0,0,.3);border:1px solid rgba(52,211,153,.2);border-radius:10px;padding:8px;text-align:center">
+                <div style="font-size:10px;color:rgba(255,255,255,.4);font-weight:700;margin-bottom:2px">РІВЕНЬ</div>
+                <div style="font-size:16px;font-weight:900;color:#34d399">🏴‍☠️ ${curLvl}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ ПІРАТСЬКИЙ КЕЙС ═══ -->
+    <div style="background:linear-gradient(135deg,rgba(30,15,5,.9),rgba(20,10,2,.9));border:1px solid rgba(212,160,23,.35);border-radius:16px;padding:14px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:12px">
+            <div style="font-size:42px;line-height:1">🏴‍☠️</div>
+            <div style="flex:1">
+                <div style="font-family:'Fredoka One',cursive;font-size:16px;color:#f0c840;letter-spacing:.5px">Піратський кейс</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">Енн Бонні · Душа Першого Матроса · Одноокий Вартовий</div>
+                <div style="font-size:10px;color:rgba(212,160,23,.7);font-weight:700;margin-top:4px">⚓ 3 дублони за відкриття</div>
+            </div>
+            <button onclick="buyPirateCase()" style="
+                background:linear-gradient(135deg,#d4a017,#f0c840);
+                border:none;border-radius:12px;padding:10px 14px;
+                font-size:12px;font-weight:900;color:#000;cursor:pointer;
+                flex-shrink:0;box-shadow:0 0 16px rgba(212,160,23,.4)">
+                ⚓ КУПИТИ
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══ РІВНІ ═══ -->
+    <div style="font-size:10px;color:rgba(212,160,23,.6);font-weight:800;letter-spacing:2px;margin-bottom:10px;text-align:center">━━ НАГОРОДИ ━━</div>
+    <div style="display:flex;flex-direction:column;gap:6px">`;
 
     BP_LEVELS.forEach(level=>{
         const claimed=!!bp.claimed[level.lvl];
@@ -2799,44 +2870,57 @@ function renderBP(){
         const r=level.reward;
         const icon=bpRewardIcon(r);
         const label=bpRewardLabel(r);
+        const col=rewardColor(r);
+        const isSpecial=r.type==='case'||r.type==='pet';
+        const lvlPct=(unlocked?100:level.lvl===curLvl+1&&needed>0?pct:0);
 
-        // Прогрес до цього рівня
-        let lvlPct=0;
-        if(unlocked) lvlPct=100;
-        else if(level.lvl===curLvl+1) lvlPct=needed>0?pct:0;
+        html+=`<div style="
+            background:${claimed?'rgba(16,185,129,.05)':canClaim?'rgba(212,160,23,.07)':isSpecial&&!claimed?'rgba(249,115,22,.05)':'rgba(255,255,255,.02)'};
+            border:1px solid ${claimed?'rgba(16,185,129,.25)':canClaim?'rgba(212,160,23,.5)':isSpecial?'rgba(249,115,22,.2)':'rgba(255,255,255,.07)'};
+            border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px">
 
-        const borderColor=claimed?'rgba(16,185,129,.3)':canClaim?'rgba(251,191,36,.4)':unlocked?'rgba(255,255,255,.1)':'rgba(255,255,255,.06)';
-        const bgColor=claimed?'rgba(16,185,129,.06)':canClaim?'rgba(251,191,36,.06)':'rgba(255,255,255,.02)';
+            <!-- Номер -->
+            <div style="
+                width:34px;height:34px;border-radius:50%;flex-shrink:0;
+                background:${claimed?'rgba(16,185,129,.15)':canClaim?'rgba(212,160,23,.15)':'rgba(255,255,255,.05)'};
+                border:1.5px solid ${claimed?'#10b981':canClaim?'#d4a017':'rgba(255,255,255,.1)'};
+                display:flex;align-items:center;justify-content:center;
+                font-size:${claimed?'16':'12'}px;font-weight:900;
+                color:${claimed?'#10b981':canClaim?'#f0c840':'rgba(255,255,255,.3)'}">
+                ${claimed?'✓':level.lvl}
+            </div>
 
-        html+=`<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px">
-          <div style="width:40px;height:40px;border-radius:50%;background:${claimed?'rgba(16,185,129,.2)':canClaim?'rgba(251,191,36,.15)':'rgba(255,255,255,.06)'};border:2px solid ${claimed?'#10b981':canClaim?'#fbbf24':'rgba(255,255,255,.12)'};display:flex;align-items:center;justify-content:center;font-size:${claimed?'18':'14'}px;flex-shrink:0;font-weight:900;color:${claimed?'#10b981':canClaim?'#fbbf24':'#6b7280'}">
-            ${claimed?'✓':level.lvl}
-          </div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:2px">РІВЕНЬ ${level.lvl}</div>
-            <div style="font-size:14px;font-weight:800;color:${claimed?'#6b7280':unlocked?'#fff':'#4b5563'}">${icon} ${label}</div>
-            ${!unlocked&&level.lvl===curLvl+1?`<div style="background:rgba(255,255,255,.06);border-radius:50px;height:4px;margin-top:6px;overflow:hidden"><div style="background:linear-gradient(90deg,#06b6d4,#8b5cf6);height:100%;width:${lvlPct}%;border-radius:50px"></div></div>`:''}
-          </div>
-          ${canClaim?`<button onclick="claimBPReward(${level.lvl})" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:800;color:#000;cursor:pointer;flex-shrink:0">ЗАБРАТИ</button>`:
-            claimed?`<span style="color:#10b981;font-size:20px;flex-shrink:0">✅</span>`:
-            `<span style="color:#374151;font-size:13px;font-weight:700;flex-shrink:0">🔒</span>`}
+            <!-- Нагорода -->
+            <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:800;color:${claimed?'rgba(255,255,255,.3)':col}">${icon} ${label}</div>
+                ${!unlocked&&level.lvl===curLvl+1?`
+                <div style="background:rgba(0,0,0,.3);border-radius:50px;height:3px;margin-top:5px;overflow:hidden">
+                    <div style="background:linear-gradient(90deg,#d4a017,#f0c840);height:100%;width:${lvlPct}%;border-radius:50px"></div>
+                </div>`:''}
+            </div>
+
+            <!-- Кнопка -->
+            ${canClaim
+                ?`<button onclick="claimBPReward(${level.lvl})" style="background:linear-gradient(135deg,#d4a017,#f0c840);border:none;border-radius:9px;padding:7px 12px;font-size:11px;font-weight:900;color:#000;cursor:pointer;flex-shrink:0">ЗАБРАТИ</button>`
+                :claimed
+                    ?`<span style="color:#10b981;font-size:18px;flex-shrink:0">✅</span>`
+                    :`<span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.2);flex-shrink:0">🔒</span>`
+            }
         </div>`;
     });
 
-    // Бонусні нагороди після 30 рівня
+    // Бонуси після 30 рівня
     if(curLvl>=30||bonusCount>0){
         const alreadyClaimed=bp.bonusClaimed||0;
-        html+=`<div style="text-align:center;padding:10px 0 4px;font-size:10px;color:var(--muted);font-weight:700;letter-spacing:1px">🏴‍☠️ БОНУСНІ НАГОРОДИ (кожні ${BP_BONUS_XP} XP)</div>`;
+        html+=`<div style="font-size:10px;color:rgba(212,160,23,.6);font-weight:800;letter-spacing:2px;margin:12px 0 8px;text-align:center">━━ БОНУСИ (кожні ${BP_BONUS_XP} XP) ━━</div>`;
         const totalBonus=Math.max(bonusCount,alreadyClaimed);
         for(let i=0;i<Math.max(totalBonus+1,3);i++){
             const bonusClaimed=i<alreadyClaimed;
             const bonusAvail=i<bonusCount&&!bonusClaimed;
-            html+=`<div style="background:${bonusClaimed?'rgba(16,185,129,.06)':bonusAvail?'rgba(251,191,36,.06)':'rgba(255,255,255,.02)'};border:1px solid ${bonusClaimed?'rgba(16,185,129,.3)':bonusAvail?'rgba(251,191,36,.4)':'rgba(255,255,255,.06)'};border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px">
-              <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.06);border:2px solid ${bonusClaimed?'#10b981':bonusAvail?'#fbbf24':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">💰</div>
-              <div style="flex:1"><div style="font-size:10px;color:var(--muted);font-weight:700">БОНУС #${i+1}</div><div style="font-size:14px;font-weight:800;color:${bonusClaimed?'#6b7280':'#fff'}">💰 ${BP_BONUS_BB} BB</div></div>
-              ${bonusAvail?`<button onclick="claimBPBonus(${i})" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:800;color:#000;cursor:pointer;flex-shrink:0">ЗАБРАТИ</button>`:
-                bonusClaimed?`<span style="color:#10b981;font-size:20px;flex-shrink:0">✅</span>`:
-                `<span style="color:#374151;font-size:13px;font-weight:700;flex-shrink:0">🔒</span>`}
+            html+=`<div style="background:${bonusClaimed?'rgba(16,185,129,.05)':bonusAvail?'rgba(212,160,23,.07)':'rgba(255,255,255,.02)'};border:1px solid ${bonusClaimed?'rgba(16,185,129,.25)':bonusAvail?'rgba(212,160,23,.5)':'rgba(255,255,255,.07)'};border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px">
+                <div style="width:34px;height:34px;border-radius:50%;flex-shrink:0;background:rgba(255,255,255,.05);border:1.5px solid ${bonusClaimed?'#10b981':bonusAvail?'#d4a017':'rgba(255,255,255,.1)'};display:flex;align-items:center;justify-content:center;font-size:16px">${bonusClaimed?'✓':'💰'}</div>
+                <div style="flex:1"><div style="font-size:13px;font-weight:800;color:${bonusClaimed?'rgba(255,255,255,.3)':'#34d399'}">💰 ${BP_BONUS_BB} BB · Бонус #${i+1}</div></div>
+                ${bonusAvail?`<button onclick="claimBPBonus(${i})" style="background:linear-gradient(135deg,#d4a017,#f0c840);border:none;border-radius:9px;padding:7px 12px;font-size:11px;font-weight:900;color:#000;cursor:pointer;flex-shrink:0">ЗАБРАТИ</button>`:bonusClaimed?`<span style="color:#10b981;font-size:18px">✅</span>`:`<span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.2)">🔒</span>`}
             </div>`;
         }
     }
@@ -2844,9 +2928,26 @@ function renderBP(){
     html+=`</div></div>`;
     el.innerHTML=html;
 
-    // Таймер — оновлюємо кожну хвилину
     if(!window._bpTimer) window._bpTimer=setInterval(()=>{
         if(document.getElementById('v-pass')?.style.display!=='none') renderBP();
         else{clearInterval(window._bpTimer);window._bpTimer=null;}
     },60000);
 }
+
+// ─── Піратський кейс за дублони ───
+const PIRATE_CASE_DROP=[
+    {type:'pet',w:55,pet:{n:'Енн Бонні',       s:'🏴‍☠️',r:'Епічний',  m:1.180,bm:1.180,c:'#f59e0b'}},
+    {type:'pet',w:35,pet:{n:'Душа Першого Матроса',s:'💀',r:'Легендарний',m:1.220,bm:1.220,c:'#f43f5e'}},
+    {type:'pet',w:10,pet:{n:'Одноокий Вартовий',s:'🏴‍☠️',r:'Міфічний',  m:1.250,bm:1.250,c:'#06b6d4'}},
+];
+const PIRATE_CASE_PRICE=3; // дублони
+
+window.buyPirateCase=function(){
+    if((s.dbl||0)<PIRATE_CASE_PRICE) return showToast(`❌ Потрібно ${PIRATE_CASE_PRICE} ⚓ дублони!`);
+    s.dbl-=PIRATE_CASE_PRICE;
+    let rand=Math.random()*100,win=null,cur=0;
+    for(const d of PIRATE_CASE_DROP){cur+=d.w;if(rand<=cur){win={...d.pet,id:Date.now(),lvl:1};break;}}
+    if(!win) win={...PIRATE_CASE_DROP[0].pet,id:Date.now(),lvl:1};
+    s.inv.push(win); save(); ren();
+    openCaseAnimation(win,()=>{ ren(); renderBP(); });
+};
