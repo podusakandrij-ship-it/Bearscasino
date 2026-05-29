@@ -294,6 +294,7 @@ body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d
 </head>
 <body>
 
+<div id="casino-app">
 <!-- SPLASH SCREEN -->
 <div id="splash-screen">
   <div id="splash-img-wrap">
@@ -308,7 +309,6 @@ body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d
   </div>
 </div>
 
-<div id="casino-app">
 <header>
   <div class="logo">BEARS CASINO</div>
   <div style="display:flex;gap:8px;align-items:center">
@@ -775,7 +775,6 @@ function switchApp(app) {
         if(casino) casino.style.display = 'none';
         if(bot) {
             bot.style.display = 'block';
-            // Init bot if not yet done
             if(!window._botInited) {
                 window._botInited = true;
                 botInit();
@@ -798,7 +797,7 @@ function botInit() {
     _botUpdateNickUI();
     if(typeof applyLang === 'function') applyLang();
     if(typeof updateLvlUI === 'function') updateLvlUI();
-    if(typeof renderShop === 'function') renderShop('all');
+    botRenderShop('all');
     if(typeof renderHomePrev === 'function') renderHomePrev();
     // Ховаємо сплеш безумовно — не чекаємо Firebase
     const hideSplash = () => {
@@ -967,7 +966,7 @@ const PETS=[{id:1,key:'MFR Frost Fury',emoji:'🦋',rk:'petLeg',cat:'legendary',
 const RC={petLeg:'var(--gold)',petRare:'var(--purple)',petCom:'var(--sub)'};
 let curCat='all';
 function filterCat(cat,btn){curCat=cat;document.querySelectorAll('.cat').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderShop(cat);}
-function renderShop(cat){setText('shopBal',st.balance);const pets=cat==='all'?PETS:PETS.filter(p=>p.cat===cat);document.getElementById('petGrid').innerHTML=pets.map(p=>'<div class="pcard" onclick="buyPet('+p.id+')">'+(p.tag?'<div class="ptag t-'+p.tag+'">'+(p.tag==='hot'?'🔥 HOT':p.tag==='new'?'✨ NEW':'💎 RARE')+'</div>':'')+'<span class="p-em">'+p.emoji+'</span><div class="p-nm">'+p.key+'</div><div class="p-ra" style="color:'+RC[p.rk]+'">'+L(p.rk)+'</div><div class="p-pr">💰 '+p.price+' R</div></div>').join('');}
+function botRenderShop(cat){setText('shopBal',st.balance);const pets=cat==='all'?PETS:PETS.filter(p=>p.cat===cat);document.getElementById('petGrid').innerHTML=pets.map(p=>'<div class="pcard" onclick="buyPet('+p.id+')">'+(p.tag?'<div class="ptag t-'+p.tag+'">'+(p.tag==='hot'?'🔥 HOT':p.tag==='new'?'✨ NEW':'💎 RARE')+'</div>':'')+'<span class="p-em">'+p.emoji+'</span><div class="p-nm">'+p.key+'</div><div class="p-ra" style="color:'+RC[p.rk]+'">'+L(p.rk)+'</div><div class="p-pr">💰 '+p.price+' R</div></div>').join('');}
 function buyPet(id){const pet=PETS.find(p=>p.id===id);if(!pet)return;openFlowWith('shop-pet',pet);}
 
 function renderAdmin(){const conv=document.getElementById('adminConv');conv.innerHTML=st.chat.length?st.chat.map(m=>'<div class="acmsg '+(m.from==='admin'?'fa':'fu')+'"><div class="acmsg-top"><span class="acmsg-who">'+(m.from==='admin'?'👨‍💼 Admin':'👤 '+m.nick)+'</span><span class="acmsg-time">'+m.time+'</span></div><div class="acmsg-txt">'+m.text+'</div></div>').join(''):'<div class="pend-none">'+L('adminNoMsg')+'</div>';const pend=st.pending.filter(p=>p.status==='pending');document.getElementById('pendingList').innerHTML=pend.length?pend.map(p=>'<div class="pend-row"><div class="pend-top"><span class="pend-type">'+TI[p.type]+' '+p.label+'</span><span class="pend-date">'+p.date+'</span></div><div class="pend-info">'+(p.detail||'—')+'</div><div class="pend-btns"><button class="pbtn-ok" onclick="resolveOp('+p.id+',\'done\')">'+L('stDone')+'</button><button class="pbtn-no" onclick="resolveOp('+p.id+',\'rejected\')">'+L('stRej')+'</button></div></div>').join(''):'<div class="pend-none">'+L('adminNoPend')+'</div>';const users=Object.entries(st.users);document.getElementById('userList').innerHTML=users.length?users.map(([id,u])=>'<div class="urow"><div class="urow-info"><div class="urow-nick">'+u.nick+'</div><div class="urow-id">'+id+'</div></div><div class="urow-bal">'+u.balance+' R</div></div>').join(''):'<div class="pend-none">'+L('adminNoUsers')+'</div>';}
@@ -1005,7 +1004,7 @@ FLOWS['shop-pet']=function(c,pet){const b=mkBody();b.appendChild(mkTag(L('fShopT
 // ── INIT ──────────────────────────────────────────────
 if(st.isAdmin)document.getElementById('nav-admin').style.display='';
 setText('uidVal',st.userId);
-updateBal(0);_botUpdateNickUI();applyLang();updateLvlUI();renderShop('all');renderHomePrev();
+updateBal(0);_botUpdateNickUI();applyLang();updateLvlUI();botRenderShop('all');renderHomePrev();
 const now=new Date();
 setText('chatDate',now.toLocaleDateString('uk-UA',{day:'numeric',month:'long'}));
 setText('welcomeTime',nowTime());
