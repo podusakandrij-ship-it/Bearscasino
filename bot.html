@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>BEARS SHOP</title>
@@ -280,12 +283,6 @@ textarea.fif{resize:none}
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--s3);border:1px solid var(--b2);border-radius:20px;padding:8px 18px;font-size:12px;font-weight:600;color:var(--text);z-index:9999;white-space:nowrap;transition:opacity .3s;pointer-events:none;opacity:0;font-family:var(--font)}
 body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d0d4e4;--text:#1a1c28;--sub:#6b7280}
 </style>
-
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="petimages.js"></script>
-  <script src="script.js"></script>
 </head>
 <body>
 
@@ -521,6 +518,9 @@ body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d
     <div class="bni" id="nav-shop" onclick="switchTab('shop')"><span class="bni-ic">🛒</span><span id="nl-shop">Магазин</span></div>
     <div class="bni" id="nav-chat" onclick="switchTab('chat')"><span class="bni-ic">💬</span><span id="nl-chat">Чат</span><div class="bni-dot" id="chatDot"></div></div>
     <div class="bni" id="nav-profile" onclick="switchTab('profile')"><span class="bni-ic">👤</span><span id="nl-profile">Профіль</span></div>
+    <div class="bni" onclick="window.location.href='index.html'">
+      <span class="bni-ic">🎰</span><span>Казино</span>
+    </div>
     <div class="bni" id="nav-admin" onclick="switchTab('admin')" style="display:none"><span class="bni-ic">🔐</span><span id="nl-admin">Адмін</span></div>
   </div>
 </div>
@@ -699,146 +699,165 @@ setTimeout(()=>{
 </script>
 
 <script>
-// ── sessionStorage ──
-sessionStorage.setItem('lastApp','bot');
+// ── Firebase для бота ──
+const firebaseConfig = {
+    apiKey: "AIzaSyD7F2lrec5XWyMWG7J0uW6IhEKD-LJ4jRY",
+    authDomain: "bearscasino-bcded.firebaseapp.com",
+    projectId: "bearscasino-bcded",
+    storageBucket: "bearscasino-bcded.firebasestorage.app",
+    messagingSenderId: "826765969101",
+    appId: "1:826765969101:web:ee5e5da5057582f8ba4b84",
+    measurementId: "G-J2BCGS7NVM",
+    databaseURL: "https://bearscasino-bcded-default-rtdb.europe-west1.firebasedatabase.app"
+};
+firebase.initializeApp(firebaseConfig);
+const db  = firebase.database();
+const ADMINS          = [8216362223, 2067230442];
 
-// ── Firebase Integration ──
-function botFirebaseInit() {
-    if(typeof db === 'undefined' || typeof myId === 'undefined') {
-        setTimeout(botFirebaseInit, 300);
-        return;
-    }
-    
-    // Bot balance (separate from casino BB)
-    db.ref('players/'+myId+'/botBalance').on('value', snap => {
-        const b = snap.val() || 0;
+const tg = window.Telegram?.WebApp;
+if(tg){ tg.ready(); tg.expand(); }
+const _tgUser = tg?.initDataUnsafe?.user;
+const myId = _tgUser?.id ? String(_tgUser.id) : ('bears'+String(Math.floor(Math.random()*9000)+1000));
+const myName = _tgUser?.first_name || _tgUser?.username || 'Гравець';
+
+// ── Ініціалізація після завантаження бота ──
+window.addEventListener('DOMContentLoaded', function(){
+    // Чекаємо поки бот ініціалізується (st буде готовий)
+    const waitForBot = setInterval(function(){
+        if(typeof st !== 'undefined' && typeof updateBal === 'function'){
+            clearInterval(waitForBot);
+            botFirebaseInit();
+        }
+    }, 200);
+});
+
+function botFirebaseInit(){
+    // Власний баланс бота
+    db.ref('players/'+myId+'/botBalance').on('value', snap=>{
+        const b = snap.val()||0;
         st.balance = Math.floor(b);
         updateBal(st.balance);
     });
-
-    // Sync nick from/to casino
-    db.ref('players/'+myId+'/name').once('value', snap => {
-        if(snap.val()) { st.nick = snap.val(); updateNickUI(); }
+    
+    // Нік з казино
+    db.ref('players/'+myId+'/name').once('value', snap=>{
+        if(snap.val()){ st.nick=snap.val(); updateNickUI(); }
     });
 
-    // Load profile photo
-    db.ref('players/'+myId+'/photo').once('value', snap => {
+    // Фото профілю
+    db.ref('players/'+myId+'/photo').once('value', snap=>{
         if(snap.val()) setBotPhoto(snap.val());
     });
 
-    // Load bot data
-    db.ref('botdata/'+myId).once('value', snap => {
-        const d = snap.val();
-        if(d) {
-            if(d.history) { st.history = d.history; renderHistory(); }
-            if(d.stats)   { Object.assign(st.stats, d.stats); updateStatsUI(); updateLvlUI(); }
-            if(d.lang)    { st.lang = d.lang; applyLang(); }
+    // Дані бота (статистика, мова)
+    db.ref('botdata/'+myId).once('value', snap=>{
+        const d=snap.val();
+        if(d){
+            if(d.stats) { Object.assign(st.stats,d.stats); updateStatsUI(); updateLvlUI(); }
+            if(d.lang) { st.lang=d.lang; applyLang(); }
         }
     });
 
-    // isAdmin
-    if(typeof ADMINS !== 'undefined') {
-        st.isAdmin = ADMINS.includes(Number(myId));
-        if(st.isAdmin) {
-            const adminTab = document.getElementById('nav-admin');
-            if(adminTab) adminTab.style.display='';
-        }
-    }
+    // ID гравця
+    st.userId='#'+myId;
+    const el=document.getElementById('uidVal');
+    if(el) el.textContent=st.userId;
 
-    st.userId = '#' + myId;
-    setText('uidVal', st.userId);
+    // Адмін
+    st.isAdmin=ADMINS.includes(Number(myId));
+    if(st.isAdmin){
+        const t=document.getElementById('nav-admin');
+        if(t) t.style.display='';
+    }
 }
 
-// Override updateBal to save botBalance
-const _origUpdateBal = updateBal;
-window.updateBal = function(v) {
-    _origUpdateBal(v);
-    if(typeof db !== 'undefined' && typeof myId !== 'undefined') {
-        db.ref('players/'+myId+'/botBalance').set(v);
-    }
-};
+// Зберігаємо дані бота
+function saveBotData(){
+    if(!myId||typeof st==='undefined') return;
+    db.ref('botdata/'+myId).set({
+        stats:st.stats, lang:st.lang
+    });
+}
 
-// Override saveNick to sync with casino
-const _origSaveNick = saveNick;
-window.saveNick = function() {
-    _origSaveNick();
-    const v = document.getElementById('nickIn').value.trim();
-    if(v && typeof db !== 'undefined' && typeof myId !== 'undefined') {
-        db.ref('players/'+myId+'/name').set(v);
-        if(typeof s !== 'undefined') s.name = v;
-    }
-};
+// Override updateBal → зберігає в Firebase
+document.addEventListener('DOMContentLoaded', function(){
+    const waitBal = setInterval(()=>{
+        if(typeof updateBal==='function'){
+            clearInterval(waitBal);
+            const orig=updateBal;
+            window.updateBal=function(v){
+                orig(v);
+                db.ref('players/'+myId+'/botBalance').set(v);
+            };
+        }
+    },300);
+    
+    const waitNick = setInterval(()=>{
+        if(typeof saveNick==='function'){
+            clearInterval(waitNick);
+            const origNick=saveNick;
+            window.saveNick=function(){
+                origNick();
+                const v=(document.getElementById('nickIn')||{}).value||'';
+                if(v.trim()) db.ref('players/'+myId+'/name').set(v.trim());
+            };
+        }
+    },300);
+});
 
-// Admin functions using Firebase
-window.adminAdd = function() {
-    const id = document.getElementById('aAddId').value.trim().replace('#','');
-    const amt = parseInt(document.getElementById('aAddAmt').value);
-    if(!id||!amt) return showToast('❌ ID та суму!');
+// Фото профілю  
+function setBotPhoto(base64){
+    document.querySelectorAll('.av-circle').forEach(av=>{
+        av.innerHTML='<img src="'+base64+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+        av.style.overflow='hidden'; av.style.padding='0';
+    });
+}
+
+// Клік на аватарку
+document.addEventListener('click', function(e){
+    if(e.target.closest('.av-circle')){
+        let inp=document.getElementById('bot-photo-inp');
+        if(!inp){ inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.id='bot-photo-inp'; inp.style.display='none'; document.body.appendChild(inp);
+            inp.addEventListener('change',function(ev){
+                const file=ev.target.files[0]; if(!file) return;
+                const r=new FileReader();
+                r.onload=function(e2){
+                    const img=new Image(); img.onload=function(){
+                        const c=document.createElement('canvas'); c.width=c.height=256;
+                        const ctx=c.getContext('2d');
+                        const sz=Math.min(img.width,img.height);
+                        ctx.drawImage(img,(img.width-sz)/2,(img.height-sz)/2,sz,sz,0,0,256,256);
+                        const b64=c.toDataURL('image/jpeg',0.8);
+                        setBotPhoto(b64);
+                        db.ref('players/'+myId+'/photo').set(b64);
+                        if(typeof showToast==='function') showToast('✅ Фото оновлено!');
+                    }; img.src=e2.target.result;
+                }; r.readAsDataURL(file);
+            });
+        }
+        inp.click();
+    }
+});
+
+// Admin
+window.adminAdd=function(){
+    const id=(document.getElementById('aAddId')||{}).value.trim().replace('#','');
+    const amt=parseInt((document.getElementById('aAddAmt')||{}).value);
+    if(!id||!amt) return;
     db.ref('players/'+id+'/botBalance').transaction(b=>(b||0)+amt);
-    showToast('✅ +'+amt+' R для #'+id);
+    showToast('✅ +'+amt+' R');
     document.getElementById('aAddId').value='';
     document.getElementById('aAddAmt').value='';
 };
-window.adminRem = function() {
-    const id = document.getElementById('aRemId').value.trim().replace('#','');
-    const amt = parseInt(document.getElementById('aRemAmt').value);
-    if(!id||!amt) return showToast('❌ ID та суму!');
+window.adminRem=function(){
+    const id=(document.getElementById('aRemId')||{}).value.trim().replace('#','');
+    const amt=parseInt((document.getElementById('aRemAmt')||{}).value);
+    if(!id||!amt) return;
     db.ref('players/'+id+'/botBalance').transaction(b=>Math.max(0,(b||0)-amt));
-    showToast('✅ -'+amt+' R від #'+id);
+    showToast('✅ -'+amt+' R');
     document.getElementById('aRemId').value='';
     document.getElementById('aRemAmt').value='';
 };
-
-// Profile photo
-function setBotPhoto(base64) {
-    const av = document.querySelector('.av-circle');
-    if(!av) return;
-    av.innerHTML = '<img src="'+base64+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
-    av.style.overflow='hidden'; av.style.padding='0';
-}
-
-document.querySelectorAll('.av-circle').forEach(av => {
-    av.style.cursor='pointer';
-    av.addEventListener('click', () => document.getElementById('photo-inp').click());
-});
-
-const photoInp = document.createElement('input');
-photoInp.type='file'; photoInp.accept='image/*'; photoInp.id='photo-inp'; photoInp.style.display='none';
-document.body.appendChild(photoInp);
-photoInp.addEventListener('change', function(e) {
-    const file = e.target.files[0]; if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-        const img = new Image();
-        img.onload = () => {
-            const c = document.createElement('canvas');
-            c.width=c.height=256;
-            const ctx=c.getContext('2d');
-            const size=Math.min(img.width,img.height);
-            ctx.drawImage(img,(img.width-size)/2,(img.height-size)/2,size,size,0,0,256,256);
-            const b64=c.toDataURL('image/jpeg',0.8);
-            setBotPhoto(b64);
-            if(typeof db!=='undefined'&&typeof myId!=='undefined') {
-                db.ref('players/'+myId+'/photo').set(b64);
-                showToast('✅ Фото оновлено!');
-            }
-        };
-        img.src=ev.target.result;
-    };
-    reader.readAsDataURL(file);
-});
-
-// Save bot data helper
-function saveBotData() {
-    if(typeof db==='undefined'||typeof myId==='undefined') return;
-    db.ref('botdata/'+myId).set({
-        history: (st.history||[]).slice(0,50),
-        stats: st.stats,
-        lang: st.lang
-    });
-}
-
-setTimeout(botFirebaseInit, 500);
 </script>
 </body>
 </html>
