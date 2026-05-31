@@ -457,7 +457,7 @@ body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d
 <!-- ═══ BOT APP ═══ -->
 <div id="bot-app" style="display:none;height:100vh;overflow:hidden">
   <!-- SPLASH — новий дизайн без ведмедя -->
-<div id="bot-splash">
+<div id="bot-splash" style="position:fixed;inset:0;z-index:9999;background:#08090c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
   <div class="sp-logo">
     <div class="sp-icon">
       <svg viewBox="0 0 80 80" width="58" height="58" fill="none">
@@ -477,7 +477,7 @@ body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d
   <div class="sp-bar"><div class="sp-fill"></div></div>
 </div>
 
-<div id="bot-inner">
+<div id="bot-inner" style="display:none;flex-direction:column;height:100vh;overflow:hidden">
   <!-- HOME -->
   <div class="page active" id="page-home">
     <div class="hdr">
@@ -745,23 +745,7 @@ body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d
 
 <script src="petimages.js"></script>
 <script>window.addEventListener("load",()=>{const s=document.createElement("script");s.src="music.js";document.head.appendChild(s);})</script>
-<!-- ═══ Bears Casino Scripts ═══ -->
-<script src="config.js"></script>
-<script src="data.js"></script>
-<script src="themes.js"></script>
-<script src="pets.js"></script>
-<script src="daily.js"></script>
-<script src="channels.js"></script>
-<script src="state.js"></script>
-<script src="render.js"></script>
-<script src="inventory.js"></script>
-<script src="shop.js"></script>
-<script src="games.js"></script>
-<script src="settings.js"></script>
-<script src="admin.js"></script>
-<script src="leaderboard.js"></script>
-<script src="pass.js"></script>
-<script src="main.js"></script>
+<script src="script.js"></script>
 
 <!-- Photo input -->
 <input type="file" accept="image/*" id="bot-photo-input" style="display:none">
@@ -789,26 +773,29 @@ function switchApp(app) {
 }
 
 function botInit() {
-    const now = new Date();
-    const el = document.getElementById('chatDate');
-    if(el) el.textContent = now.toLocaleDateString('uk-UA',{day:'numeric',month:'long'});
-    const wt = document.getElementById('welcomeTime');
-    if(wt) wt.textContent = new Date().toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
-    _botUpdateNickUI();
-    if(typeof applyLang === 'function') applyLang();
-    if(typeof updateLvlUI === 'function') updateLvlUI();
-    botRenderShop('all');
-    if(typeof renderHomePrev === 'function') renderHomePrev();
-    // Ховаємо сплеш безумовно — не чекаємо Firebase
+    // Ховаємо сплеш ПЕРШИМ — завжди, незалежно від помилок
     const hideSplash = () => {
         const sp = document.getElementById('bot-splash');
         const inner = document.getElementById('bot-inner');
-        if(sp) { sp.style.transition='opacity .4s'; sp.style.opacity='0'; setTimeout(()=>{ sp.style.display='none'; },400); }
-        if(inner) inner.style.display='flex';
+        if(sp){ sp.style.transition='opacity .5s'; sp.style.opacity='0'; setTimeout(()=>{ sp.style.display='none'; },500); }
+        if(inner){ inner.style.display='flex'; }
     };
-    setTimeout(hideSplash, 900);
-    // Firebase init окремо
-    botInitFirebase();
+    setTimeout(hideSplash, 600);
+
+    // Решта ініціалізації в try-catch щоб не блокувати сплеш
+    try {
+        const now = new Date();
+        const el = document.getElementById('chatDate');
+        if(el) el.textContent = now.toLocaleDateString('uk-UA',{day:'numeric',month:'long'});
+        const wt = document.getElementById('welcomeTime');
+        if(wt) wt.textContent = now.toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
+    } catch(e){}
+    try { _botUpdateNickUI(); } catch(e){}
+    try { botRenderShop('all'); } catch(e){}
+    try { if(typeof renderHomePrev==='function') renderHomePrev(); } catch(e){}
+
+    // Firebase окремо після сплеш
+    setTimeout(()=>{ try{ botInitFirebase(); }catch(e){} }, 700);
 }
 
 // Wrap updateNickUI to work for bot
