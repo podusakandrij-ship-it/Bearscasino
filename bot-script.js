@@ -19,6 +19,7 @@ const ADMINS = [8216362223, 2067230442];
 
 const tg=window.Telegram?.WebApp;
 if(tg){tg.ready();tg.expand();}
+const myId = tg?.initDataUnsafe?.user?.id || 0;
 
 const st={balance:0,nick:'Гравець',lang:'uk',lightTheme:false,isAdmin:true,userId:'#bears-'+String(Math.floor(Math.random()*9000)+1000),history:[],pending:[],users:{},stats:{pumps:0,ops:0,wds:0},chat:[],wdData:{}};
 
@@ -167,13 +168,17 @@ setText('welcomeTime',nowTime());
 st.users[st.userId]={nick:st.nick,balance:0};
 
 // Show app after splash
+function showApp(){
+  document.getElementById('app').classList.add('ready');
+}
 setTimeout(()=>{
   const sp=document.getElementById('splash');
+  if(!sp){ showApp(); return; }
   sp.style.transition='opacity .5s';
   sp.style.opacity='0';
   setTimeout(()=>{
     sp.remove();
-    document.getElementById('app').classList.add('ready');
+    showApp();
   },500);
 },2000);
 
