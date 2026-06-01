@@ -19,7 +19,6 @@ const ADMINS = [8216362223, 2067230442];
 
 const tg=window.Telegram?.WebApp;
 if(tg){tg.ready();tg.expand();}
-const myId = tg?.initDataUnsafe?.user?.id || 0;
 
 const st={balance:0,nick:'Гравець',lang:'uk',lightTheme:false,isAdmin:true,userId:'#bears-'+String(Math.floor(Math.random()*9000)+1000),history:[],pending:[],users:{},stats:{pumps:0,ops:0,wds:0},chat:[],wdData:{}};
 
@@ -115,9 +114,13 @@ function renderHistory(){const el=document.getElementById('histList');if(!el)ret
 function pushMsg(from,text,time){st.chat.push({from,text,time,nick:from==='admin'?'Admin':st.nick});const msgs=document.getElementById('chatMsgs');const wrap=document.createElement('div');wrap.className='mw '+(from==='user'?'me':'adm');wrap.innerHTML='<div class="mb">'+text+'</div><div class="mt">'+time+'</div>';msgs.appendChild(wrap);scrollEl('chatMsgs');if(document.getElementById('page-admin').classList.contains('active'))renderAdmin();}
 function userSend(){const inp=document.getElementById('chatInp');const text=inp.value.trim();if(!text)return;inp.value='';inp.style.height='';pushMsg('user',text,nowTime());if(tg)tg.sendData(JSON.stringify({action:'chat',message:text}));}
 function adminReply(){const inp=document.getElementById('adminReplyInp');const text=inp.value.trim();if(!text){showToast('⚠️');return;}inp.value='';pushMsg('admin',text,nowTime());if(!document.getElementById('page-chat').classList.contains('active'))document.getElementById('chatDot').classList.add('show');showToast('✅');}
-document.getElementById('chatInp').addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';});
-document.getElementById('chatInp').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();userSend();}});
-document.getElementById('adminReplyInp').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();adminReply();}});
+const _chatInp=document.getElementById('chatInp');
+if(_chatInp){
+  _chatInp.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';});
+  _chatInp.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();userSend();}});
+}
+const _adminInp=document.getElementById('adminReplyInp');
+if(_adminInp) _adminInp.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();adminReply();}});
 
 const PETS=[{id:1,key:'MFR Frost Fury',emoji:'🦋',rk:'petLeg',cat:'legendary',price:350,tag:'hot'},{id:2,key:'NFR Shadow Dragon',emoji:'🐉',rk:'petLeg',cat:'legendary',price:500,tag:'rare'},{id:3,key:'FR Crow',emoji:'🦅',rk:'petLeg',cat:'legendary',price:280,tag:null},{id:4,key:'MFR Parrot',emoji:'🦜',rk:'petRare',cat:'rare',price:180,tag:'new'},{id:5,key:'NFR Unicorn',emoji:'🦄',rk:'petRare',cat:'rare',price:150,tag:null},{id:6,key:'FR Robin',emoji:'🐦',rk:'petRare',cat:'rare',price:90,tag:null},{id:7,key:'Normal Cat',emoji:'🐱',rk:'petCom',cat:'common',price:20,tag:'new'},{id:8,key:'Normal Dog',emoji:'🐶',rk:'petCom',cat:'common',price:15,tag:null},{id:9,key:'Normal Bunny',emoji:'🐰',rk:'petCom',cat:'common',price:10,tag:null}];
 const RC={petLeg:'var(--gold)',petRare:'var(--purple)',petCom:'var(--sub)'};
@@ -168,17 +171,13 @@ setText('welcomeTime',nowTime());
 st.users[st.userId]={nick:st.nick,balance:0};
 
 // Show app after splash
-function showApp(){
-  document.getElementById('app').classList.add('ready');
-}
 setTimeout(()=>{
   const sp=document.getElementById('splash');
-  if(!sp){ showApp(); return; }
   sp.style.transition='opacity .5s';
   sp.style.opacity='0';
   setTimeout(()=>{
     sp.remove();
-    showApp();
+    document.getElementById('app').classList.add('ready');
   },500);
 },2000);
 
