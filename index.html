@@ -3017,18 +3017,21 @@ if (adminInpEl) {
 
   // Сховати splash → показати app
   setTimeout(function() {
-    var sp  = el('splash');
-    var app = el('app');
+    var sp  = document.getElementById('splash');
+    var app = document.getElementById('app');
     if (sp) {
       sp.style.transition = 'opacity 0.5s';
       sp.style.opacity    = '0';
-      setTimeout(function() {
-        sp.style.display = 'none';
-        if (app) app.style.display = 'flex';
-      }, 500);
-    } else {
-      if (app) app.style.display = 'flex';
     }
+    setTimeout(function() {
+      if (sp) sp.style.display = 'none';
+      if (app) {
+        app.style.display    = 'flex';
+        app.style.flexDirection = 'column';
+        app.style.height     = '100vh';
+        app.style.overflow   = 'hidden';
+      }
+    }, 500);
   }, 2000);
 })();
 
