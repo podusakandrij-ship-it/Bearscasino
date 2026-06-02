@@ -6251,25 +6251,28 @@ setTimeout(botFirebaseInit, 300);
 
 </script>
 
-<!-- music.js залишається окремим файлом (11 МБ) -->
-<script src="music.js"></script>
-
 <script>
-// Run the right JS based on mode
-var params2 = new URLSearchParams(window.location.search);
-var isBot2  = params2.has('bot') || params2.get('mode') === 'bot';
-var botEl   = document.getElementById('bot-js');
-var casEl   = document.getElementById('casino-js');
+(function() {
+  var params2 = new URLSearchParams(window.location.search);
+  var isBot2  = params2.has('bot') || params2.get('mode') === 'bot';
 
-if (isBot2) {
-  var s = document.createElement('script');
-  s.textContent = botEl.textContent;
-  document.body.appendChild(s);
-} else {
-  var s = document.createElement('script');
-  s.textContent = casEl.textContent;
-  document.body.appendChild(s);
-}
+  if (isBot2) {
+    // BOT mode — run bot JS directly, no music.js
+    var botEl = document.getElementById('bot-js');
+    var s = document.createElement('script');
+    s.textContent = botEl.textContent;
+    document.body.appendChild(s);
+  } else {
+    // CASINO mode — load music.js then run casino JS
+    var casEl = document.getElementById('casino-js');
+    var s = document.createElement('script');
+    s.textContent = casEl.textContent;
+    document.body.appendChild(s);
+    var ms = document.createElement('script');
+    ms.src = 'music.js';
+    document.body.appendChild(ms);
+  }
+})();
 </script>
 
 </body>
