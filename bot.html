@@ -269,17 +269,23 @@ textarea.fif{resize:none}
 
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--s3);border:1px solid var(--b2);border-radius:20px;padding:8px 18px;font-size:12px;font-weight:600;color:var(--text);z-index:9999;white-space:nowrap;transition:opacity .3s;pointer-events:none;opacity:0;font-family:var(--font)}
 body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d0d4e4;--text:#1a1c28;--sub:#6b7280}
+
+.admin-pet-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd)}
+.admin-pet-row:last-child{border-bottom:none}
+.admin-pet-thumb{width:48px;height:48px;border-radius:10px;object-fit:cover;background:var(--s3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden}
+.admin-pet-thumb img{width:100%;height:100%;object-fit:cover}
+.admin-pet-nm{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-pet-pr{font-size:11px;color:var(--gold);margin-top:2px}
+.admin-pet-btns{display:flex;gap:4px;flex-shrink:0}
+.apet-edit{background:rgba(56,189,248,.15);color:#38bdf8;border:none;border-radius:8px;padding:5px 8px;font-size:12px;cursor:pointer}
+.apet-del{background:rgba(239,68,68,.15);color:#ef4444;border:none;border-radius:8px;padding:5px 8px;font-size:12px;cursor:pointer}
 </style>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
 </head>
 <body>
 
-<!-- SPLASH — новий дизайн без ведмедя -->
-<div class="sp-title">BEARS</div>
-    <div class="sp-sub">shop</div>
-  </div>
-  <div class="sp-bar"><div class="sp-fill"></div></div>
+
 </div>
 
 <div id="app">
@@ -484,6 +490,41 @@ body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d
       <div class="div"></div>
       <div class="asec-lbl" id="aUsersLbl">Користувачі</div>
       <div class="acard" id="userList"><div class="pend-none" id="aNoUsers">Немає</div></div>
+      <div class="div"></div>
+      <div class="asec-lbl">🛒 Управління магазином</div>
+      <div class="acard" id="adminShopCard">
+        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:10px">➕ Додати / Редагувати товар</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input type="hidden" id="editPetId" value="">
+          <input class="ain" id="newPetName" placeholder="Назва (напр. MFR Frost Fury)">
+          <input class="ain" id="newPetPrice" type="number" placeholder="Ціна в ROBUX">
+          <input class="ain" id="newPetEmoji" placeholder="Емодзі (напр. 🦋)">
+          <select class="ain" id="newPetCat" style="background:var(--s2);color:var(--text);border:1px solid var(--bd);border-radius:10px;padding:10px">
+            <option value="legendary">💎 Легендарний</option>
+            <option value="rare">⭐ Рідкісний</option>
+            <option value="common">🐾 Звичайний</option>
+          </select>
+          <select class="ain" id="newPetTag" style="background:var(--s2);color:var(--text);border:1px solid var(--bd);border-radius:10px;padding:10px">
+            <option value="">Без тегу</option>
+            <option value="hot">🔥 HOT</option>
+            <option value="new">✨ NEW</option>
+            <option value="rare">💎 RARE</option>
+          </select>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div id="newPetImgPrev" style="width:56px;height:56px;border-radius:12px;background:var(--s3);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;overflow:hidden">📷</div>
+            <button class="abtn" style="flex:1" onclick="document.getElementById('newPetImgInp').click()">📷 Вибрати фото</button>
+            <input type="file" id="newPetImgInp" accept="image/*" style="display:none">
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="abtn abtn-g" style="flex:1" onclick="adminSavePet()">💾 Зберегти</button>
+            <button class="abtn" style="background:var(--s2)" onclick="adminClearPetForm()">✕ Скинути</button>
+          </div>
+        </div>
+      </div>
+      <div class="acard" style="margin-top:8px">
+        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:10px">📋 Товари в магазині</div>
+        <div id="adminPetList"><div class="pend-none">Завантаження...</div></div>
+      </div>
     </div>
   </div>
 
@@ -804,7 +845,7 @@ function switchTab(tab) {
   var nav  = el('nav-'  + tab); if (nav)  nav.classList.add('on');
   if (tab === 'shop')    { renderShop(curCat); }
   if (tab === 'profile') { updateStatsUI(); updateLvlUI(); setText('uidVal', '#' + myId); }
-  if (tab === 'admin')   { renderAdmin(); }
+  if (tab === 'admin')   { renderAdmin(); renderAdminPets(); }
   if (tab === 'chat')    { var dot = el('chatDot'); if (dot) dot.classList.remove('show'); scrollBottom('chatMsgs'); }
   if (tab === 'history') { renderHistory(); }
   setText('fbal', balance);
@@ -976,9 +1017,12 @@ function renderShop(cat) {
   var grid = el('petGrid'); if (!grid) return;
   grid.innerHTML = list.map(function(p) {
     var tagHtml = p.tag ? '<div class="ptag t-'+p.tag+'">'+(p.tag==='hot'?'🔥 HOT':p.tag==='new'?'✨ NEW':'💎 RARE')+'</div>' : '';
+    var imgEl = p.img
+      ? '<img src="'+p.img+'" style="width:64px;height:64px;object-fit:cover;border-radius:10px;margin-bottom:7px;display:block;margin-left:auto;margin-right:auto">'
+      : '<span class="p-em">'+p.emoji+'</span>';
     return '<div class="pcard" onclick="buyPet('+p.id+')">'
       + tagHtml
-      + '<span class="p-em">'+p.emoji+'</span>'
+      + imgEl
       + '<div class="p-nm">'+p.key+'</div>'
       + '<div class="p-ra" style="color:'+RC[p.rk]+'">'+L(p.rk)+'</div>'
       + '<div class="p-pr">💰 '+p.price+' R</div></div>';
