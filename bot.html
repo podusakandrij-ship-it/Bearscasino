@@ -1121,9 +1121,6 @@ function renderAdmin() {
     });
   }
 
-  var pend = pending.filter(function(p){ return p.status === 'pending'; });
-  var pl2 = {length: 0}; // dummy to skip old rendering
-  if (false && pl2) pl2.innerHTML = pend.length
     ? pend.map(function(p) {
         return '<div class="pend-row"><div class="pend-top"><span class="pend-type">'+TI[p.type]+' '+p.label+'</span>'
           + '<span class="pend-date">'+p.date+'</span></div>'
