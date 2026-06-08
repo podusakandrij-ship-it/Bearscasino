@@ -846,7 +846,30 @@ function switchTab(tab) {
   if (tab === 'shop')    { renderShop(curCat); }
   if (tab === 'profile') { updateStatsUI(); updateLvlUI(); setText('uidVal', '#' + myId); }
   if (tab === 'admin')   { renderAdmin(); renderAdminPets(); }
-  if (tab === 'chat')    { var dot = el('chatDot'); if (dot) dot.classList.remove('show'); scrollBottom('chatMsgs'); }
+  if (tab === 'chat')    {
+    var dot = el('chatDot'); if (dot) dot.classList.remove('show');
+    // Load chat from Firebase
+    db.ref('adminChat').orderByChild('userId').equalTo(myId).once('value', function(snap) {
+      var msgs = snap.val();
+      if (msgs) {
+        var chatEl = el('chatMsgs'); if (!chatEl) return;
+        // Clear welcome only, keep loaded msgs
+        var arr = Object.values(msgs);
+        chatMsgs = arr;
+        // Re-render
+        var existing = chatEl.querySelectorAll('.mw');
+        if (existing.length === 0) {
+          arr.forEach(function(m) {
+            var wrap = document.createElement('div');
+            wrap.className = 'mw ' + (m.from === 'user' ? 'me' : 'adm');
+            wrap.innerHTML = '<div class="mb">' + m.text + '</div><div class="mt">' + m.time + '</div>';
+            chatEl.appendChild(wrap);
+          });
+        }
+        scrollBottom('chatMsgs');
+      }
+    });
+  }
   if (tab === 'history') { renderHistory(); }
   setText('fbal', balance);
   setText('shopBal', balance);
@@ -923,6 +946,8 @@ function stBadge(s, cls) {
 function addHistory(item) {
   item.id     = Date.now();
   item.status = 'pending';
+  item.userId = myId;
+  item.userNick = nick;
   item.date   = new Date().toLocaleString('uk-UA', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
   history.unshift(item);
   stats.ops++;
@@ -933,6 +958,9 @@ function addHistory(item) {
   renderHomePrev();
   pending.push(item);
   users['#' + myId] = { nick: nick, balance: balance };
+  // Save to Firebase for admin
+  db.ref('pending/' + item.id).set(item);
+  db.ref('users/' + myId).set({ nick: nick, balance: balance, id: myId });
   saveToFirebase();
 }
 
@@ -961,7 +989,10 @@ function renderHistory() {
 
 // ── ЧАТ ──
 function pushMsg(from, text, time) {
-  chatMsgs.push({ from: from, text: text, time: time, nick: from === 'admin' ? 'Admin' : nick });
+  var msg = { from: from, text: text, time: time, nick: from === 'admin' ? 'Admin' : nick, userId: myId };
+  chatMsgs.push(msg);
+  // Save to Firebase
+  db.ref('adminChat').push(msg);
   var msgs = el('chatMsgs'); if (!msgs) return;
   var wrap = document.createElement('div');
   wrap.className = 'mw ' + (from === 'user' ? 'me' : 'adm');
@@ -1037,18 +1068,62 @@ function buyPet(id) {
 // ── АДМІН ──
 function renderAdmin() {
   var conv = el('adminConv'); if (!conv) return;
-  conv.innerHTML = chatMsgs.length
-    ? chatMsgs.map(function(m) {
+
+  // Load chat from Firebase
+  db.ref('adminChat').once('value', function(snap) {
+    var msgs = snap.val();
+    if (msgs) {
+      var arr = Object.values(msgs);
+      conv.innerHTML = arr.map(function(m) {
         return '<div class="acmsg '+(m.from==='admin'?'fa':'fu')+'">'
           + '<div class="acmsg-top"><span class="acmsg-who">'+(m.from==='admin'?'👨‍💼 Admin':'👤 '+m.nick)+'</span>'
           + '<span class="acmsg-time">'+m.time+'</span></div>'
           + '<div class="acmsg-txt">'+m.text+'</div></div>';
-      }).join('')
-    : '<div class="pend-none">' + L('adminNoMsg') + '</div>';
+      }).join('');
+    } else {
+      conv.innerHTML = '<div class="pend-none">' + L('adminNoMsg') + '</div>';
+    }
+  });
+
+  // Load pending from Firebase
+  var pl = el('pendingList');
+  if (pl) {
+    db.ref('pending').orderByChild('status').equalTo('pending').once('value', function(snap) {
+      var pend = snap.val();
+      if (pend && Object.keys(pend).length) {
+        var pendArr = Object.values(pend);
+        pl.innerHTML = pendArr.map(function(p) {
+          return '<div class="pend-row"><div class="pend-top"><span class="pend-type">'+TI[p.type]+' '+p.label+'</span>'
+            + '<span class="pend-date">'+p.date+'</span></div>'
+            + '<div class="pend-info">'+(p.userNick||'')+(p.detail?' · '+p.detail:'')+'</div>'
+            + '<div class="pend-btns"><button class="pbtn-ok" onclick="resolveOp(''+p.id+'','done')">'+L('stDone')+'</button>'
+            + '<button class="pbtn-no" onclick="resolveOp(''+p.id+'','rejected')">'+L('stRej')+'</button></div></div>';
+        }).join('');
+      } else {
+        pl.innerHTML = '<div class="pend-none">' + L('adminNoPend') + '</div>';
+      }
+    });
+  }
+
+  // Load users from Firebase
+  var ul = el('userList');
+  if (ul) {
+    db.ref('users').once('value', function(snap) {
+      var usrs = snap.val();
+      if (usrs && Object.keys(usrs).length) {
+        ul.innerHTML = Object.values(usrs).map(function(u) {
+          return '<div class="urow"><div class="urow-info"><div class="urow-nick">'+u.nick+'</div>'
+            + '<div class="urow-id">#'+u.id+'</div></div><div class="urow-bal">'+u.balance+' R</div></div>';
+        }).join('');
+      } else {
+        ul.innerHTML = '<div class="pend-none">' + L('adminNoUsers') + '</div>';
+      }
+    });
+  }
 
   var pend = pending.filter(function(p){ return p.status === 'pending'; });
-  var pl = el('pendingList');
-  if (pl) pl.innerHTML = pend.length
+  var pl2 = {length: 0}; // dummy to skip old rendering
+  if (false && pl2) pl2.innerHTML = pend.length
     ? pend.map(function(p) {
         return '<div class="pend-row"><div class="pend-top"><span class="pend-type">'+TI[p.type]+' '+p.label+'</span>'
           + '<span class="pend-date">'+p.date+'</span></div>'
@@ -1069,8 +1144,21 @@ function renderAdmin() {
 }
 
 function resolveOp(id, status) {
-  var item = history.find(function(h){ return h.id === id; });
-  var pi   = pending.find(function(h){ return h.id === id; });
+  // Update in Firebase
+  db.ref('pending/' + id + '/status').set(status);
+  // Notify user via their botdata
+  db.ref('pending/' + id).once('value', function(snap) {
+    var p = snap.val();
+    if (p && p.userId) {
+      db.ref('notifications/' + p.userId).push({
+        msg: status === 'done' ? L('admDone') : L('admRej'),
+        time: nowTime(),
+        status: status
+      });
+    }
+  });
+  var item = history.find(function(h){ return h.id == id; });
+  var pi   = pending.find(function(h){ return h.id == id; });
   if (item) item.status = status;
   if (pi)   pi.status   = status;
   pushMsg('admin', status === 'done' ? L('admDone') : L('admRej'), nowTime());
@@ -1103,9 +1191,10 @@ function adminRem() {
 // ── FIREBASE SYNC ──
 function saveToFirebase() {
   db.ref('botdata/' + myId).set({
-    stats: stats,
-    lang:  lang,
-    nick:  nick
+    stats:   stats,
+    lang:    lang,
+    nick:    nick,
+    history: history.slice(0, 50)
   });
 }
 
@@ -1126,9 +1215,14 @@ function initFirebase() {
   db.ref('botdata/' + myId).once('value', function(snap) {
     var d = snap.val();
     if (d) {
-      if (d.stats) { Object.assign(stats, d.stats); updateStatsUI(); updateLvlUI(); }
-      if (d.lang)  { lang = d.lang; applyLang(); }
-      if (d.nick)  { nick = d.nick; updateNickUI(); }
+      if (d.stats)   { Object.assign(stats, d.stats); updateStatsUI(); updateLvlUI(); }
+      if (d.lang)    { lang = d.lang; applyLang(); }
+      if (d.nick)    { nick = d.nick; updateNickUI(); }
+      if (d.history && d.history.length) {
+        history = d.history;
+        renderHomePrev();
+        renderHistory();
+      }
     }
   });
 }
