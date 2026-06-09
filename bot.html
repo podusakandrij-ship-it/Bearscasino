@@ -832,12 +832,22 @@ function adminReply(){
   var inp=el('adminReplyInp');if(!inp)return;
   var text=inp.value.trim();if(!text){showToast('⚠️');return;}
   inp.value='';
-  // Admin needs to select which user to reply to
-  var targetId=el('adminTargetUser')?(el('adminTargetUser').value||''):'';
-  if(!targetId){showToast('⚠️ Оберіть користувача');return;}
-  var msg={from:'admin',text:text,time:nowTime(),nick:'Admin'};
-  db.ref('chat/'+targetId).push(msg);
-  showToast('✅ Надіслано!');
+  // Reply to all users who have pending messages
+  db.ref('chat').once('value',function(snap){
+    var chats=snap.val();
+    if(!chats){showToast('⚠️ Немає чатів');return;}
+    var uids=Object.keys(chats);
+    uids.forEach(function(uid){
+      var msgs=Object.values(chats[uid]);
+      var hasUser=msgs.some(function(m){return m.from==='user';});
+      if(hasUser){
+        var msg={from:'admin',text:text,time:nowTime(),nick:'Admin'};
+        db.ref('chat/'+uid).push(msg);
+      }
+    });
+    showToast('✅ Надіслано всім!');
+    renderAdmin();
+  });
 }
 
 // ── МАГАЗИН ──
@@ -905,14 +915,14 @@ function renderAdmin(){
       if(sel){sel.innerHTML='<option value="">Оберіть юзера...</option>';}
       Object.keys(allChats).forEach(function(uid){
         var msgs=Object.values(allChats[uid]);
-        var last=msgs[msgs.length-1];
-        if(sel)sel.innerHTML+='<option value="'+uid+'">'+uid+' ('+msgs.length+' повід.)</option>';
+        html+='<div style="margin:8px 0 4px;font-size:11px;color:var(--sub);font-weight:700;">👤 '+uid+'</div>';
         msgs.forEach(function(m){
           html+='<div class="acmsg '+(m.from==='admin'?'fa':'fu')+'">'
             +'<div class="acmsg-top"><span class="acmsg-who">'+(m.from==='admin'?'👨‍💼 Admin':'👤 '+(m.nick||uid))+'</span>'
             +'<span class="acmsg-time">'+m.time+'</span></div>'
             +'<div class="acmsg-txt">'+m.text+'</div></div>';
         });
+        html+='<button onclick="adminReplyTo(''+uid+'')" style="width:100%;padding:8px;margin:4px 0 12px;background:rgba(200,146,42,.15);border:1px solid var(--gold);border-radius:8px;color:var(--gold);font-size:12px;cursor:pointer;">💬 Відповісти '+uid+'</button>';
       });
       conv.innerHTML=html||'<div class="pend-none">'+L('adminNoMsg')+'</div>';
       scrollBottom('adminConv');
@@ -952,6 +962,15 @@ function renderAdmin(){
       }).join('');
     });
   }
+}
+
+function adminReplyTo(uid){
+  var text=prompt('Відповідь для '+uid+':');
+  if(!text||!text.trim())return;
+  var msg={from:'admin',text:text.trim(),time:nowTime(),nick:'Admin'};
+  db.ref('chat/'+uid).push(msg);
+  showToast('✅ Надіслано!');
+  renderAdmin();
 }
 
 function resolveOp(id,status){
