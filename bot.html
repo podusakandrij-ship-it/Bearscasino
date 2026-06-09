@@ -21,6 +21,7 @@ html{height:100%}
 body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font)}
 
 /* ── SPLASH ── */
+#splash{animation:spHide .5s 2s forwards;}@keyframes spHide{to{opacity:0;visibility:hidden;}}
 #splash{
   position:fixed;inset:0;z-index:9999;
   background:linear-gradient(160deg,#0a0700 0%,#050403 50%,#080600 100%);
@@ -43,8 +44,8 @@ body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
 /* ── LAYOUT ── */
-#app{display:none;flex-direction:column;height:100vh;overflow:hidden}
-#app.ready{display:flex}
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
 
 /* ── PAGES ── */
 .page{flex:1;overflow-y:auto;overflow-x:hidden;display:none;flex-direction:column;-webkit-overflow-scrolling:touch}
@@ -758,7 +759,7 @@ var TI={pump:'🐾',support:'📩',wd:'💰',shop:'🛒'};
 function stBadge(s,cls){
   var m={pending:L('stPend'),done:L('stDone'),rejected:L('stRej')};
   var c={pending:'s-p',done:'s-d',rejected:'s-r'};
-  return '<span class="'+(cls||'hpi-st')+' '+(c[s]||'")">'+  (m[s]||s)+'</span>';
+  return '<span class="'+(cls||'hpi-st')+' '+(c[s]||'')+'">'+(m[s]||s)+'</span>';
 }
 
 function addHistory(item){
