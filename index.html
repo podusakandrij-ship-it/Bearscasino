@@ -13,16 +13,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
 
 :root {
-  --accent:     #c89b3c;
-  --accent2:    #e8b84b;
-  --accent-rgb: 200,155,60;
-  --bg:         #0d0d11;
-  --bg2:        #13131a;
-  --bg3:        #181822;
-  --text:       #e8e6f0;
-  --muted:      #6b6880;
-  --success:    #52d68a;
-  --error:      #e87070;
+  --accent:     #c49a38;
+  --accent2:    #e0b448;
+  --accent-rgb: 196,154,56;
+  --bg:         #0e0e14;
+  --bg2:        #14141c;
+  --bg3:        #1a1a24;
+  --text:       #dddbe8;
+  --muted:      #7070a0;
+  --success:    #4ad880;
+  --error:      #e86868;
   --warning:    #fbbf24;
   --radius:     18px;
   --radius-sm:  12px;
@@ -46,9 +46,9 @@ body{
 body::before{
   content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background:
-    radial-gradient(ellipse 70% 50% at 80% 0%,  rgba(30,25,50,.5) 0%,transparent 65%),
-    radial-gradient(ellipse 55% 55% at -5% 90%, rgba(20,15,40,.4) 0%,transparent 65%),
-    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(200,155,60,.03) 0%,transparent 70%);
+    radial-gradient(ellipse 70% 50% at 80% 0%, rgba(40,30,60,.5) 0%,transparent 65%),
+    radial-gradient(ellipse 55% 55% at -5% 90%, rgba(25,20,45,.4) 0%,transparent 65%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(196,154,56,.03) 0%,transparent 70%);
 }
 body::after{
   content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
@@ -62,7 +62,7 @@ header{
   position:relative;z-index:100;
   padding:10px 16px;
   display:flex;justify-content:space-between;align-items:center;
-  background:rgba(10,10,15,.97);
+  background:rgba(8,12,8,.95);
   border-bottom:1px solid rgba(212,160,23,.15);
   backdrop-filter:blur(20px);flex-shrink:0;
 }
@@ -324,7 +324,7 @@ input[type=range]::-webkit-slider-thumb{
 /* ══ NAV ══ */
 nav{
   position:fixed;bottom:0;width:100%;z-index:100;
-  background:rgba(8,8,14,.97);border-top:1.5px solid rgba(var(--accent-rgb),.14);
+  background:rgba(6,9,6,.96);border-top:1.5px solid rgba(var(--accent-rgb),.14);
   display:flex;backdrop-filter:blur(28px);height:62px;
 }
 .nav-tab{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;opacity:.2;transition:opacity .2s;cursor:pointer;position:relative}
@@ -386,7 +386,7 @@ nav{
 
 /* ══ SPLASH ══ */
 #splash-screen{
-  position:fixed;inset:0;z-index:9999;background:#090910;
+  position:fixed;inset:0;z-index:9999;background:#040a04;
   display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
   transition:opacity .5s ease,visibility .5s ease;
 }
@@ -398,7 +398,7 @@ nav{
 #splash-bottom{
   position:relative;z-index:1;width:100%;
   padding:0 32px 50px;
-  background:linear-gradient(to top,#090910 55%,rgba(9,9,16,.85) 80%,transparent 100%);
+  background:linear-gradient(to top,#040a04 55%,rgba(4,10,4,.85) 80%,transparent 100%);
   padding-top:60px;
 }
 #splash-title{
