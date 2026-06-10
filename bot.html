@@ -126,6 +126,22 @@ body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font)}
 .p-nm{font-size:12px;font-weight:700}.p-ra{font-size:10px;font-weight:600;margin:2px 0 7px}.p-pr{font-size:13px;font-weight:800;color:var(--gold2)}
 .ptag{position:absolute;top:8px;right:8px;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px}
 .t-hot{background:rgba(239,68,68,.18);color:var(--red)}.t-new{background:rgba(34,197,94,.18);color:var(--green)}.t-rare{background:rgba(168,85,247,.18);color:var(--purple)}
+/* ── ADMIN PETS ── */
+.admin-pet-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--bd)}
+.admin-pet-row:last-child{border-bottom:none}
+.admin-pet-thumb{width:42px;height:42px;border-radius:10px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden}
+.admin-pet-thumb img{width:100%;height:100%;object-fit:cover}
+.admin-pet-nm{font-size:12px;font-weight:700}
+.admin-pet-pr{font-size:10px;color:var(--sub);margin-top:2px}
+.admin-pet-btns{display:flex;gap:5px;flex-shrink:0}
+.apet-edit{padding:6px 9px;border-radius:8px;border:1px solid rgba(56,189,248,.3);background:rgba(56,189,248,.1);color:#38bdf8;font-size:13px;cursor:pointer;font-family:var(--font)}
+.apet-del{padding:6px 9px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:var(--red);font-size:13px;cursor:pointer;font-family:var(--font)}
+.apet-edit:active,.apet-del:active{transform:scale(.92)}
+.apf-row{display:flex;gap:7px;margin-bottom:7px;flex-wrap:wrap}
+.apf-sel{flex:1;min-width:90px;background:var(--s3);border:1px solid var(--b2);border-radius:9px;padding:9px 10px;font-size:12px;color:var(--text);font-family:var(--font);outline:none}
+.apf-sel:focus{border-color:var(--gold)}
+.apf-img-wrap{width:56px;height:56px;border-radius:10px;background:var(--s3);border:1px dashed var(--b2);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;overflow:hidden;flex-shrink:0;position:relative}
+.apf-img-wrap input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 
 /* ── CHAT ── */
 .chat-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
@@ -277,22 +293,6 @@ textarea.fif{resize:none}
 .fpconf{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:16px;text-align:center}
 .fpc-e{font-size:50px;margin-bottom:6px;line-height:1}.fpc-n{font-size:14px;font-weight:800;margin-bottom:2px}.fpc-r{font-size:11px;margin-bottom:8px}.fpc-p{font-size:19px;font-weight:900;color:var(--gold2)}
 
-/* ── ADMIN PETS ── */
-.admin-pet-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--bd)}
-.admin-pet-row:last-child{border-bottom:none}
-.admin-pet-thumb{width:44px;height:44px;border-radius:10px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden}
-.admin-pet-thumb img{width:100%;height:100%;object-fit:cover}
-.admin-pet-nm{font-size:12px;font-weight:700}
-.admin-pet-pr{font-size:11px;color:var(--gold);margin-top:2px}
-.admin-pet-btns{display:flex;gap:5px;flex-shrink:0}
-.apet-edit{padding:6px 9px;border-radius:8px;border:1px solid rgba(56,189,248,.3);background:rgba(56,189,248,.1);color:var(--blue);font-size:13px;cursor:pointer;font-family:var(--font)}
-.apet-del{padding:6px 9px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:var(--red);font-size:13px;cursor:pointer;font-family:var(--font)}
-.apet-edit:active,.apet-del:active{transform:scale(.92)}
-.apf-row{display:flex;gap:7px;margin-bottom:7px;flex-wrap:wrap}
-.apf-sel{flex:1;min-width:80px;background:var(--s3);border:1px solid var(--b2);border-radius:9px;padding:9px 10px;font-size:12px;color:var(--text);font-family:var(--font);outline:none}
-.apf-sel:focus{border-color:var(--gold)}
-.apf-img-wrap{width:56px;height:56px;border-radius:10px;background:var(--s3);border:1px dashed var(--b2);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;overflow:hidden;flex-shrink:0;position:relative}
-.apf-img-wrap input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--s3);border:1px solid var(--b2);border-radius:20px;padding:8px 18px;font-size:12px;font-weight:600;color:var(--text);z-index:9999;white-space:nowrap;transition:opacity .3s;pointer-events:none;opacity:0;font-family:var(--font)}
 body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d0d4e4;--text:#1a1c28;--sub:#6b7280}
 </style>
@@ -395,9 +395,11 @@ body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d
     </div>
     <div class="cats">
       <div class="cat on" onclick="filterCat('all',this)" id="catAll">Всі</div>
-      <div class="cat" onclick="filterCat('legendary',this)" id="catLeg">Легендарні</div>
-      <div class="cat" onclick="filterCat('rare',this)" id="catRare">Рідкісні</div>
-      <div class="cat" onclick="filterCat('common',this)" id="catCom">Звичайні</div>
+      <div class="cat" onclick="filterCat('legendary',this)" id="catLeg">Legendary</div>
+      <div class="cat" onclick="filterCat('ultra-rare',this)" id="catURare">Ultra-Rare</div>
+      <div class="cat" onclick="filterCat('rare',this)" id="catRare">Rare</div>
+      <div class="cat" onclick="filterCat('uncommon',this)" id="catUnc">Uncommon</div>
+      <div class="cat" onclick="filterCat('common',this)" id="catCom">Common</div>
     </div>
     <div class="pgrid" id="petGrid"></div>
   </div>
@@ -529,6 +531,7 @@ body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d
       <div class="acard" id="adminShopCard">
         <div class="acard-t" id="adminShopFormTitle">➕ Новий товар</div>
         <input type="hidden" id="editPetId">
+        <input type="hidden" id="editPetFbKey">
         <div class="apf-row">
           <input class="ain" id="newPetName" placeholder="Назва товару" style="flex:1">
           <input class="ain" id="newPetPrice" type="number" placeholder="Ціна R" style="max-width:80px">
@@ -536,9 +539,11 @@ body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d
         <div class="apf-row">
           <input class="ain" id="newPetEmoji" placeholder="Емодзі 🐾" style="max-width:80px">
           <select class="apf-sel" id="newPetCat">
-            <option value="legendary">Легендарний</option>
-            <option value="rare">Рідкісний</option>
-            <option value="common" selected>Звичайний</option>
+            <option value="legendary">⭐ Legendary</option>
+            <option value="ultra-rare">💜 Ultra-Rare</option>
+            <option value="rare">🔵 Rare</option>
+            <option value="uncommon">🟢 Uncommon</option>
+            <option value="common" selected>⚪ Common</option>
           </select>
           <select class="apf-sel" id="newPetTag">
             <option value="">Без тегу</option>
@@ -551,9 +556,9 @@ body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d
           <div class="apf-img-wrap" id="newPetImgPrev">📷<input type="file" accept="image/*" id="newPetImgInp"></div>
           <span style="font-size:10px;color:var(--sub)">Фото (необов'язково)</span>
         </div>
-        <div class="arow" style="margin-top:4px">
+        <div class="arow" style="margin-top:6px;gap:7px">
           <button class="abtn abtn-g" style="flex:1" onclick="adminSavePet()">💾 Зберегти</button>
-          <button class="abtn" style="background:var(--s3);color:var(--sub);border:1px solid var(--bd)" onclick="adminClearPetForm()">✖ Скасувати</button>
+          <button class="abtn" style="background:var(--s3);color:var(--sub);border:1px solid var(--bd);flex:0 0 auto" onclick="adminClearPetForm()">✖</button>
         </div>
       </div>
       <div class="acard" style="margin-top:7px">
@@ -643,7 +648,7 @@ var LANG = {
     svcPump:'Прокачка',svcWd:'Вивід',svcSup:'Підтримка',secRecent:'Останні операції',secAll:'Всі →',
     homeEmpty:'Поки що порожньо',shopTitle:'🐻 Пет-магазин',
     catAll:'Всі',catLeg:'Легендарні',catRare:'Рідкісні',catCom:'Звичайні',
-    petLeg:'Легендарний',petRare:'Рідкісний',petCom:'Звичайний',
+    petLeg:'Легендарний',petURare:'Ultra-Rare',petRare:'Рідкісний',petUnc:'Незвичайний',petCom:'Звичайний',
     chatAdminName:'Адміністрація BEARS SHOP',chatOnline:'онлайн',chatPh:'Напишіть повідомлення...',
     welcomeMsg:'👋 Привіт! Напишіть своє запитання — адміністратор відповість тут!',
     histTitle:'📋 Історія',hsOps:'Операцій',hsWd:'Виведено R',hsPu:'Прокачок',histEmpty:'Ще немає операцій',
@@ -683,8 +688,8 @@ var LANG = {
     lvlNames:['Новачок','Гравець','Досвідчений','Про','Легенда']
   }
 };
-LANG.ru = Object.assign({}, LANG.uk, {greet:'Привет 👋',navHome:'Главная',navShop:'Магазин',navChat:'Чат',navProfile:'Профиль',navAdmin:'Админ',cardOwner:'Владелец',cardBal:'Баланс',statPump:'Прокачок',statOps:'Операций',statWd:'Выводов',svcPump:'Прокачка',svcWd:'Вывод',svcSup:'Поддержка',secRecent:'Последние операции',secAll:'Все →',homeEmpty:'Пока пусто',catAll:'Все',catLeg:'Легендарные',catRare:'Редкие',catCom:'Обычные',petLeg:'Легендарный',petRare:'Редкий',petCom:'Обычный',chatAdminName:'Администрация BEARS SHOP',chatPh:'Напишите сообщение...',welcomeMsg:'👋 Привет! Напишите ваш вопрос — администратор ответит здесь!',histEmpty:'Нет операций',psNick:'Никнейм',psLang:'Язык',psSett:'Настройки',nickPh:'Ваш ник...',nickSave:'Сохранить',nickErr:'⚠️ Введите ник',nickSaved:'✅ Ник сохранён!',themeLabel:'Светлая тема',themeSub:'Переключить',idCopy:'Копировать',idCopied:'✅ ID скопирован!',adminTitle:'🔐 Админ панель',adminNoMsg:'Нет сообщений',adminNoPend:'Нет новых заявок',adminNoUsers:'Нет',adminSend:'Отправить',stPend:'⏳ В ожидании',stDone:'✅ Выполнено',stRej:'❌ Отклонено',admDone:'✅ Ваша заявка выполнена!',admRej:'❌ Ваша заявка отклонена.',lvlNames:['Новичок','Игрок','Опытный','Про','Легенда']});
-LANG.en = Object.assign({}, LANG.uk, {greet:'Hello 👋',navHome:'Home',navShop:'Shop',navChat:'Chat',navProfile:'Profile',navAdmin:'Admin',cardOwner:'Owner',cardBal:'Balance',statPump:'Leveled',statOps:'Operations',statWd:'Withdrawals',svcPump:'Leveling',svcWd:'Withdraw',svcSup:'Support',secRecent:'Recent operations',secAll:'All →',homeEmpty:'Nothing yet',catAll:'All',catLeg:'Legendary',catRare:'Rare',catCom:'Common',petLeg:'Legendary',petRare:'Rare',petCom:'Common',chatAdminName:'BEARS SHOP Administration',chatPh:'Write a message...',welcomeMsg:'👋 Hi! Write your question — admin will reply here!',histEmpty:'No operations yet',psNick:'Nickname',psLang:'Language',psSett:'Settings',nickPh:'Your nick...',nickSave:'Save',nickErr:'⚠️ Enter a nickname',nickSaved:'✅ Nickname saved!',themeLabel:'Light theme',themeSub:'Toggle',idCopy:'Copy',idCopied:'✅ ID copied!',stPend:'⏳ Pending',stDone:'✅ Done',stRej:'❌ Rejected',admDone:'✅ Your request is done!',admRej:'❌ Your request was rejected.',lvlNames:['Beginner','Player','Experienced','Pro','Legend']});
+LANG.ru = Object.assign({}, LANG.uk, {greet:'Привет 👋',navHome:'Главная',navShop:'Магазин',navChat:'Чат',navProfile:'Профиль',navAdmin:'Админ',cardOwner:'Владелец',cardBal:'Баланс',statPump:'Прокачок',statOps:'Операций',statWd:'Выводов',svcPump:'Прокачка',svcWd:'Вывод',svcSup:'Поддержка',secRecent:'Последние операции',secAll:'Все →',homeEmpty:'Пока пусто',catAll:'Все',catLeg:'Легендарные',catRare:'Редкие',catCom:'Обычные',petLeg:'Легендарный',petURare:'Ultra-Rare',petRare:'Редкий',petUnc:'Необычный',petCom:'Обычный',chatAdminName:'Администрация BEARS SHOP',chatPh:'Напишите сообщение...',welcomeMsg:'👋 Привет! Напишите ваш вопрос — администратор ответит здесь!',histEmpty:'Нет операций',psNick:'Никнейм',psLang:'Язык',psSett:'Настройки',nickPh:'Ваш ник...',nickSave:'Сохранить',nickErr:'⚠️ Введите ник',nickSaved:'✅ Ник сохранён!',themeLabel:'Светлая тема',themeSub:'Переключить',idCopy:'Копировать',idCopied:'✅ ID скопирован!',adminTitle:'🔐 Админ панель',adminNoMsg:'Нет сообщений',adminNoPend:'Нет новых заявок',adminNoUsers:'Нет',adminSend:'Отправить',stPend:'⏳ В ожидании',stDone:'✅ Выполнено',stRej:'❌ Отклонено',admDone:'✅ Ваша заявка выполнена!',admRej:'❌ Ваша заявка отклонена.',lvlNames:['Новичок','Игрок','Опытный','Про','Легенда']});
+LANG.en = Object.assign({}, LANG.uk, {greet:'Hello 👋',navHome:'Home',navShop:'Shop',navChat:'Chat',navProfile:'Profile',navAdmin:'Admin',cardOwner:'Owner',cardBal:'Balance',statPump:'Leveled',statOps:'Operations',statWd:'Withdrawals',svcPump:'Leveling',svcWd:'Withdraw',svcSup:'Support',secRecent:'Recent operations',secAll:'All →',homeEmpty:'Nothing yet',catAll:'All',catLeg:'Legendary',catRare:'Rare',catCom:'Common',petLeg:'Legendary',petURare:'Ultra-Rare',petRare:'Rare',petUnc:'Uncommon',petCom:'Common',chatAdminName:'BEARS SHOP Administration',chatPh:'Write a message...',welcomeMsg:'👋 Hi! Write your question — admin will reply here!',histEmpty:'No operations yet',psNick:'Nickname',psLang:'Language',psSett:'Settings',nickPh:'Your nick...',nickSave:'Save',nickErr:'⚠️ Enter a nickname',nickSaved:'✅ Nickname saved!',themeLabel:'Light theme',themeSub:'Toggle',idCopy:'Copy',idCopied:'✅ ID copied!',stPend:'⏳ Pending',stDone:'✅ Done',stRej:'❌ Rejected',admDone:'✅ Your request is done!',admRej:'❌ Your request was rejected.',lvlNames:['Beginner','Player','Experienced','Pro','Legend']});
 
 function L(k){return (LANG[lang]||LANG.uk)[k]||k;}
 
@@ -914,7 +919,7 @@ var PETS=[
   {id:8,key:'Normal Dog',emoji:'🐶',rk:'petCom',cat:'common',price:15,tag:null},
   {id:9,key:'Normal Bunny',emoji:'🐰',rk:'petCom',cat:'common',price:10,tag:null}
 ];
-var RC={petLeg:'var(--gold)',petRare:'var(--purple)',petCom:'var(--sub)'};
+var RC={petLeg:'var(--gold)',petURare:'#e05cff',petRare:'var(--purple)',petUnc:'#3bdfb4',petCom:'var(--sub)'};
 
 function filterCat(cat,btn){
   curCat=cat;
@@ -1020,7 +1025,6 @@ function renderAdmin(){
 }
 
 function adminReplyTo(uid){
-  var text=prompt('Відповідь для '+uid+':');
   if(!text||!text.trim())return;
   var msg={from:'admin',text:text.trim(),time:nowTime(),nick:'Admin'};
   db.ref('chat/'+uid).push(msg);
@@ -1050,12 +1054,13 @@ function adminAdd(){
   ref.once('value',function(snap){
     var cur=snap.val()||0;
     var nb=cur+amt;
-    ref.set(nb).then(function(){
-      showToast('✅ #'+uid+' +'+amt+' R → '+nb+' R');
-      // notify user via chat
-      var msg={from:'admin',text:'💰 Ваш баланс поповнено на '+amt+' ROBUX. Новий баланс: '+nb+' R',time:nowTime(),nick:'Admin'};
+    ref.set(nb,function(err){
+      if(err){showToast('❌ Помилка: '+err.message);return;}
+      db.ref('users/'+uid+'/balance').set(nb);
+      showToast('✅ #'+uid+': '+cur+' → '+nb+' R');
+      var msg={from:'admin',text:'💰 Поповнення: +'+amt+' ROBUX. Новий баланс: '+nb+' R',time:nowTime(),nick:'Admin'};
       db.ref('chat/'+uid).push(msg);
-    }).catch(function(){showToast('❌ Помилка запису');});
+    });
   });
   if(el('aAddId'))el('aAddId').value='';
   if(el('aAddAmt'))el('aAddAmt').value='';
@@ -1069,9 +1074,11 @@ function adminRem(){
   ref.once('value',function(snap){
     var cur=snap.val()||0;
     var nb=Math.max(0,cur-amt);
-    ref.set(nb).then(function(){
-      showToast('✅ #'+uid+' -'+amt+' R → '+nb+' R');
-    }).catch(function(){showToast('❌ Помилка запису');});
+    ref.set(nb,function(err){
+      if(err){showToast('❌ Помилка: '+err.message);return;}
+      db.ref('users/'+uid+'/balance').set(nb);
+      showToast('✅ #'+uid+': '+cur+' → '+nb+' R');
+    });
   });
   if(el('aRemId'))el('aRemId').value='';
   if(el('aRemAmt'))el('aRemAmt').value='';
@@ -1156,12 +1163,12 @@ function bindPetImgInp(inp){
 setTimeout(function(){var inp=el('newPetImgInp');if(inp)bindPetImgInp(inp);},800);
 
 function adminClearPetForm(){
-  ['editPetId','newPetName','newPetPrice','newPetEmoji'].forEach(function(id){var e=el(id);if(e)e.value='';});
-  var prev=el('newPetImgPrev');if(prev)prev.innerHTML='📷<input type="file" accept="image/*" id="newPetImgInp">';_newPetImg=null;
+  ['editPetId','editPetFbKey','newPetName','newPetPrice','newPetEmoji'].forEach(function(id){var e=el(id);if(e)e.value='';});
+  var prev=el('newPetImgPrev');if(prev)prev.innerHTML='📷<input type="file" accept="image/*" id="newPetImgInp">';
+  _newPetImg=null;
   var cat=el('newPetCat');if(cat)cat.value='common';
   var tag=el('newPetTag');if(tag)tag.value='';
   setText('adminShopFormTitle','➕ Новий товар');
-  // re-bind image input
   setTimeout(function(){var inp=el('newPetImgInp');if(inp)bindPetImgInp(inp);},50);
 }
 
@@ -1172,33 +1179,36 @@ function adminSavePet(){
   var cat=(el('newPetCat')||{value:'common'}).value;
   var tag=(el('newPetTag')||{value:''}).value;
   var editId=(el('editPetId')||{value:''}).value;
+  var fbKey=(el('editPetFbKey')||{value:''}).value;
   if(!name){showToast('⚠️ Введіть назву');return;}
   if(!price||price<1){showToast('⚠️ Введіть ціну');return;}
-  var rk=cat==='legendary'?'petLeg':cat==='rare'?'petRare':'petCom';
+  var rk=cat==='legendary'?'petLeg':cat==='ultra-rare'?'petURare':cat==='rare'?'petRare':cat==='uncommon'?'petUnc':'petCom';
   var petId=editId||String(Date.now());
-  var petData={id:petId,key:name,price:price,emoji:emoji,cat:cat,rk:rk,tag:tag||null,img:_newPetImg||null};
-  if(editId&&!_newPetImg){
-    db.ref('shop_pets/'+petId).once('value',function(snap){
+  var saveKey=fbKey||petId;
+  var petData={id:petId,fbKey:saveKey,key:name,price:price,emoji:emoji,cat:cat,rk:rk,tag:tag||null,img:_newPetImg||null};
+  if(fbKey&&!_newPetImg){
+    db.ref('shop_pets/'+saveKey).once('value',function(snap){
       var old=snap.val()||{};petData.img=old.img||null;
-      db.ref('shop_pets/'+petId).set(petData).then(function(){showToast('✅ Збережено!');adminClearPetForm();renderAdminPets();});
+      db.ref('shop_pets/'+saveKey).set(petData).then(function(){showToast('✅ Збережено!');adminClearPetForm();renderAdminPets();});
     });
   }else{
-    db.ref('shop_pets/'+petId).set(petData).then(function(){showToast('✅ Збережено!');adminClearPetForm();renderAdminPets();});
+    db.ref('shop_pets/'+saveKey).set(petData).then(function(){showToast('✅ Збережено!');adminClearPetForm();renderAdminPets();});
   }
 }
 
-function adminEditPet(id){
-  db.ref('shop_pets/'+id).once('value',function(snap){
+function adminEditPet(fbKey){
+  db.ref('shop_pets/'+fbKey).once('value',function(snap){
     var p=snap.val();if(!p)return;
     var e;
-    e=el('editPetId');if(e)e.value=p.id;
+    e=el('editPetId');if(e)e.value=p.id||fbKey;
+    e=el('editPetFbKey');if(e)e.value=fbKey;
     e=el('newPetName');if(e)e.value=p.key;
     e=el('newPetPrice');if(e)e.value=p.price;
     e=el('newPetEmoji');if(e)e.value=p.emoji||'';
     e=el('newPetCat');if(e)e.value=p.cat||'common';
     e=el('newPetTag');if(e)e.value=p.tag||'';
     var prev=el('newPetImgPrev');
-    if(prev)prev.innerHTML=(p.img?'<img src="'+p.img+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">':(p.emoji||'🐾'))+'<input type="file" accept="image/*" id="newPetImgInp">';
+    if(prev)prev.innerHTML=(p.img?'<img src="'+p.img+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">':p.emoji||'🐾')+'<input type="file" accept="image/*" id="newPetImgInp">';
     _newPetImg=null;
     setText('adminShopFormTitle','✏️ Редагування: '+p.key);
     setTimeout(function(){var inp=el('newPetImgInp');if(inp)bindPetImgInp(inp);},50);
@@ -1207,25 +1217,30 @@ function adminEditPet(id){
   });
 }
 
-function adminDeletePet(id){
+function adminDeletePet(fbKey){
   if(!confirm('Видалити товар?'))return;
-  db.ref('shop_pets/'+id).remove().then(function(){showToast('🗑️ Видалено');renderAdminPets();});
+  db.ref('shop_pets/'+fbKey).remove().then(function(){showToast('🗑️ Видалено');renderAdminPets();}).catch(function(e){showToast('❌ '+e.message);});
 }
 
 function renderAdminPets(){
   var list=el('adminPetList');if(!list)return;
+  list.innerHTML='<div class="pend-none">⏳ Завантаження...</div>';
   db.ref('shop_pets').once('value',function(snap){
-    var pets=snap.val();
-    if(!pets||!Object.keys(pets).length){list.innerHTML='<div class="pend-none">Немає товарів</div>';return;}
-    list.innerHTML=Object.values(pets).map(function(p){
+    if(!snap.exists()){list.innerHTML='<div class="pend-none">Немає товарів</div>';return;}
+    var html='';
+    snap.forEach(function(child){
+      var p=child.val();
+      var fbKey=child.key;
       var thumbHtml=p.img?'<div class="admin-pet-thumb"><img src="'+p.img+'"></div>':'<div class="admin-pet-thumb">'+(p.emoji||'🐾')+'</div>';
-      return '<div class="admin-pet-row">'+thumbHtml
-        +'<div style="flex:1;min-width:0"><div class="admin-pet-nm">'+p.key+'</div><div class="admin-pet-pr">💰 '+p.price+' R</div></div>'
+      html+='<div class="admin-pet-row">'+thumbHtml
+        +'<div style="flex:1;min-width:0"><div class="admin-pet-nm">'+p.key+'</div>'
+        +'<div class="admin-pet-pr">💰 '+p.price+' R · '+(p.cat||'common')+'</div></div>'
         +'<div class="admin-pet-btns">'
-        +'<button class="apet-edit" onclick="adminEditPet(\''+p.id+'\')">✏️</button>'
-        +'<button class="apet-del" onclick="adminDeletePet(\''+p.id+'\')">🗑️</button>'
+        +'<button class="apet-edit" onclick="adminEditPet(\''+fbKey+'\')">✏️</button>'
+        +'<button class="apet-del" onclick="adminDeletePet(\''+fbKey+'\')">🗑️</button>'
         +'</div></div>';
-    }).join('');
+    });
+    list.innerHTML=html||'<div class="pend-none">Немає товарів</div>';
   });
 }
 
