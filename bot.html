@@ -277,6 +277,22 @@ textarea.fif{resize:none}
 .fpconf{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:16px;text-align:center}
 .fpc-e{font-size:50px;margin-bottom:6px;line-height:1}.fpc-n{font-size:14px;font-weight:800;margin-bottom:2px}.fpc-r{font-size:11px;margin-bottom:8px}.fpc-p{font-size:19px;font-weight:900;color:var(--gold2)}
 
+/* ── ADMIN PETS ── */
+.admin-pet-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--bd)}
+.admin-pet-row:last-child{border-bottom:none}
+.admin-pet-thumb{width:44px;height:44px;border-radius:10px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden}
+.admin-pet-thumb img{width:100%;height:100%;object-fit:cover}
+.admin-pet-nm{font-size:12px;font-weight:700}
+.admin-pet-pr{font-size:11px;color:var(--gold);margin-top:2px}
+.admin-pet-btns{display:flex;gap:5px;flex-shrink:0}
+.apet-edit{padding:6px 9px;border-radius:8px;border:1px solid rgba(56,189,248,.3);background:rgba(56,189,248,.1);color:var(--blue);font-size:13px;cursor:pointer;font-family:var(--font)}
+.apet-del{padding:6px 9px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:var(--red);font-size:13px;cursor:pointer;font-family:var(--font)}
+.apet-edit:active,.apet-del:active{transform:scale(.92)}
+.apf-row{display:flex;gap:7px;margin-bottom:7px;flex-wrap:wrap}
+.apf-sel{flex:1;min-width:80px;background:var(--s3);border:1px solid var(--b2);border-radius:9px;padding:9px 10px;font-size:12px;color:var(--text);font-family:var(--font);outline:none}
+.apf-sel:focus{border-color:var(--gold)}
+.apf-img-wrap{width:56px;height:56px;border-radius:10px;background:var(--s3);border:1px dashed var(--b2);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;overflow:hidden;flex-shrink:0;position:relative}
+.apf-img-wrap input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--s3);border:1px solid var(--b2);border-radius:20px;padding:8px 18px;font-size:12px;font-weight:600;color:var(--text);z-index:9999;white-space:nowrap;transition:opacity .3s;pointer-events:none;opacity:0;font-family:var(--font)}
 body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d0d4e4;--text:#1a1c28;--sub:#6b7280}
 </style>
@@ -508,6 +524,42 @@ body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d
       <div class="div"></div>
       <div class="asec-lbl" id="aUsersLbl">Користувачі</div>
       <div class="acard" id="userList"><div class="pend-none" id="aNoUsers">Немає</div></div>
+      <div class="div"></div>
+      <div class="asec-lbl">🛒 Товари магазину</div>
+      <div class="acard" id="adminShopCard">
+        <div class="acard-t" id="adminShopFormTitle">➕ Новий товар</div>
+        <input type="hidden" id="editPetId">
+        <div class="apf-row">
+          <input class="ain" id="newPetName" placeholder="Назва товару" style="flex:1">
+          <input class="ain" id="newPetPrice" type="number" placeholder="Ціна R" style="max-width:80px">
+        </div>
+        <div class="apf-row">
+          <input class="ain" id="newPetEmoji" placeholder="Емодзі 🐾" style="max-width:80px">
+          <select class="apf-sel" id="newPetCat">
+            <option value="legendary">Легендарний</option>
+            <option value="rare">Рідкісний</option>
+            <option value="common" selected>Звичайний</option>
+          </select>
+          <select class="apf-sel" id="newPetTag">
+            <option value="">Без тегу</option>
+            <option value="hot">🔥 HOT</option>
+            <option value="new">✨ NEW</option>
+            <option value="rare">💎 RARE</option>
+          </select>
+        </div>
+        <div class="apf-row" style="align-items:center;gap:10px">
+          <div class="apf-img-wrap" id="newPetImgPrev">📷<input type="file" accept="image/*" id="newPetImgInp"></div>
+          <span style="font-size:10px;color:var(--sub)">Фото (необов'язково)</span>
+        </div>
+        <div class="arow" style="margin-top:4px">
+          <button class="abtn abtn-g" style="flex:1" onclick="adminSavePet()">💾 Зберегти</button>
+          <button class="abtn" style="background:var(--s3);color:var(--sub);border:1px solid var(--bd)" onclick="adminClearPetForm()">✖ Скасувати</button>
+        </div>
+      </div>
+      <div class="acard" style="margin-top:7px">
+        <div class="acard-t">Список товарів</div>
+        <div id="adminPetList"><div class="pend-none">Немає товарів</div></div>
+      </div>
     </div>
   </div>
 
@@ -922,7 +974,7 @@ function renderAdmin(){
             +'<span class="acmsg-time">'+m.time+'</span></div>'
             +'<div class="acmsg-txt">'+m.text+'</div></div>';
         });
-        html+='<button onclick="adminReplyTo(''+uid+'')" style="width:100%;padding:8px;margin:4px 0 12px;background:rgba(200,146,42,.15);border:1px solid var(--gold);border-radius:8px;color:var(--gold);font-size:12px;cursor:pointer;">💬 Відповісти '+uid+'</button>';
+        html+='<button onclick="adminReplyTo(\''+uid+'\')" style="width:100%;padding:8px;margin:4px 0 12px;background:rgba(200,146,42,.15);border:1px solid var(--gold);border-radius:8px;color:var(--gold);font-size:12px;cursor:pointer;">💬 Відповісти '+uid+'</button>';
       });
       conv.innerHTML=html||'<div class="pend-none">'+L('adminNoMsg')+'</div>';
       scrollBottom('adminConv');
@@ -962,6 +1014,9 @@ function renderAdmin(){
       }).join('');
     });
   }
+
+  // Товари
+  renderAdminPets();
 }
 
 function adminReplyTo(uid){
@@ -990,9 +1045,18 @@ function resolveOp(id,status){
 function adminAdd(){
   var uid=(el('aAddId')||{value:''}).value.replace('#','').trim();
   var amt=parseInt((el('aAddAmt')||{value:0}).value);
-  if(!uid||!amt){showToast('⚠️');return;}
-  db.ref('players/'+uid+'/botBalance').transaction(function(b){return(b||0)+amt;});
-  showToast('✅ +'+amt+' R');
+  if(!uid||isNaN(amt)||amt<=0){showToast('⚠️ Введіть ID та суму');return;}
+  var ref=db.ref('players/'+uid+'/botBalance');
+  ref.once('value',function(snap){
+    var cur=snap.val()||0;
+    var nb=cur+amt;
+    ref.set(nb).then(function(){
+      showToast('✅ #'+uid+' +'+amt+' R → '+nb+' R');
+      // notify user via chat
+      var msg={from:'admin',text:'💰 Ваш баланс поповнено на '+amt+' ROBUX. Новий баланс: '+nb+' R',time:nowTime(),nick:'Admin'};
+      db.ref('chat/'+uid).push(msg);
+    }).catch(function(){showToast('❌ Помилка запису');});
+  });
   if(el('aAddId'))el('aAddId').value='';
   if(el('aAddAmt'))el('aAddAmt').value='';
 }
@@ -1000,9 +1064,15 @@ function adminAdd(){
 function adminRem(){
   var uid=(el('aRemId')||{value:''}).value.replace('#','').trim();
   var amt=parseInt((el('aRemAmt')||{value:0}).value);
-  if(!uid||!amt){showToast('⚠️');return;}
-  db.ref('players/'+uid+'/botBalance').transaction(function(b){return Math.max(0,(b||0)-amt);});
-  showToast('✅ -'+amt+' R');
+  if(!uid||isNaN(amt)||amt<=0){showToast('⚠️ Введіть ID та суму');return;}
+  var ref=db.ref('players/'+uid+'/botBalance');
+  ref.once('value',function(snap){
+    var cur=snap.val()||0;
+    var nb=Math.max(0,cur-amt);
+    ref.set(nb).then(function(){
+      showToast('✅ #'+uid+' -'+amt+' R → '+nb+' R');
+    }).catch(function(){showToast('❌ Помилка запису');});
+  });
   if(el('aRemId'))el('aRemId').value='';
   if(el('aRemAmt'))el('aRemAmt').value='';
 }
@@ -1062,8 +1132,10 @@ document.addEventListener('click',function(e){
 
 // ── АДМІН: ТОВАРИ ──
 var _newPetImg=null;
-setTimeout(function(){
-  var inp=el('newPetImgInp');if(!inp)return;
+
+function bindPetImgInp(inp){
+  if(!inp||inp._bound)return;
+  inp._bound=true;
   inp.addEventListener('change',function(e){
     var file=e.target.files[0];if(!file)return;
     var r=new FileReader();
@@ -1075,17 +1147,22 @@ setTimeout(function(){
         if(w>h){if(w>max){h=h*max/w;w=max;}}else{if(h>max){w=w*max/h;h=max;}}
         c.width=w;c.height=h;c.getContext('2d').drawImage(img2,0,0,w,h);
         _newPetImg=c.toDataURL('image/jpeg',.7);
-        var prev=el('newPetImgPrev');if(prev)prev.innerHTML='<img src="'+_newPetImg+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">';
+        var prev=el('newPetImgPrev');
+        if(prev){var old=prev.querySelector('input');prev.innerHTML='<img src="'+_newPetImg+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">';if(old){prev.appendChild(old);}}
       };img2.src=ev.target.result;
     };r.readAsDataURL(file);
   });
-},800);
+}
+setTimeout(function(){var inp=el('newPetImgInp');if(inp)bindPetImgInp(inp);},800);
 
 function adminClearPetForm(){
   ['editPetId','newPetName','newPetPrice','newPetEmoji'].forEach(function(id){var e=el(id);if(e)e.value='';});
-  var prev=el('newPetImgPrev');if(prev)prev.innerHTML='📷';_newPetImg=null;
-  var cat=el('newPetCat');if(cat)cat.value='legendary';
+  var prev=el('newPetImgPrev');if(prev)prev.innerHTML='📷<input type="file" accept="image/*" id="newPetImgInp">';_newPetImg=null;
+  var cat=el('newPetCat');if(cat)cat.value='common';
   var tag=el('newPetTag');if(tag)tag.value='';
+  setText('adminShopFormTitle','➕ Новий товар');
+  // re-bind image input
+  setTimeout(function(){var inp=el('newPetImgInp');if(inp)bindPetImgInp(inp);},50);
 }
 
 function adminSavePet(){
@@ -1121,8 +1198,10 @@ function adminEditPet(id){
     e=el('newPetCat');if(e)e.value=p.cat||'common';
     e=el('newPetTag');if(e)e.value=p.tag||'';
     var prev=el('newPetImgPrev');
-    if(prev)prev.innerHTML=p.img?'<img src="'+p.img+'" style="width:100%;height:100%;object-fit:cover">':p.emoji||'🐾';
+    if(prev)prev.innerHTML=(p.img?'<img src="'+p.img+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">':(p.emoji||'🐾'))+'<input type="file" accept="image/*" id="newPetImgInp">';
     _newPetImg=null;
+    setText('adminShopFormTitle','✏️ Редагування: '+p.key);
+    setTimeout(function(){var inp=el('newPetImgInp');if(inp)bindPetImgInp(inp);},50);
     var card=el('adminShopCard');if(card)card.scrollIntoView({behavior:'smooth'});
     showToast('✏️ Редагування...');
   });
