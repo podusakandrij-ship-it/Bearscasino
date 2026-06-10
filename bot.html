@@ -126,13 +126,10 @@ body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font)}
 .p-nm{font-size:12px;font-weight:700}.p-ra{font-size:10px;font-weight:600;margin:2px 0 7px}.p-pr{font-size:13px;font-weight:800;color:var(--gold2)}
 .ptag{position:absolute;top:8px;right:8px;font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px}
 .t-hot{background:rgba(239,68,68,.18);color:var(--red)}.t-new{background:rgba(34,197,94,.18);color:var(--green)}.t-rare{background:rgba(168,85,247,.18);color:var(--purple)}
-/* ── ADMIN SHOP ── */
-.admin-pet-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--bd)}
-.admin-pet-row:last-child{border-bottom:none}
+.admin-pet-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--bd)}.admin-pet-row:last-child{border-bottom:none}
 .admin-pet-thumb{width:42px;height:42px;border-radius:10px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden}
 .admin-pet-thumb img{width:100%;height:100%;object-fit:cover}
-.admin-pet-nm{font-size:12px;font-weight:700}
-.admin-pet-pr{font-size:10px;color:var(--sub);margin-top:2px}
+.admin-pet-nm{font-size:12px;font-weight:700}.admin-pet-pr{font-size:10px;color:var(--sub);margin-top:2px}
 .admin-pet-btns{display:flex;gap:5px;flex-shrink:0}
 .apet-edit{padding:6px 9px;border-radius:8px;border:1px solid rgba(56,189,248,.3);background:rgba(56,189,248,.1);color:#38bdf8;font-size:13px;cursor:pointer;font-family:var(--font)}
 .apet-del{padding:6px 9px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:var(--red);font-size:13px;cursor:pointer;font-family:var(--font)}
@@ -516,6 +513,9 @@ body.light{--bg:#f0f2f7;--s1:#fff;--s2:#f7f8fc;--s3:#eef0f5;--bd:#e2e5ef;--b2:#d
       <div class="acard">
         <div class="admin-conv" id="adminConv"><div class="pend-none" id="adminNoMsg">Немає повідомлень</div></div>
         <div class="areply" style="margin-top:10px">
+          <select id="adminTargetUser" style="width:100%;background:var(--s3);border:1px solid var(--b2);border-radius:9px;padding:8px 10px;font-size:12px;color:var(--text);font-family:var(--font);outline:none;margin-bottom:7px">
+            <option value="">Оберіть юзера...</option>
+          </select>
           <textarea class="areply-inp" id="adminReplyInp" placeholder="Відповідь..." rows="2"></textarea>
           <button class="areply-btn" id="adminSendBtn" onclick="adminReply()">Надіслати</button>
         </div>
@@ -821,9 +821,9 @@ function addHistory(item){
   history.unshift(item);
   stats.ops++;if(item.type==='pump')stats.pumps++;if(item.type==='wd')stats.wds++;
   updateStatsUI();updateLvlUI();renderHomePrev();
-  // Зберігаємо в Firebase
+  // Зберігаємо в Firebase (update, not set - don't overwrite balance!)
   db.ref('pending/'+item.id).set(item);
-  db.ref('users/'+myId).set({nick:nick,balance:balance,id:myId});
+  db.ref('users/'+myId).update({nick:nick,id:myId});
   saveData();
 }
 
@@ -887,23 +887,14 @@ function userSend(){
 function adminReply(){
   var inp=el('adminReplyInp');if(!inp)return;
   var text=inp.value.trim();if(!text){showToast('⚠️');return;}
+  var sel=el('adminTargetUser');
+  var targetUid=sel?sel.value:'';
+  if(!targetUid){showToast('⚠️ Оберіть юзера!');return;}
   inp.value='';
-  // Reply to all users who have pending messages
-  db.ref('chat').once('value',function(snap){
-    var chats=snap.val();
-    if(!chats){showToast('⚠️ Немає чатів');return;}
-    var uids=Object.keys(chats);
-    uids.forEach(function(uid){
-      var msgs=Object.values(chats[uid]);
-      var hasUser=msgs.some(function(m){return m.from==='user';});
-      if(hasUser){
-        var msg={from:'admin',text:text,time:nowTime(),nick:'Admin'};
-        db.ref('chat/'+uid).push(msg);
-      }
-    });
-    showToast('✅ Надіслано всім!');
-    renderAdmin();
-  });
+  var msg={from:'admin',text:text,time:nowTime(),nick:'Admin'};
+  db.ref('chat/'+targetUid).push(msg);
+  showToast('✅ Надіслано #'+targetUid);
+  renderAdmin();
 }
 
 // ── МАГАЗИН ──
@@ -920,20 +911,20 @@ function renderShop(cat){
   setText('shopBal',balance);
   var list=cat==='all'?PETS:PETS.filter(function(p){return p.cat===cat;});
   var grid=el('petGrid');if(!grid)return;
-  if(!list.length){grid.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--sub);font-size:13px">Товарів немає</div>';return;}
+  if(!list.length){grid.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--sub);font-size:13px">🐾 Товарів немає</div>';return;}
   grid.innerHTML=list.map(function(p){
-    var fbKey=p._fbKey||String(p.id);
+    var key=p._fbKey||String(p.id||'');
     var tagHtml=p.tag?'<div class="ptag t-'+p.tag+'">'+(p.tag==='hot'?'🔥 HOT':p.tag==='new'?'✨ NEW':'💎 RARE')+'</div>':'';
-    var imgEl=p.img?'<img src="'+p.img+'" style="width:64px;height:64px;object-fit:cover;border-radius:10px;margin-bottom:7px;display:block;margin-left:auto;margin-right:auto">':'<span class="p-em">'+p.emoji+'</span>';
-    return '<div class="pcard" onclick="buyPet(\''+fbKey+'\')">'+tagHtml+imgEl
+    var imgEl=p.img?'<img src="'+p.img+'" style="width:64px;height:64px;object-fit:cover;border-radius:10px;margin-bottom:7px;display:block;margin-left:auto;margin-right:auto">':'<span class="p-em">'+(p.emoji||'🐾')+'</span>';
+    return '<div class="pcard" onclick="buyPet(\''+key+'\')">'+tagHtml+imgEl
       +'<div class="p-nm">'+p.key+'</div>'
       +'<div class="p-ra" style="color:'+(RC[p.rk]||RC.petCom)+'">'+L(p.rk)+'</div>'
       +'<div class="p-pr">💰 '+p.price+' R</div></div>';
   }).join('');
 }
 
-function buyPet(fbKey){
-  var pet=PETS.find(function(p){return (p._fbKey||String(p.id))===String(fbKey);});
+function buyPet(key){
+  var pet=PETS.find(function(p){return (p._fbKey||String(p.id||''))===String(key);});
   if(pet)openFlowWith('shop-pet',pet);
 }
 
@@ -955,15 +946,19 @@ function loadShopPets(){
 // ── АДМІН ──
 function renderAdmin(){
   // Чат
-  var conv=el('adminConv');
+    var conv=el('adminConv');
   if(conv){
     db.ref('chat').once('value',function(snap){
       var allChats=snap.val();
       if(!allChats){conv.innerHTML='<div class="pend-none">'+L('adminNoMsg')+'</div>';return;}
       var html='';
-      // Populate user selector
       var sel=el('adminTargetUser');
-      if(sel){sel.innerHTML='<option value="">Оберіть юзера...</option>';}
+      if(sel){
+        sel.innerHTML='<option value="">Оберіть юзера...</option>';
+        Object.keys(allChats).forEach(function(uid){
+          sel.innerHTML+='<option value="'+uid+'">'+uid+'</option>';
+        });
+      }
       Object.keys(allChats).forEach(function(uid){
         var msgs=Object.values(allChats[uid]);
         html+='<div style="margin:8px 0 4px;font-size:11px;color:var(--sub);font-weight:700;">👤 '+uid+'</div>';
@@ -973,7 +968,7 @@ function renderAdmin(){
             +'<span class="acmsg-time">'+m.time+'</span></div>'
             +'<div class="acmsg-txt">'+m.text+'</div></div>';
         });
-        html+='<button onclick="adminReplyTo(\''+uid+'\')" style="width:100%;padding:8px;margin:4px 0 12px;background:rgba(200,146,42,.15);border:1px solid var(--gold);border-radius:8px;color:var(--gold);font-size:12px;cursor:pointer;">💬 Відповісти '+uid+'</button>';
+        html+='<button onclick="adminReplyTo(\''+uid+'\')" style="width:100%;padding:8px;margin:4px 0 12px;background:rgba(200,146,42,.15);border:1px solid var(--gold);border-radius:8px;color:var(--gold);font-size:12px;cursor:pointer;">💬 Відповісти #'+uid+'</button>';
       });
       conv.innerHTML=html||'<div class="pend-none">'+L('adminNoMsg')+'</div>';
       scrollBottom('adminConv');
@@ -1013,8 +1008,6 @@ function renderAdmin(){
       }).join('');
     });
   }
-
-  // Товари магазину
   renderAdminPets();
 }
 
@@ -1045,19 +1038,14 @@ function adminAdd(){
   var uid=(el('aAddId')||{value:''}).value.replace('#','').trim();
   var amt=parseInt((el('aAddAmt')||{value:0}).value);
   if(!uid||isNaN(amt)||amt<=0){showToast('⚠️ Введіть ID та суму');return;}
-  var balRef=db.ref('players/'+uid+'/botBalance');
-  balRef.once('value',function(snap){
-    var cur=snap.val()||0;
-    var nb=cur+amt;
-    balRef.set(nb,function(err){
+  db.ref('players/'+uid+'/botBalance').once('value',function(snap){
+    var cur=snap.val()||0, nb=cur+amt;
+    db.ref('players/'+uid+'/botBalance').set(nb,function(err){
       if(err){showToast('❌ '+err.message);return;}
-      db.ref('users/'+uid).update({balance:nb});
-      // Add to user history
+      db.ref('users/'+uid+'/balance').set(nb);
       var ts=Date.now();
-      var rec={id:ts,type:'admin_add',label:'Поповнення адміном',detail:'+'+amt+' R',date:new Date().toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),status:'done',userId:uid,userNick:uid};
-      db.ref('botdata/'+uid+'/history_admin/'+ts).set(rec);
-      // Notify user in chat
-      db.ref('chat/'+uid).push({from:'admin',text:'💰 Поповнення балансу: +'+amt+' ROBUX. Ваш баланс: '+nb+' R',time:nowTime(),nick:'Admin'});
+      db.ref('botdata/'+uid+'/history_admin/'+ts).set({id:ts,type:'admin_add',label:'Поповнення адміном',detail:'+'+amt+' R',date:new Date().toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),status:'done',userId:uid});
+      db.ref('chat/'+uid).push({from:'admin',text:'💰 Поповнення: +'+amt+' ROBUX. Баланс: '+nb+' R',time:nowTime(),nick:'Admin'});
       showToast('✅ #'+uid+': '+cur+' → '+nb+' R');
     });
   });
@@ -1069,18 +1057,14 @@ function adminRem(){
   var uid=(el('aRemId')||{value:''}).value.replace('#','').trim();
   var amt=parseInt((el('aRemAmt')||{value:0}).value);
   if(!uid||isNaN(amt)||amt<=0){showToast('⚠️ Введіть ID та суму');return;}
-  var balRef=db.ref('players/'+uid+'/botBalance');
-  balRef.once('value',function(snap){
-    var cur=snap.val()||0;
-    var nb=Math.max(0,cur-amt);
-    balRef.set(nb,function(err){
+  db.ref('players/'+uid+'/botBalance').once('value',function(snap){
+    var cur=snap.val()||0, nb=Math.max(0,cur-amt);
+    db.ref('players/'+uid+'/botBalance').set(nb,function(err){
       if(err){showToast('❌ '+err.message);return;}
-      db.ref('users/'+uid).update({balance:nb});
-      // Add to user history
+      db.ref('users/'+uid+'/balance').set(nb);
       var ts=Date.now();
-      var rec={id:ts,type:'admin_rem',label:'Списання адміном',detail:'-'+amt+' R',date:new Date().toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),status:'done',userId:uid,userNick:uid};
-      db.ref('botdata/'+uid+'/history_admin/'+ts).set(rec);
-      db.ref('chat/'+uid).push({from:'admin',text:'💸 Списання з балансу: -'+amt+' ROBUX. Ваш баланс: '+nb+' R',time:nowTime(),nick:'Admin'});
+      db.ref('botdata/'+uid+'/history_admin/'+ts).set({id:ts,type:'admin_rem',label:'Списання адміном',detail:'-'+amt+' R',date:new Date().toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),status:'done',userId:uid});
+      db.ref('chat/'+uid).push({from:'admin',text:'💸 Списання: -'+amt+' ROBUX. Баланс: '+nb+' R',time:nowTime(),nick:'Admin'});
       showToast('✅ #'+uid+': '+cur+' → '+nb+' R');
     });
   });
@@ -1094,13 +1078,17 @@ function saveData(){
 }
 
 function initFirebase(){
-  // Listen to balance changes in real-time (admin can change anytime)
+  // Listen balance in real time - this is the ONLY place balance is set from Firebase
   db.ref('players/'+myId+'/botBalance').on('value',function(snap){
     updateBal(snap.val()||0);
-    // Keep users record in sync with actual balance
-    db.ref('users/'+myId).update({balance:balance,nick:nick,id:myId});
+    // Sync users table with real balance (never write 0 from here)
+    if(snap.val()!=null) db.ref('users/'+myId+'/balance').set(snap.val()||0);
   });
-  db.ref('players/'+myId+'/name').once('value',function(snap){if(snap.val()){nick=snap.val();updateNickUI();}});
+  db.ref('players/'+myId+'/name').once('value',function(snap){
+    if(snap.val()){nick=snap.val();updateNickUI();}
+    // Write users record only AFTER we have nick (use update, not set)
+    db.ref('users/'+myId).update({nick:nick,id:myId});
+  });
   db.ref('players/'+myId+'/photo').once('value',function(snap){if(snap.val())setPhoto(snap.val());});
   db.ref('botdata/'+myId).once('value',function(snap){
     var d=snap.val();
@@ -1109,19 +1097,16 @@ function initFirebase(){
       if(d.lang){lang=d.lang;applyLang();}
       if(d.nick){nick=d.nick;updateNickUI();}
       var base=d.history||[];
-      // Merge admin balance changes into history
       var adminRecs=d.history_admin?Object.values(d.history_admin):[];
       if(adminRecs.length){
-        var allIds=new Set(base.map(function(x){return x.id;}));
-        adminRecs.forEach(function(r){if(!allIds.has(r.id))base.push(r);});
+        var seen=new Set(base.map(function(x){return x.id;}));
+        adminRecs.forEach(function(r){if(!seen.has(r.id))base.push(r);});
         base.sort(function(a,b){return b.id-a.id;});
       }
       if(base.length){history=base;renderHomePrev();renderHistory();}
       updateStatsUI();updateLvlUI();
     }
   });
-  // Register user without overwriting balance (use update not set)
-  db.ref('users/'+myId).update({nick:nick,id:myId});
 }
 
 // ── ФОТО ──
@@ -1158,21 +1143,20 @@ document.addEventListener('click',function(e){
 // ── АДМІН: ТОВАРИ ──
 var _newPetImg=null;
 function bindPetImgInp(inp){
-  if(!inp||inp._bound)return;
-  inp._bound=true;
+  if(!inp||inp._bound)return;inp._bound=true;
   inp.addEventListener('change',function(e){
     var file=e.target.files[0];if(!file)return;
     var r=new FileReader();
     r.onload=function(ev){
       var img2=new Image();
       img2.onload=function(){
-        var c=document.createElement('canvas');var max=300;
+        var cv=document.createElement('canvas');var max=300;
         var w=img2.width,h=img2.height;
         if(w>h){if(w>max){h=h*max/w;w=max;}}else{if(h>max){w=w*max/h;h=max;}}
-        c.width=w;c.height=h;c.getContext('2d').drawImage(img2,0,0,w,h);
-        _newPetImg=c.toDataURL('image/jpeg',.7);
+        cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img2,0,0,w,h);
+        _newPetImg=cv.toDataURL('image/jpeg',.7);
         var prev=el('newPetImgPrev');
-        if(prev){var old=prev.querySelector('input');prev.innerHTML='<img src="'+_newPetImg+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">';if(old){prev.appendChild(old);}}
+        if(prev){var old=prev.querySelector('input');prev.innerHTML='<img src="'+_newPetImg+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">';if(old)prev.appendChild(old);}
       };img2.src=ev.target.result;
     };r.readAsDataURL(file);
   });
@@ -1199,15 +1183,15 @@ function adminSavePet(){
   if(!name){showToast('⚠️ Введіть назву');return;}
   if(!price||price<1){showToast('⚠️ Введіть ціну');return;}
   var rk=cat==='legendary'?'petLeg':cat==='ultra-rare'?'petURare':cat==='rare'?'petRare':cat==='uncommon'?'petUnc':'petCom';
-  var saveKey=fbKey||String(Date.now());
+  var saveKey=fbKey||db.ref('shop_pets').push().key;
   var petData={id:saveKey,fbKey:saveKey,key:name,price:price,emoji:emoji,cat:cat,rk:rk,tag:tag||null,img:_newPetImg||null};
   if(fbKey&&!_newPetImg){
     db.ref('shop_pets/'+saveKey).once('value',function(snap){
       var old=snap.val()||{};petData.img=old.img||null;
-      db.ref('shop_pets/'+saveKey).set(petData).then(function(){showToast('✅ Збережено!');adminClearPetForm();renderAdminPets();});
+      db.ref('shop_pets/'+saveKey).set(petData).then(function(){showToast('✅ Збережено!');adminClearPetForm();renderAdminPets();}).catch(function(e){showToast('❌ '+e.message);});
     });
   }else{
-    db.ref('shop_pets/'+saveKey).set(petData).then(function(){showToast('✅ Збережено!');adminClearPetForm();renderAdminPets();});
+    db.ref('shop_pets/'+saveKey).set(petData).then(function(){showToast('✅ Збережено!');adminClearPetForm();renderAdminPets();}).catch(function(e){showToast('❌ '+e.message);});
   }
 }
 
@@ -1224,10 +1208,10 @@ function adminEditPet(fbKey){
     var prev=el('newPetImgPrev');
     if(prev)prev.innerHTML=(p.img?'<img src="'+p.img+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">':p.emoji||'🐾')+'<input type="file" accept="image/*" id="newPetImgInp">';
     _newPetImg=null;
-    setTimeout(function(){var inp=el('newPetImgInp');if(inp)bindPetImgInp(inp);},50);
     setText('adminShopFormTitle','✏️ Редагування: '+p.key);
+    setTimeout(function(){var inp=el('newPetImgInp');if(inp)bindPetImgInp(inp);},50);
     var card=el('adminShopCard');if(card)card.scrollIntoView({behavior:'smooth'});
-    showToast('✏️ Редагування...');
+    showToast('✏️ Редагування: '+p.key);
   });
 }
 
@@ -1245,8 +1229,7 @@ function renderAdminPets(){
     if(!snap.exists()){list.innerHTML='<div class="pend-none">Немає товарів</div>';return;}
     var html='';
     snap.forEach(function(child){
-      var p=child.val();
-      var fbKey=child.key;
+      var p=child.val(), fbKey=child.key;
       var thumb=p.img?'<div class="admin-pet-thumb"><img src="'+p.img+'"></div>':'<div class="admin-pet-thumb">'+(p.emoji||'🐾')+'</div>';
       html+='<div class="admin-pet-row">'+thumb
         +'<div style="flex:1;min-width:0">'
@@ -1299,12 +1282,13 @@ function pumpS2(c,rNick){
   for(var i=1;i<=5;i++){(function(n){var cb=mk('button','fcb');cb.textContent=String(n);cb.onclick=function(){row.querySelectorAll('.fcb').forEach(function(x){x.classList.remove('sel');});cb.classList.add('sel');sel=n;btn.disabled=false;};row.appendChild(cb);})(i);}
   b.appendChild(row);
   btn.onclick=function(){
+    if(!sel){return;}
     addHistory({type:'pump',label:L('histPump'),detail:L('fNickLbl')+': '+rNick+' × '+sel});
     c.innerHTML='';var wb=mkBody(),wc=mk('div','fwc');
     wc.innerHTML='<div class="fwi">⏳</div><div class="fwt">'+L('fPumpDoneTitle')+'</div><div class="fwx">'+L('fPumpDoneText').replace('\n','<br>')+'</div>';
     wb.appendChild(wc);var fb=mkBtn(L('fToHomeBtn'));fb.style.marginTop='12px';
     fb.onclick=function(){closeFlow();switchTab('home');};wb.appendChild(fb);c.appendChild(wb);
-    if(tg){try{tg.sendData(JSON.stringify({action:'pump',nick:rNick,count:sel}));}catch(e){}}
+    try{if(tg&&tg.sendData)tg.sendData(JSON.stringify({action:'pump',nick:rNick,count:sel}));}catch(e){}
   };
   b.appendChild(btn);c.appendChild(b);
 }
@@ -1319,6 +1303,7 @@ FLOWS.support=function(c){
     var msg={from:'user',text:v,time:nowTime(),nick:nick,userId:myId};
     db.ref('chat/'+myId).push(msg);
     closeFlow();switchTab('chat');
+    try{if(tg&&tg.sendData)tg.sendData(JSON.stringify({action:'support',message:v}));}catch(e){}
   };
   b.appendChild(btn);c.appendChild(b);
 };
@@ -1368,7 +1353,7 @@ function wdS5(c){
     updateBal(nb);
     addHistory({type:'wd',label:L('histWd'),detail:wdData.gamepass+' · '+wdData.nick,amount:-amt});
     c.innerHTML='';wdS6(c,nb);
-    if(tg){try{tg.sendData(JSON.stringify(Object.assign({action:'withdraw'},wdData)));}catch(e){}}
+    try{if(tg&&tg.sendData)tg.sendData(JSON.stringify(Object.assign({action:'withdraw'},wdData)));}catch(e){}
   };
   no.onclick=function(){closeFlow();switchTab('home');};
   yn.appendChild(yes);yn.appendChild(no);b.appendChild(yn);c.appendChild(b);
@@ -1405,7 +1390,7 @@ FLOWS['shop-pet']=function(c,pet){
       sw.innerHTML='<div class="fsi">✅</div><div class="fst">'+L('fShopDoneTitle')+'</div><div class="fsx">'+pet.key+'</div>';
       var fb=mkBtn(L('fOpenChatBtn'));fb.onclick=function(){closeFlow();switchTab('chat');};
       wb.appendChild(sw);wb.appendChild(fb);c.appendChild(wb);
-      if(tg){try{tg.sendData(JSON.stringify({action:'shop',item:pet.key,price:pet.price}));}catch(e){}}
+      try{if(tg&&tg.sendData)tg.sendData(JSON.stringify({action:'shop',item:pet.key,price:pet.price}));}catch(e){}
     };
     b.appendChild(btn);
   }
