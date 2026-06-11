@@ -608,8 +608,15 @@ const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp 
 if (tg) { tg.ready(); tg.expand(); }
 
 const ADMINS = [8216362223, 2067230442];
-const myId   = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? String(tg.initDataUnsafe.user.id) : 'guest';
-const myName = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? (tg.initDataUnsafe.user.first_name || 'Гравець') : 'Гравець';
+var _tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
+// Use localStorage so ID stays consistent even outside Telegram
+var _storedId = localStorage.getItem('myBotId');
+if(!_storedId){
+  _storedId = _tgUser ? String(_tgUser.id) : ('u'+Math.floor(Math.random()*900000+100000));
+  localStorage.setItem('myBotId',_storedId);
+}
+const myId   = _tgUser ? String(_tgUser.id) : _storedId;
+const myName = _tgUser ? (_tgUser.first_name||'Гравець') : 'Гравець';
 
 // ── СТАН ──
 var balance  = 0;
@@ -816,6 +823,7 @@ function addHistory(item){
   history.unshift(item);
   stats.ops++;if(item.type==='pump')stats.pumps++;if(item.type==='wd')stats.wds++;
   updateStatsUI();updateLvlUI();renderHomePrev();
+  // Зберігаємо в Firebase
   db.ref('pending/'+item.id).set(item);
   db.ref('users/'+myId).update({nick:nick,id:myId});
   saveData();
@@ -909,7 +917,7 @@ function renderShop(cat){
     var fk=p._fbKey||String(p.id||'');
     var tagHtml=p.tag?'<div class="ptag t-'+p.tag+'">'+(p.tag==='hot'?'🔥 HOT':p.tag==='new'?'✨ NEW':'💎 RARE')+'</div>':'';
     var imgEl=p.img?'<img src="'+p.img+'" style="width:64px;height:64px;object-fit:cover;border-radius:10px;margin-bottom:7px;display:block;margin-left:auto;margin-right:auto">':'<span class="p-em">'+(p.emoji||'🐾')+'</span>';
-    return '<div class="pcard" onclick="buyPet(\''+fk+'\')">'+tagHtml+imgEl
+    return '<div class="pcard" onclick="buyPet('+B+"''+fk+'"+B+"'"+')">'+tagHtml+imgEl
       +'<div class="p-nm">'+p.key+'</div>'
       +'<div class="p-ra" style="color:'+(RC[p.rk]||RC.petCom)+'">'+L(p.rk)+'</div>'
       +'<div class="p-pr">💰 '+p.price+' R</div></div>';
@@ -941,7 +949,7 @@ function renderAdmin(){
       var sel=el('adminTargetUser');
       if(sel){
         sel.innerHTML='<option value="">Оберіть юзера...</option>';
-        Object.keys(allChats).forEach(function(uid){sel.innerHTML+='<option value="'+uid+'">'+uid+'</option>';});
+        Object.keys(allChats).forEach(function(u){sel.innerHTML+='<option value="'+u+'">'+u+'</option>';});
       }
       var html='';
       Object.keys(allChats).forEach(function(uid){
@@ -1023,13 +1031,12 @@ function adminAdd(){
   var uid=(el('aAddId')||{value:''}).value.replace('#','').trim();
   var amt=parseInt((el('aAddAmt')||{value:0}).value);
   if(!uid||isNaN(amt)||amt<=0){showToast('⚠️ Введіть ID та суму');return;}
-  var ref=db.ref('players/'+uid+'/botBalance');
-  ref.once('value',function(snap){
+  db.ref('players/'+uid+'/botBalance').once('value',function(snap){
     var cur=snap.val()||0, nb=cur+amt;
-    ref.set(nb).then(function(){
+    db.ref('players/'+uid+'/botBalance').set(nb).then(function(){
       db.ref('users/'+uid+'/balance').set(nb);
       var ts=Date.now();
-      db.ref('botdata/'+uid+'/history_admin/'+ts).set({id:ts,type:'admin_add',label:'Поповнення адміном',detail:'+'+amt+' R',date:new Date().toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),status:'done',userId:uid});
+      db.ref('botdata/'+uid+'/history_admin/'+ts).set({id:ts,type:'admin_add',label:'Поповнення адміном',detail:'+'+amt+' R',date:new Date().toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),status:'done'});
       db.ref('chat/'+uid).push({from:'admin',text:'💰 Поповнення: +'+amt+' ROBUX. Баланс: '+nb+' R',time:nowTime(),nick:'Admin'});
       showToast('✅ #'+uid+': '+cur+' → '+nb+' R');
     }).catch(function(e){showToast('❌ '+e.message);});
@@ -1042,13 +1049,12 @@ function adminRem(){
   var uid=(el('aRemId')||{value:''}).value.replace('#','').trim();
   var amt=parseInt((el('aRemAmt')||{value:0}).value);
   if(!uid||isNaN(amt)||amt<=0){showToast('⚠️ Введіть ID та суму');return;}
-  var ref=db.ref('players/'+uid+'/botBalance');
-  ref.once('value',function(snap){
+  db.ref('players/'+uid+'/botBalance').once('value',function(snap){
     var cur=snap.val()||0, nb=Math.max(0,cur-amt);
-    ref.set(nb).then(function(){
+    db.ref('players/'+uid+'/botBalance').set(nb).then(function(){
       db.ref('users/'+uid+'/balance').set(nb);
       var ts=Date.now();
-      db.ref('botdata/'+uid+'/history_admin/'+ts).set({id:ts,type:'admin_rem',label:'Списання адміном',detail:'-'+amt+' R',date:new Date().toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),status:'done',userId:uid});
+      db.ref('botdata/'+uid+'/history_admin/'+ts).set({id:ts,type:'admin_rem',label:'Списання адміном',detail:'-'+amt+' R',date:new Date().toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),status:'done'});
       db.ref('chat/'+uid).push({from:'admin',text:'💸 Списання: -'+amt+' ROBUX. Баланс: '+nb+' R',time:nowTime(),nick:'Admin'});
       showToast('✅ #'+uid+': '+cur+' → '+nb+' R');
     }).catch(function(e){showToast('❌ '+e.message);});
@@ -1063,14 +1069,13 @@ function saveData(){
 }
 
 function initFirebase(){
-  // Real-time balance listener — the ONLY source of truth for balance
+  // Real-time balance — only SOURCE of balance, never write 0 here
   db.ref('players/'+myId+'/botBalance').on('value',function(snap){
-    var val=snap.val();
-    if(val!==null&&val!==undefined){updateBal(val);}
+    if(snap.val()!==null) updateBal(snap.val());
   });
-  // Load nick first, then register in users table (never overwrite balance)
   db.ref('players/'+myId+'/name').once('value',function(snap){
     if(snap.val()){nick=snap.val();updateNickUI();}
+    // Register user only after nick loaded, never write balance
     db.ref('users/'+myId).update({nick:nick,id:myId});
   });
   db.ref('players/'+myId+'/photo').once('value',function(snap){if(snap.val())setPhoto(snap.val());});
@@ -1212,8 +1217,8 @@ function renderAdminPets(){
         +'<div style="flex:1;min-width:0"><div class="admin-pet-nm">'+p.key+'</div>'
         +'<div class="admin-pet-pr">💰 '+p.price+' R · '+(p.cat||'common')+'</div></div>'
         +'<div class="admin-pet-btns">'
-        +'<button class="apet-edit" onclick="adminEditPet(\''+fk+'\')">✏️</button>'
-        +'<button class="apet-del" onclick="adminDeletePet(\''+fk+'\')">🗑️</button>'
+        +'<button class="apet-edit" onclick="adminEditPet('+B+"''+fk+'"+B+"'"+')">✏️</button>'
+        +'<button class="apet-del" onclick="adminDeletePet('+B+"''+fk+'"+B+"'"+')">🗑️</button>'
         +'</div></div>';
     });
     list.innerHTML=html||'<div class="pend-none">Немає товарів</div>';

@@ -431,61 +431,133 @@ nav{
 
 /* ══ BEARS PASS ══ */
 .pass-header{
-  background:linear-gradient(135deg,rgba(var(--accent-rgb),.12),rgba(var(--accent-rgb),.04));
-  border:1px solid rgba(var(--accent-rgb),.3);
-  border-radius:var(--radius);padding:16px;margin-bottom:12px;
+  background:linear-gradient(160deg,rgba(16,14,30,.95),rgba(12,10,24,.98));
+  border:1px solid rgba(var(--accent-rgb),.2);
+  border-radius:var(--radius);padding:18px 16px 14px;margin-bottom:14px;
   position:relative;overflow:hidden;
 }
 .pass-header::before{
   content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent));
+  background:linear-gradient(90deg,transparent,var(--accent),var(--accent2),var(--accent),transparent);
 }
-.pass-badge{
-  display:inline-block;font-size:10px;font-weight:800;letter-spacing:2px;
-  padding:3px 10px;border-radius:20px;
-  background:rgba(var(--accent-rgb),.15);border:1px solid rgba(var(--accent-rgb),.3);
-  color:var(--accent2);margin-bottom:8px;
+.pass-header::after{
+  content:'';position:absolute;bottom:-40px;right:-40px;
+  width:140px;height:140px;border-radius:50%;
+  background:radial-gradient(circle,rgba(var(--accent-rgb),.08) 0%,transparent 70%);
+  pointer-events:none;
 }
-.pass-title{font-size:22px;font-weight:900;letter-spacing:2px;color:#fff;margin-bottom:4px;}
-.pass-sub{font-size:11px;color:var(--muted);margin-bottom:12px;}
-.pass-xp-wrap{margin-top:8px;}
-.pass-xp-row{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;}
-.pass-xp-bar{height:6px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;}
-.pass-xp-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width .4s;}
+.pass-season{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:10px;font-weight:800;letter-spacing:2px;
+  padding:3px 12px;border-radius:20px;
+  background:rgba(var(--accent-rgb),.1);
+  border:1px solid rgba(var(--accent-rgb),.25);
+  color:var(--accent2);margin-bottom:10px;
+}
+.pass-title{
+  font-size:26px;font-weight:900;letter-spacing:1px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:2px;
+}
+.pass-sub{font-size:11px;color:var(--muted);margin-bottom:14px;letter-spacing:.3px;}
+.pass-lvl-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.pass-lvl-txt{font-size:13px;font-weight:800;color:#fff;}
+.pass-lvl-xp{font-size:11px;color:var(--muted);}
+.pass-xp-bar{
+  height:7px;background:rgba(255,255,255,.06);
+  border-radius:6px;overflow:hidden;
+}
+.pass-xp-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border-radius:6px;transition:width .5s ease;
+  box-shadow:0 0 8px rgba(var(--accent-rgb),.4);
+}
 
-.pass-level{
+.pass-list{display:flex;flex-direction:column;gap:7px;padding-bottom:10px;}
+
+.pass-row{
   display:flex;align-items:center;gap:10px;
-  padding:10px 12px;border-radius:12px;margin-bottom:6px;
-  background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);
-  position:relative;overflow:hidden;
+  padding:11px 12px;border-radius:14px;
+  background:rgba(255,255,255,.02);
+  border:1px solid rgba(255,255,255,.05);
   transition:all .2s;
 }
-.pass-level.unlocked{background:rgba(var(--accent-rgb),.06);border-color:rgba(var(--accent-rgb),.2);}
-.pass-level.claimed{background:rgba(255,255,255,.01);border-color:rgba(255,255,255,.04);opacity:.6;}
-.pass-level-num{
-  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+.pass-row.unlocked{
+  background:rgba(var(--accent-rgb),.05);
+  border-color:rgba(var(--accent-rgb),.18);
+}
+.pass-row.claimed{
+  background:rgba(34,197,94,.03);
+  border-color:rgba(34,197,94,.12);
+  opacity:.65;
+}
+.pass-row.special-row{
+  border-color:rgba(168,85,247,.25)!important;
+  background:rgba(168,85,247,.05)!important;
+}
+.pass-row.special-row.unlocked{
+  background:rgba(168,85,247,.08)!important;
+  border-color:rgba(168,85,247,.3)!important;
+}
+
+.pass-num{
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
   font-weight:900;font-size:13px;
-  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.04);
+  border:1.5px solid rgba(255,255,255,.08);
   color:var(--muted);
 }
-.pass-level.unlocked .pass-level-num{background:rgba(var(--accent-rgb),.15);border-color:var(--accent);color:var(--accent);}
-.pass-level.claimed .pass-level-num{background:rgba(34,197,94,.1);border-color:#22c55e;color:#22c55e;}
-.pass-reward-info{flex:1;min-width:0;}
-.pass-reward-name{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.pass-reward-xp{font-size:10px;color:var(--muted);margin-top:2px;}
-.pass-claim-btn{
-  padding:7px 14px;border-radius:8px;border:none;cursor:pointer;
-  font-size:12px;font-weight:800;letter-spacing:.5px;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;
-  transition:all .15s;flex-shrink:0;
+.pass-row.unlocked .pass-num{
+  background:rgba(var(--accent-rgb),.12);
+  border-color:rgba(var(--accent-rgb),.4);
+  color:var(--accent2);
 }
-.pass-claim-btn:active{transform:scale(.95);}
-.pass-claim-btn:disabled{background:rgba(255,255,255,.06);color:var(--muted);cursor:default;}
-.pass-claimed-badge{font-size:18px;flex-shrink:0;}
-.pass-locked-icon{font-size:16px;color:var(--muted);flex-shrink:0;}
-.pass-special{border-color:rgba(168,85,247,.3)!important;background:rgba(168,85,247,.06)!important;}
-.pass-special .pass-level-num{border-color:#a855f7!important;color:#a855f7!important;background:rgba(168,85,247,.15)!important;}
+.pass-row.claimed .pass-num{
+  background:rgba(34,197,94,.1);
+  border-color:rgba(34,197,94,.3);
+  color:#4ade80;
+}
+.pass-row.special-row .pass-num{
+  background:rgba(168,85,247,.12);
+  border-color:rgba(168,85,247,.4);
+  color:#c084fc;
+}
+
+.pass-info{flex:1;min-width:0;}
+.pass-reward-nm{
+  font-size:13px;font-weight:700;color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.pass-row.claimed .pass-reward-nm{color:var(--muted);}
+.pass-req-xp{font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:.3px;}
+
+.pass-btn{
+  padding:7px 14px;border-radius:9px;border:none;cursor:pointer;
+  font-size:12px;font-weight:800;letter-spacing:.3px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#0a0a0a;transition:all .15s;
+  box-shadow:0 2px 8px rgba(var(--accent-rgb),.25);
+}
+.pass-btn:active{transform:scale(.94);}
+.pass-btn.locked{
+  background:rgba(255,255,255,.05);color:var(--muted);
+  cursor:default;box-shadow:none;
+}
+.pass-done-icon{font-size:20px;flex-shrink:0;}
+
+.pass-bonus-card{
+  background:rgba(var(--accent-rgb),.04);
+  border:1px solid rgba(var(--accent-rgb),.15);
+  border-radius:var(--radius);padding:14px;margin-top:4px;
+}
+.pass-bonus-title{
+  font-size:13px;font-weight:800;color:var(--accent2);
+  margin-bottom:4px;
+}
+.pass-bonus-sub{font-size:11px;color:var(--muted);margin-bottom:12px;}
 
 #splash-screen{animation:splashOut 0.4s 1.5s forwards;}@keyframes splashOut{to{opacity:0;visibility:hidden;pointer-events:none;}}
 </style>
@@ -641,19 +713,20 @@ nav{
   </div>
 
 
-  <!-- BEARS PASS -->
   <div id="v-pass" class="page" style="display:none">
     <div class="pass-header">
-      <div class="pass-badge">SEASON 1</div>
-      <div class="pass-title">🐻 BEARS PASS</div>
-      <div class="pass-sub">Безкоштовний пас · Оновлюється щомісяця</div>
-      <div class="pass-xp-wrap">
-        <div class="pass-xp-row"><span id="pass-xp-cur">0</span> / <span id="pass-xp-next">20</span> XP</div>
-        <div class="pass-xp-bar"><div class="pass-xp-fill" id="pass-xp-fill"></div></div>
+      <div class="pass-season">🎫 SEASON 1</div>
+      <div class="pass-title">BEARS PASS</div>
+      <div class="pass-sub">Безкоштовний · Оновлюється щомісяця</div>
+      <div class="pass-lvl-row">
+        <div class="pass-lvl-txt">LVL <span id="pass-cur-lvl">1</span></div>
+        <div class="pass-lvl-xp"><span id="pass-xp-cur">0</span> / <span id="pass-xp-next">20</span> XP</div>
       </div>
+      <div class="pass-xp-bar"><div class="pass-xp-fill" id="pass-xp-fill" style="width:0%"></div></div>
     </div>
-    <div id="pass-levels"></div>
+    <div class="pass-list" id="pass-levels"></div>
   </div>
+
   <!-- ADMIN -->
   <div id="v-admin" class="page" style="display:none">
     <div class="card">
@@ -3228,163 +3301,154 @@ setInterval(()=>{
 }, 60000);
 
 
-// ════════════════════════════════════════════════
-// BEARS PASS
-// ════════════════════════════════════════════════
-
+// ════ BEARS PASS ════
 const PASS_LEVELS = [
-  {lvl:1,  reward:{type:'bb',   amount:100,  label:'100 BB'},          xp:0,   special:false},
-  {lvl:2,  reward:{type:'dbl',  amount:1,    label:'1 Дублон ⚓'},      xp:20,  special:false},
-  {lvl:3,  reward:{type:'petxp',amount:100,  label:'100 Pet XP'},       xp:50,  special:false},
-  {lvl:4,  reward:{type:'dbl',  amount:1,    label:'1 Дублон ⚓'},      xp:70,  special:false},
-  {lvl:5,  reward:{type:'bb',   amount:50,   label:'50 BB'},            xp:100, special:false},
-  {lvl:6,  reward:{type:'dbl',  amount:1,    label:'1 Дублон ⚓'},      xp:120, special:false},
-  {lvl:7,  reward:{type:'petxp',amount:100,  label:'100 Pet XP'},       xp:160, special:false},
-  {lvl:8,  reward:{type:'dbl',  amount:1,    label:'1 Дублон ⚓'},      xp:180, special:false},
-  {lvl:9,  reward:{type:'bb',   amount:50,   label:'50 BB'},            xp:200, special:false},
-  {lvl:10, reward:{type:'case', amount:1,    label:'BP CASE 📦'},       xp:230, special:true},
-  {lvl:11, reward:{type:'dbl',  amount:1,    label:'1 Дублон ⚓'},      xp:250, special:false},
-  {lvl:12, reward:{type:'petxp',amount:300,  label:'300 Pet XP'},       xp:250, special:false},
-  {lvl:13, reward:{type:'dbl',  amount:1,    label:'1 Дублон ⚓'},      xp:250, special:false},
-  {lvl:14, reward:{type:'bb',   amount:50,   label:'50 BB'},            xp:250, special:false},
-  {lvl:15, reward:{type:'case', amount:1,    label:'BP CASE 📦'},       xp:260, special:true},
-  {lvl:16, reward:{type:'dbl',  amount:3,    label:'3 Дублони ⚓'},     xp:270, special:false},
-  {lvl:17, reward:{type:'bb',   amount:100,  label:'100 BB'},           xp:300, special:false},
-  {lvl:18, reward:{type:'petxp',amount:250,  label:'250 Pet XP'},       xp:310, special:false},
-  {lvl:19, reward:{type:'bb',   amount:100,  label:'100 BB'},           xp:320, special:false},
-  {lvl:20, reward:{type:'dbl',  amount:1,    label:'1 Дублон ⚓'},      xp:325, special:false},
-  {lvl:21, reward:{type:'petxp',amount:200,  label:'200 Pet XP'},       xp:330, special:false},
-  {lvl:22, reward:{type:'bb',   amount:100,  label:'100 BB'},           xp:330, special:false},
-  {lvl:23, reward:{type:'dbl',  amount:2,    label:'2 Дублони ⚓'},     xp:350, special:false},
-  {lvl:24, reward:{type:'bb',   amount:150,  label:'150 BB'},           xp:360, special:false},
-  {lvl:25, reward:{type:'case', amount:1,    label:'BP CASE 📦'},       xp:370, special:true},
-  {lvl:26, reward:{type:'petxp',amount:250,  label:'250 Pet XP'},       xp:400, special:false},
-  {lvl:27, reward:{type:'bb',   amount:100,  label:'100 BB'},           xp:430, special:false},
-  {lvl:28, reward:{type:'dbl',  amount:3,    label:'3 Дублони ⚓'},     xp:460, special:false},
-  {lvl:29, reward:{type:'case', amount:1,    label:'BP CASE 📦'},       xp:500, special:true},
-  {lvl:30, reward:{type:'pet',  amount:1,    label:'🐛 Золотий Глист'}, xp:525, special:true},
+  {lvl:1,  xpNeeded:0,   reward:{type:'bb',    v:100,  label:'💰 100 BB'},           special:false},
+  {lvl:2,  xpNeeded:20,  reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
+  {lvl:3,  xpNeeded:50,  reward:{type:'petxp', v:100,  label:'✨ 100 Pet XP'},        special:false},
+  {lvl:4,  xpNeeded:70,  reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
+  {lvl:5,  xpNeeded:100, reward:{type:'bb',    v:50,   label:'💰 50 BB'},             special:false},
+  {lvl:6,  xpNeeded:120, reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
+  {lvl:7,  xpNeeded:160, reward:{type:'petxp', v:100,  label:'✨ 100 Pet XP'},        special:false},
+  {lvl:8,  xpNeeded:180, reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
+  {lvl:9,  xpNeeded:200, reward:{type:'bb',    v:50,   label:'💰 50 BB'},             special:false},
+  {lvl:10, xpNeeded:230, reward:{type:'case',  v:1,    label:'📦 BP CASE'},           special:true},
+  {lvl:11, xpNeeded:250, reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
+  {lvl:12, xpNeeded:250, reward:{type:'petxp', v:300,  label:'✨ 300 Pet XP'},        special:false},
+  {lvl:13, xpNeeded:250, reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
+  {lvl:14, xpNeeded:250, reward:{type:'bb',    v:50,   label:'💰 50 BB'},             special:false},
+  {lvl:15, xpNeeded:260, reward:{type:'case',  v:1,    label:'📦 BP CASE'},           special:true},
+  {lvl:16, xpNeeded:270, reward:{type:'dbl',   v:3,    label:'⚓ 3 Дублони'},         special:false},
+  {lvl:17, xpNeeded:300, reward:{type:'bb',    v:100,  label:'💰 100 BB'},            special:false},
+  {lvl:18, xpNeeded:310, reward:{type:'petxp', v:250,  label:'✨ 250 Pet XP'},        special:false},
+  {lvl:19, xpNeeded:320, reward:{type:'bb',    v:100,  label:'💰 100 BB'},            special:false},
+  {lvl:20, xpNeeded:325, reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
+  {lvl:21, xpNeeded:330, reward:{type:'petxp', v:200,  label:'✨ 200 Pet XP'},        special:false},
+  {lvl:22, xpNeeded:330, reward:{type:'bb',    v:100,  label:'💰 100 BB'},            special:false},
+  {lvl:23, xpNeeded:350, reward:{type:'dbl',   v:2,    label:'⚓ 2 Дублони'},         special:false},
+  {lvl:24, xpNeeded:360, reward:{type:'bb',    v:150,  label:'💰 150 BB'},            special:false},
+  {lvl:25, xpNeeded:370, reward:{type:'case',  v:1,    label:'📦 BP CASE'},           special:true},
+  {lvl:26, xpNeeded:400, reward:{type:'petxp', v:250,  label:'✨ 250 Pet XP'},        special:false},
+  {lvl:27, xpNeeded:430, reward:{type:'bb',    v:100,  label:'💰 100 BB'},            special:false},
+  {lvl:28, xpNeeded:460, reward:{type:'dbl',   v:3,    label:'⚓ 3 Дублони'},         special:false},
+  {lvl:29, xpNeeded:500, reward:{type:'case',  v:1,    label:'📦 BP CASE'},           special:true},
+  {lvl:30, xpNeeded:525, reward:{type:'pet',   v:1,    label:'🐛 Золотий Глист'},     special:true},
 ];
 
-// XP після 30 лвл — кожні 150 XP = 25 BB
 const PASS_BONUS_XP = 150;
 const PASS_BONUS_BB = 25;
 
-function getPassXP(){
-  // Рахуємо загальний XP зароблений в грі (s.passXP — окремий від пет XP)
-  return s.passXP || 0;
-}
-
 function getPassLevel(){
-  const xp = getPassXP();
-  let lvl = 0;
-  let spent = 0;
-  for(let i = 0; i < PASS_LEVELS.length; i++){
-    if(i === 0) { lvl = 1; continue; } // lv1 завжди доступний
-    spent += PASS_LEVELS[i].xp;
-    if(xp >= spent) lvl = PASS_LEVELS[i].lvl;
-    else break;
+  const xp = s.passXP || 0;
+  let totalNeeded = 0;
+  for(let i = 1; i < PASS_LEVELS.length; i++){
+    totalNeeded += PASS_LEVELS[i].xpNeeded;
+    if(xp < totalNeeded) return PASS_LEVELS[i].lvl - 1;
   }
-  return lvl;
+  return 30;
 }
 
-function getPassLevelXP(){
-  // XP витрачено на поточний рівень і скільки треба до наступного
-  const xp = getPassXP();
+function getPassXPInfo(){
+  const xp = s.passXP || 0;
   const lvl = getPassLevel();
   if(lvl >= 30){
-    // Бонусні рівні
-    const baseXP = PASS_LEVELS.reduce((a,b,i)=>i===0?a:a+b.xp, 0);
-    const extra = xp - baseXP;
-    const cur = extra % PASS_BONUS_XP;
-    return {cur, next: PASS_BONUS_XP, pct: Math.round(cur/PASS_BONUS_XP*100)};
+    const base = PASS_LEVELS.slice(1).reduce((a,b)=>a+b.xpNeeded,0);
+    const extra = Math.max(0, xp - base);
+    return {cur: extra % PASS_BONUS_XP, next: PASS_BONUS_XP, pct: Math.round((extra % PASS_BONUS_XP)/PASS_BONUS_XP*100)};
   }
-  // Знаходимо XP для поточного і наступного рівня
   let spent = 0;
-  for(let i=1; i<PASS_LEVELS.length; i++){
-    const prevSpent = spent;
-    spent += PASS_LEVELS[i].xp;
+  for(let i = 1; i < PASS_LEVELS.length; i++){
+    const prev = spent;
+    spent += PASS_LEVELS[i].xpNeeded;
     if(PASS_LEVELS[i].lvl === lvl+1){
-      const cur = xp - prevSpent;
-      const need = PASS_LEVELS[i].xp;
-      return {cur: Math.max(0,cur), next: need, pct: Math.min(100, Math.round(Math.max(0,cur)/need*100))};
+      return {cur: Math.max(0,xp-prev), next: PASS_LEVELS[i].xpNeeded, pct: Math.min(100,Math.round(Math.max(0,xp-prev)/PASS_LEVELS[i].xpNeeded*100))};
     }
   }
-  return {cur:0, next:0, pct:100};
+  return {cur:0,next:0,pct:100};
+}
+
+function checkPassReset(){
+  const now = new Date();
+  const mk = now.getFullYear()+'-'+(now.getMonth()+1);
+  // Тільки скидаємо якщо місяць змінився І дані вже були збережені раніше
+  if(s.passMonth && s.passMonth !== mk){
+    s.passMonth = mk;
+    s.passXP = 0;
+    s.passClaimed = [];
+    s.passClaimedBonus = 0;
+    s.bpCases = s.bpCases || 0;
+    showToast('🎫 BEARS PASS Season 2!');
+    save();
+  } else if(!s.passMonth){
+    s.passMonth = mk;
+    save();
+  }
 }
 
 function renderPass(){
-  const xp    = getPassXP();
+  const xp    = s.passXP || 0;
   const lvl   = getPassLevel();
+  const info  = getPassXPInfo();
   const claimed = s.passClaimed || [];
-  const xpInfo  = getPassLevelXP();
 
-  // Оновлюємо XP бар
   const fillEl = document.getElementById('pass-xp-fill');
   const curEl  = document.getElementById('pass-xp-cur');
   const nextEl = document.getElementById('pass-xp-next');
-  if(fillEl)  fillEl.style.width = xpInfo.pct + '%';
-  if(curEl)   curEl.textContent  = xpInfo.cur;
-  if(nextEl)  nextEl.textContent = xpInfo.next;
+  const lvlEl  = document.getElementById('pass-cur-lvl');
+  if(fillEl) fillEl.style.width = info.pct+'%';
+  if(curEl)  curEl.textContent  = info.cur;
+  if(nextEl) nextEl.textContent = info.next;
+  if(lvlEl)  lvlEl.textContent  = lvl;
 
   const container = document.getElementById('pass-levels');
   if(!container) return;
 
   let html = '';
-
-  PASS_LEVELS.forEach((pl, i) => {
+  PASS_LEVELS.forEach(pl => {
     const isUnlocked = pl.lvl === 1 || lvl >= pl.lvl;
     const isClaimed  = claimed.includes(pl.lvl);
     const canClaim   = isUnlocked && !isClaimed;
 
-    let cls = 'pass-level';
-    if(pl.special) cls += ' pass-special';
+    let cls = 'pass-row';
+    if(pl.special) cls += ' special-row';
     if(isClaimed)  cls += ' claimed';
     else if(isUnlocked) cls += ' unlocked';
 
-    // XP needed label
-    const xpLabel = pl.lvl === 1 ? 'Доступно одразу' : pl.xp + ' XP';
+    const xpLabel = pl.lvl === 1 ? 'Доступно одразу' : 'Потрібно '+pl.xpNeeded+' XP';
 
-    // Right side
-    let rightHtml = '';
-    if(isClaimed){
-      rightHtml = '<span class="pass-claimed-badge">✅</span>';
-    } else if(canClaim){
-      rightHtml = '<button class="pass-claim-btn" onclick="claimPass('+pl.lvl+')">Забрати</button>';
-    } else {
-      rightHtml = '<span class="pass-locked-icon">🔒</span>';
-    }
+    let right = '';
+    if(isClaimed) right = '<span class="pass-done-icon">✅</span>';
+    else if(canClaim) right = '<button class="pass-btn" onclick="claimPass('+pl.lvl+')">Забрати</button>';
+    else right = '<button class="pass-btn locked" disabled>🔒</button>';
 
     html += `<div class="${cls}">
-      <div class="pass-level-num">${pl.lvl}</div>
-      <div class="pass-reward-info">
-        <div class="pass-reward-name">${pl.reward.label}</div>
-        <div class="pass-reward-xp">${xpLabel}</div>
+      <div class="pass-num">${pl.lvl}</div>
+      <div class="pass-info">
+        <div class="pass-reward-nm">${pl.reward.label}</div>
+        <div class="pass-req-xp">${xpLabel}</div>
       </div>
-      ${rightHtml}
+      ${right}
     </div>`;
   });
 
-  // Бонусні рівні після 30
+  // Бонусні після 30
   if(lvl >= 30){
-    const baseXP   = PASS_LEVELS.reduce((a,b,i)=>i===0?a:a+b.xp, 0);
-    const extra    = xp - baseXP;
-    const bonusLvl = Math.floor(extra / PASS_BONUS_XP);
-    const claimedBonus = s.passClaimedBonus || 0;
-    
-    html += `<div class="card" style="margin-top:10px;border-color:rgba(var(--accent-rgb),.2)">
-      <div style="font-size:13px;font-weight:800;color:var(--accent2);margin-bottom:10px">🌟 БОНУСНІ НАГОРОДИ (після 30 LVL)</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Кожні ${PASS_BONUS_XP} XP = ${PASS_BONUS_BB} BB</div>`;
-    
-    for(let b = claimedBonus; b <= bonusLvl; b++){
-      if(b === 0) continue;
-      const bClaimed = b <= claimedBonus;
-      html += `<div class="pass-level${bClaimed?' claimed':' unlocked'}" style="margin-bottom:6px">
-        <div class="pass-level-num" style="font-size:10px">+${b}</div>
-        <div class="pass-reward-info">
-          <div class="pass-reward-name">${PASS_BONUS_BB} BB</div>
-          <div class="pass-reward-xp">Бонус #${b}</div>
-        </div>
-        ${bClaimed ? '<span class="pass-claimed-badge">✅</span>' : '<button class="pass-claim-btn" onclick="claimPassBonus('+b+')">Забрати</button>'}
+    const base  = PASS_LEVELS.slice(1).reduce((a,b)=>a+b.xpNeeded,0);
+    const extra = Math.max(0, xp - base);
+    const bonusAvail = Math.floor(extra / PASS_BONUS_XP);
+    const claimed2   = s.passClaimedBonus || 0;
+
+    html += `<div class="pass-bonus-card">
+      <div class="pass-bonus-title">🌟 Бонусні нагороди</div>
+      <div class="pass-bonus-sub">Кожні ${PASS_BONUS_XP} XP = ${PASS_BONUS_BB} BB</div>`;
+
+    for(let b = 1; b <= Math.max(bonusAvail, claimed2); b++){
+      const done = b <= claimed2;
+      const avail = b <= bonusAvail && !done;
+      html += `<div class="pass-row ${done?'claimed':avail?'unlocked':''}" style="margin-bottom:6px">
+        <div class="pass-num" style="font-size:10px">#${b}</div>
+        <div class="pass-info"><div class="pass-reward-nm">💰 ${PASS_BONUS_BB} BB</div><div class="pass-req-xp">Бонус #${b}</div></div>
+        ${done?'<span class="pass-done-icon">✅</span>':avail?`<button class="pass-btn" onclick="claimPassBonus(${b})">Забрати</button>`:'<button class="pass-btn locked" disabled>🔒</button>'}
       </div>`;
     }
     html += '</div>';
@@ -3394,78 +3458,40 @@ function renderPass(){
 }
 
 function claimPass(lvl){
-  const pl = PASS_LEVELS.find(p => p.lvl === lvl);
-  if(!pl) return;
   if(!s.passClaimed) s.passClaimed = [];
   if(s.passClaimed.includes(lvl)) return showToast('❌ Вже забрано!');
-  
   const curLvl = getPassLevel();
   if(lvl !== 1 && curLvl < lvl) return showToast('🔒 Ще не досягнуто!');
+  const pl = PASS_LEVELS.find(p=>p.lvl===lvl);
+  if(!pl) return;
 
-  // Видаємо нагороду
-  if(pl.reward.type === 'bb'){
-    s.b += pl.reward.amount;
-    showToast('✅ +' + pl.reward.amount + ' BB!');
-  } else if(pl.reward.type === 'dbl'){
-    s.dbl = (s.dbl||0) + pl.reward.amount;
-    showToast('✅ +' + pl.reward.amount + ' Дублон(ів) ⚓');
-  } else if(pl.reward.type === 'petxp'){
-    s.x = (s.x||0) + pl.reward.amount;
-    checkPetLevelUp();
-    showToast('✅ +' + pl.reward.amount + ' Pet XP!');
-  } else if(pl.reward.type === 'case'){
-    if(!s.bpCases) s.bpCases = 0;
-    s.bpCases += 1;
-    showToast('✅ BP CASE додано до інвентарю!');
-  } else if(pl.reward.type === 'pet'){
-    // Золотий Глист — добавляємо в інвентар
-    const glyst = {id:'golden_glyst', name:'Золотий Глист', emoji:'🐛', rarity:'legendary', color:'#ffd700'};
-    if(!s.inv) s.inv = [];
-    s.inv.push(glyst);
-    showToast('🐛 Золотий Глист додано!');
+  if(pl.reward.type==='bb'){s.b+=pl.reward.v;showToast('✅ +'+pl.reward.v+' BB!');}
+  else if(pl.reward.type==='dbl'){s.dbl=(s.dbl||0)+pl.reward.v;showToast('✅ +'+pl.reward.v+' Дублон(ів) ⚓');}
+  else if(pl.reward.type==='petxp'){s.x=(s.x||0)+pl.reward.v;checkPetLevelUp();showToast('✅ +'+pl.reward.v+' Pet XP!');}
+  else if(pl.reward.type==='case'){s.bpCases=(s.bpCases||0)+1;showToast('✅ BP CASE в інвентарі!');}
+  else if(pl.reward.type==='pet'){
+    if(!s.inv)s.inv=[];
+    s.inv.push({id:'golden_glyst',name:'Золотий Глист',emoji:'🐛',rarity:'mythic',color:'#ffd700'});
+    showToast('🐛 Золотий Глист отримано!');
   }
 
   s.passClaimed.push(lvl);
-  save();
-  renderPass();
-  updateUI();
+  save(); renderPass(); updateUI();
 }
 
 function claimPassBonus(n){
-  if(!s.passClaimedBonus) s.passClaimedBonus = 0;
-  if(n <= s.passClaimedBonus) return showToast('❌ Вже забрано!');
+  if((s.passClaimedBonus||0) >= n) return showToast('❌ Вже забрано!');
   s.b += PASS_BONUS_BB;
   s.passClaimedBonus = n;
-  save();
-  showToast('✅ +' + PASS_BONUS_BB + ' BB!');
-  renderPass();
-  updateUI();
+  save(); showToast('✅ +'+PASS_BONUS_BB+' BB!'); renderPass(); updateUI();
 }
 
-// Додаємо passXP при кожній перемозі (1 XP = 1 BB виграш)
 function addPassXP(amount){
-  if(!amount || amount <= 0) return;
+  if(!amount||amount<=0) return;
   s.passXP = (s.passXP||0) + Math.floor(amount);
-  save();
-  renderPass();
+  save(); renderPass();
 }
 
-// Скидання пасу щомісяця
-function checkPassReset(){
-  const now = new Date();
-  const monthKey = now.getFullYear() + '-' + (now.getMonth()+1);
-  if(s.passMonth !== monthKey){
-    s.passMonth = monthKey;
-    s.passXP = 0;
-    s.passClaimed = [];
-    s.passClaimedBonus = 0;
-    s.bpCases = 0;
-    save();
-    showToast('🎫 BEARS PASS оновлено!');
-  }
-}
-
-// Init pass
 checkPassReset();
 renderPass();
 </script>
