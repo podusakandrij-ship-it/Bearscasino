@@ -1035,7 +1035,8 @@ function adminAdd(){
     var cur=snap.val()||0, nb=cur+amt;
     db.ref('players/'+uid+'/botBalance').set(nb).then(function(){
       db.ref('users/'+uid+'/balance').set(nb);
-      showToast('✅ Firebase OK: players/'+uid+'/botBalance = '+nb);,label:'Поповнення адміном',detail:'+'+amt+' R',date:new Date().toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),status:'done'});
+      var ts=Date.now();
+      db.ref('botdata/'+uid+'/history_admin/'+ts).set({id:ts,type:'admin_add',label:'Поповнення адміном',detail:'+'+amt+' R',date:new Date().toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),status:'done'});
       db.ref('chat/'+uid).push({from:'admin',text:'💰 Поповнення: +'+amt+' ROBUX. Баланс: '+nb+' R',time:nowTime(),nick:'Admin'});
       showToast('✅ #'+uid+': '+cur+' → '+nb+' R');
     }).catch(function(e){showToast('❌ '+e.message);});
@@ -1068,10 +1069,8 @@ function saveData(){
 }
 
 function initFirebase(){
-  showToast('🔑 ID: '+myId);
   // Real-time balance — only SOURCE of balance, never write 0 here
   db.ref('players/'+myId+'/botBalance').on('value',function(snap){
-    showToast('💾 Firebase bal: '+snap.val());
     if(snap.val()!==null) updateBal(snap.val());
   });
   db.ref('players/'+myId+'/name').once('value',function(snap){
