@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>BEARS SHOP</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Inter:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -19,11 +19,15 @@
   --nav-h:64px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{height:100%}
-body{height:100%;background:radial-gradient(ellipse 120% 80% at 50% -10%,#120e05 0%,var(--bg) 55%);color:var(--text);font-family:var(--font);letter-spacing:.1px}
+html{height:100%;height:-webkit-fill-available}
+body{height:100vh;height:100dvh;height:var(--vh,100vh);min-height:-webkit-fill-available;background:radial-gradient(ellipse 120% 80% at 50% -10%,#120e05 0%,var(--bg) 55%);color:var(--text);font-family:var(--font);letter-spacing:.1px;overflow:hidden;position:fixed;width:100%;top:0;left:0}
 
 /* ── SPLASH ── */
-#splash{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#0a0700,#050403 50%,#080600);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;animation:spHide .5s 2.4s forwards}
+#splash{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 50% 35%,#1a1304 0%,#0d0a04 35%,#050403 70%,#020201 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;animation:spHide .5s 2.4s forwards;overflow:hidden}
+.sp-orb{position:absolute;border-radius:50%;filter:blur(40px);opacity:.35;animation:orbFloat 6s ease-in-out infinite}
+.sp-orb1{width:260px;height:260px;background:radial-gradient(circle,var(--gold),transparent 70%);top:-60px;left:-80px;animation-delay:0s}
+.sp-orb2{width:220px;height:220px;background:radial-gradient(circle,var(--orange),transparent 70%);bottom:-70px;right:-60px;animation-delay:1.2s}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(15px,-15px) scale(1.08)}}
 @keyframes spHide{to{opacity:0;visibility:hidden}}
 .sp-logo{display:flex;flex-direction:column;align-items:center;gap:14px;animation:spIn .8s cubic-bezier(.34,1.56,.64,1) both}
 @keyframes spIn{from{transform:scale(0) rotate(-8deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
@@ -36,7 +40,7 @@ body{height:100%;background:radial-gradient(ellipse 120% 80% at 50% -10%,#120e05
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
 /* ── LAYOUT ── */
-#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;height:var(--vh,100vh);overflow:hidden}
 .page{flex:1;overflow-y:auto;overflow-x:hidden;display:none;flex-direction:column;-webkit-overflow-scrolling:touch;animation:pageIn .28s cubic-bezier(.4,0,.2,1)}
 .page.active{display:flex}
 .page::-webkit-scrollbar{width:0}
@@ -267,6 +271,8 @@ textarea.fif{resize:none}
 
 <!-- SPLASH -->
 <div id="splash">
+  <div class="sp-orb sp-orb1"></div>
+  <div class="sp-orb sp-orb2"></div>
   <div class="sp-logo">
     <div class="sp-icon">🐻</div>
     <div>
@@ -417,7 +423,7 @@ textarea.fif{resize:none}
   <div class="div" style="margin:8px 18px"></div>
 
   <div class="asec">
-    <div class="asec-lbl">📋 Заявки</div>
+    <div class="asec-lbl">📋 Заявки <span id="pendCountBadge" style="background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px"></span></div>
     <div class="acard"><div id="pendListEl"><div class="pend-none">Немає заявок</div></div></div>
   </div>
 
@@ -545,7 +551,16 @@ const HIST_BG = {pump:'rgba(224,90,24,.15)',wd:'rgba(239,68,68,.15)',support:'rg
 firebase.initializeApp(FB);
 var db = firebase.database();
 var tg = window.Telegram && window.Telegram.WebApp;
-if(tg) tg.expand();
+if(tg){
+  tg.expand();
+  tg.ready();
+  if(tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+  if(tg.setHeaderColor) try{tg.setHeaderColor('#070809');}catch(e){}
+  if(tg.setBackgroundColor) try{tg.setBackgroundColor('#070809');}catch(e){}
+}
+// Fix viewport height for mobile browsers (address bar collapse)
+function setVH(){ document.documentElement.style.setProperty('--vh', window.innerHeight+'px'); }
+setVH(); window.addEventListener('resize',setVH);
 
 var tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
 var myId, myName;
@@ -577,6 +592,11 @@ function showToast(msg){
   var t=el('toast');t.textContent=msg;t.classList.add('show');
   clearTimeout(_toastT);_toastT=setTimeout(function(){t.classList.remove('show');},2500);
 }
+function notifyAdmins(text){
+  ADMIN_IDS.forEach(function(aid){
+    db.ref('chat/'+aid).push({from:'user',text:text,time:nowTime(),nick:nick,userId:myId,isNotify:true});
+  });
+}
 
 // ════════════════════════════════════════════
 // NAVIGATION
@@ -597,7 +617,7 @@ function switchPage(name){
   curPage=name;
   if(name==='chat') loadChat();
   if(name==='admin'){ loadAdmin(); }
-  if(name==='shop') setText('shopBal',balance);
+  if(name==='shop'){ setText('shopBal',balance); renderShop(); }
 }
 // Fix home page display on load
 el('pg-home').style.display='flex';
@@ -780,6 +800,7 @@ function openShopFlow(key){
     var item={type:'shop',label:'Купівля товару',detail:pet.key+' · '+pet.price+' R',status:'pending',petKey:pet._key,petName:pet.key,price:pet.price};
     addHist(item);
     db.ref('pending/'+item.id).set(item);
+    notifyAdmins('🛒 Нове замовлення від #'+myId+' ('+nick+'): '+pet.key+' за '+pet.price+' R');
     closeFlow(); showToast('✅ Замовлення відправлено!');
   };
   yn.appendChild(yes); yn.appendChild(no);
@@ -869,6 +890,7 @@ function buildPump(c){
     var v=inp.value.trim(); if(!v){err.textContent='Введіть нік';return;}
     var item={type:'pump',label:'Прокачка',detail:'Нік: '+v+' × '+sel,status:'pending',pumpNick:v,count:sel};
     addHist(item); db.ref('pending/'+item.id).set(item);
+    notifyAdmins('🎮 Заявка на прокачку від #'+myId+' ('+nick+'): нік '+v+' × '+sel);
     c.innerHTML='';
     var wc=document.createElement('div'); wc.className='fwc';
     wc.innerHTML='<div class="fwi">⏳</div><div class="fwt">Заявку прийнято!</div><div class="fwx">Ми виконаємо прокачку протягом 24 годин. Слідкуйте за статусом у розділі Головна.</div>';
@@ -937,6 +959,7 @@ function buildWd3(c){
     setBalance(nb);
     var item={type:'wd',label:'Вивід коштів',detail:wdData.nick+' · '+wdData.amount+' R',status:'pending',amount:wdData.amount,nick:wdData.nick,gamepass:wdData.gamepass,gpAmount:gp};
     addHist(item); db.ref('pending/'+item.id).set(item);
+    notifyAdmins('💸 Заявка на вивід від #'+myId+' ('+nick+'): '+wdData.amount+' R, нік '+wdData.nick+', gamepass '+wdData.gamepass);
     closeFlow(); showToast('✅ Заявку відправлено!');
   };
   yn.appendChild(yes); yn.appendChild(no);
@@ -975,11 +998,15 @@ function loadAdmin(){
 }
 
 // ── Admin chat ──
+var _adminChatRef=null;
 function loadAdminChat(){
   var box=el('adminConvEl'), sel=el('adminTargetSel');
-  db.ref('chat').once('value',function(snap){
+  if(_adminChatRef) _adminChatRef.off();
+  _adminChatRef=db.ref('chat');
+  _adminChatRef.on('value',function(snap){
     if(!snap.exists()){box.innerHTML='<div class="pend-none">Немає повідомлень</div>';return;}
     var html=''; var uids=[];
+    var curSelVal=sel?sel.value:'';
     snap.forEach(function(uSnap){
       var uid=uSnap.key; uids.push(uid);
       html+='<div style="font-size:10px;color:var(--sub);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin:8px 0 5px">👤 '+uid+'</div>';
@@ -1011,29 +1038,38 @@ function adminSend(){
   el('adminReplyInp').value='';
   db.ref('chat/'+uid).push({from:'admin',text:text,time:nowTime(),nick:'Admin'});
   showToast('✅ Надіслано #'+uid);
-  setTimeout(loadAdminChat,400);
 }
 
 // ── Admin pending ──
 function loadAdminPending(){
   var box=el('pendListEl');
-  db.ref('pending').once('value',function(snap){
+  if(_pendingRef) _pendingRef.off();
+  _pendingRef=db.ref('pending');
+  _pendingRef.on('value',function(snap){
     if(!snap.exists()){box.innerHTML='<div class="pend-none">Немає заявок</div>';return;}
-    var html='';
+    var html=''; var count=0;
     snap.forEach(function(ch){
       var p=ch.val(), k=ch.key;
       if(p.status!=='pending') return;
+      count++;
+      var extra='';
+      if(p.type==='wd') extra='<br>💰 Сума: '+p.amount+' R<br>👤 Нік: '+p.nick+'<br>🎮 Gamepass: '+p.gamepass+(p.gpAmount?'<br>📦 До видачі: '+p.gpAmount+' R':'');
+      if(p.type==='pump') extra='<br>👤 Нік: '+p.pumpNick+'<br>🔢 Кількість: '+p.count;
+      if(p.type==='shop') extra='<br>🛒 Товар: '+(p.petName||'—')+'<br>💰 Ціна: '+p.price+' R';
       html+='<div class="pend-row">'
         +'<div class="pend-top"><span class="pend-type">'+p.label+'</span><span class="pend-date">'+p.date+'</span></div>'
-        +'<div class="pend-info">Юзер: '+(p.userNick||p.userId||'—')+'<br>'+p.detail+'</div>'
+        +'<div class="pend-info">👤 '+(p.userNick||'—')+' &nbsp;<span style="color:var(--gold2);font-family:monospace">#'+(p.userId||'—')+'</span>'+extra+'</div>'
         +'<div class="pend-btns">'
         +'<button class="pbtn-ok" onclick="resolvePend(\''+k+'\',\'done\')">✓ Виконано</button>'
         +'<button class="pbtn-no" onclick="resolvePend(\''+k+'\',\'rejected\')">✕ Відхилити</button>'
         +'</div></div>';
     });
     box.innerHTML=html||'<div class="pend-none">Немає заявок</div>';
+    var badge=el('pendCountBadge');
+    if(badge) badge.textContent=count>0?count:'';
   });
 }
+var _pendingRef=null;
 function resolvePend(key,status){
   db.ref('pending/'+key).once('value',function(snap){
     var p=snap.val(); if(!p) return;
@@ -1041,7 +1077,6 @@ function resolvePend(key,status){
     if(p.userId&&p.id) db.ref('history/'+p.userId+'/'+p.id).update({status:status});
   });
   showToast(status==='done'?'✅ Виконано':'❌ Відхилено');
-  setTimeout(loadAdminPending,400);
 }
 
 // ── Admin balance ──
