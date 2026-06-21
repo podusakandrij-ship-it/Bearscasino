@@ -19,10 +19,10 @@
   --nav-h:64px;--gold-glow:rgba(200,146,42,.25);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{height:100%;height:-webkit-fill-available}
-body{height:100vh;height:100dvh;height:var(--vh,100vh);background:var(--bg);color:var(--text);font-family:var(--font);letter-spacing:.1px;overflow:hidden}
-body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 70% 50% at 15% 0%,rgba(200,146,42,.07),transparent 60%),radial-gradient(ellipse 50% 40% at 85% 100%,rgba(217,90,24,.05),transparent 55%);pointer-events:none}
-#app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;height:100dvh;height:var(--vh,100vh);overflow:hidden}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--font);letter-spacing:.1px}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 70% 50% at 15% 0%,rgba(200,146,42,.07),transparent 60%),radial-gradient(ellipse 50% 40% at 85% 100%,rgba(217,90,24,.05),transparent 55%)}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;position:relative;z-index:1}
 
 /* SPLASH */
 #splash{position:fixed;inset:0;z-index:9999;background:#06070a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;animation:spHide .4s 2.5s ease forwards;overflow:hidden}
@@ -43,7 +43,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
 /* NAV */
-.bnav{height:var(--nav-h);background:linear-gradient(180deg,rgba(13,15,20,.97),rgba(6,7,10,.99));border-top:1px solid var(--bd);display:flex;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 -1px 0 rgba(255,255,255,.04),0 -12px 30px rgba(0,0,0,.4)}
+.bnav{height:var(--nav-h);flex-shrink:0;background:linear-gradient(180deg,rgba(13,15,20,.97),rgba(6,7,10,.99));border-top:1px solid var(--bd);display:flex;padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -1px 0 rgba(255,255,255,.04),0 -12px 30px rgba(0,0,0,.4)}
 .bni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border-top:2px solid transparent;transition:all .22s cubic-bezier(.4,0,.2,1);font-size:9.5px;font-weight:700;color:var(--sub);position:relative;user-select:none;padding-top:8px;letter-spacing:.3px}
 .bni-ic{font-size:20px;transition:transform .25s cubic-bezier(.34,1.56,.64,1);line-height:1;opacity:.5}
 .bni.on{color:var(--gold2);border-top-color:var(--gold)}
@@ -52,10 +52,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradi
 .bni-dot.show{display:block}
 
 /* PAGES */
-.page{flex:1;overflow-y:auto;overflow-x:hidden;display:none;flex-direction:column;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.page.active{display:flex;animation:pageIn .3s cubic-bezier(.4,0,.2,1)}
+.page{display:none;flex-direction:column;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;width:100%}
+.page.active{display:flex!important}
 .page::-webkit-scrollbar{display:none}
-@keyframes pageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pageIn{from{opacity:0}to{opacity:1}}
 
 /* HEADER */
 .hdr{padding:20px 18px 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
@@ -372,7 +372,7 @@ textarea.fif{resize:none}
 </div>
 
 <!-- ══ CHAT ══ -->
-<div class="page" id="pg-chat" style="display:none;flex-direction:column">
+<div class="page" id="pg-chat">
   <div class="hdr" style="flex-shrink:0">
     <div><div class="hdr-greet">Онлайн підтримка</div><div class="hdr-nick" style="font-size:16px">Чат</div></div>
   </div>
@@ -517,16 +517,18 @@ textarea.fif{resize:none}
   <div style="height:20px"></div>
 </div>
 
-</div><!-- /app -->
+</div><!-- /app end pages -->
 
-<!-- NAV -->
+<!-- NAV inside app -->
 <nav class="bnav" id="bnav">
   <div class="bni on" id="ni-home" onclick="switchPage('home')"><div class="bni-ic">🏠</div>Головна</div>
   <div class="bni" id="ni-shop" onclick="switchPage('shop')"><div class="bni-ic">🛒</div>Магазин</div>
   <div class="bni" id="ni-chat" onclick="switchPage('chat')"><div class="bni-ic">💬</div>Чат<div class="bni-dot" id="chatDot"></div></div>
   <div class="bni" id="ni-prof" onclick="switchPage('prof')"><div class="bni-ic">👤</div>Профіль</div>
-  <div class="bni" id="ni-casino" onclick="switchPage('casino')"><div class="bni-ic">🎰</div>Казино</div>
+  <div class="bni" id="ni-casino" onclick="window.location.href='index.html'"><div class="bni-ic">🎰</div>Казино</div>
 </nav>
+
+</div><!-- /app -->
 
 <div id="toast"></div>
 
@@ -622,25 +624,20 @@ function notifyAdmins(text){
 // ════════════════════════════════════════════
 var curPage='home';
 function switchPage(name){
-  // Hide all
   ['home','shop','chat','prof','casino','admin'].forEach(function(p){
-    var pg=el('pg-'+p); if(pg) pg.style.display='none';
+    var pg=el('pg-'+p);
+    if(pg) pg.classList.remove('active');
     var ni=el('ni-'+p); if(ni) ni.classList.remove('on');
   });
   var pg=el('pg-'+name);
-  if(pg){
-    pg.style.display='flex';pg.style.flexDirection='column';
-    pg.style.animation='none'; void pg.offsetHeight; pg.style.animation='pageIn .28s cubic-bezier(.4,0,.2,1)';
-  }
+  if(pg) pg.classList.add('active');
   var ni=el('ni-'+name); if(ni) ni.classList.add('on');
   curPage=name;
   if(name==='chat') loadChat();
-  if(name==='admin'){ loadAdmin(); }
+  if(name==='admin') loadAdmin();
   if(name==='shop'){ setText('shopBal',balance); renderShop(); }
 }
-// Fix home page display on load
-el('pg-home').style.display='flex';
-el('pg-home').style.flexDirection='column';
+// Home is active by default via HTML class="page active"
 
 // ════════════════════════════════════════════
 // ADMIN NAV ITEM
