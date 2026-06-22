@@ -2,13 +2,14 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>BEARS SHOP</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Inter:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
+
 :root{
   --bg:#06070a;--s1:#0d0f14;--s2:#13161e;--s3:#191d27;--s4:#1f2330;
   --bd:#ffffff10;--b2:#ffffff1a;--b3:#ffffff26;
@@ -283,11 +284,32 @@ textarea.fif{resize:none}
 .pin{width:100%;background:var(--s2);border:1.5px solid var(--bd);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--text);font-family:var(--font);outline:none;transition:border-color .2s}
 .pin:focus{border-color:rgba(200,146,42,.4);box-shadow:0 0 0 3px rgba(200,146,42,.05)}
 .pin::placeholder{color:var(--sub)}
+
+/* === CRITICAL LAYOUT OVERRIDE === */
+html { height: 100%; }
+body { height: 100%; margin: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font); }
+#app { 
+  display: flex; 
+  flex-direction: column; 
+  height: 100vh; 
+  height: 100dvh;
+  overflow: hidden;
+}
+.page { 
+  display: none; 
+  flex: 1; 
+  min-height: 0; 
+  overflow-y: auto; 
+  overflow-x: hidden;
+  flex-direction: column;
+  -webkit-overflow-scrolling: touch;
+}
+.page.active { display: flex !important; }
+nav.bnav { flex-shrink: 0; }
 </style>
 </head>
 <body>
 
-<!-- SPLASH -->
 <div id="splash">
   <div class="sp-orb sp-orb1"></div>
   <div class="sp-orb sp-orb2"></div>
@@ -303,7 +325,6 @@ textarea.fif{resize:none}
 
 <div id="app">
 
-<!-- ══ HOME ══ -->
 <div class="page active" id="pg-home">
   <div class="hdr">
     <div>
@@ -325,9 +346,10 @@ textarea.fif{resize:none}
           <div class="c-lbl">Власник</div>
           <div class="c-name" id="cardNick">ГРАВЕЦЬ</div>
         </div>
-        <div>
-          <div class="c-lbl" style="text-align:right">Баланс</div>
-          <div class="c-bal-wrap"><div class="c-bal-row"><div class="c-bal" id="cardBal">0</div>
+        <div class="c-bal-wrap">
+          <div class="c-lbl">Баланс</div>
+          <div class="c-bal-row">
+            <div class="c-bal" id="cardBal">0</div>
             <div class="c-unit">R</div>
           </div>
         </div>
@@ -340,19 +362,16 @@ textarea.fif{resize:none}
     <div class="stat-box"><div class="stat-v" id="statWds">0</div><div class="stat-l">Виводів</div></div>
   </div>
   <div class="svc-row">
-    <div class="svc-btn" onclick="openFlow('pump')"><div class="svc-ic">🎮</div><div class="svc-l">Прокачка</div></div>
+    <div class="svc-btn" onclick="openFlow('pump')"><div class="svc-ic">🐾</div><div class="svc-l">Прокачка</div></div>
     <div class="svc-btn" onclick="openFlow('wd')"><div class="svc-ic">💸</div><div class="svc-l">Вивід</div></div>
-    <div class="svc-btn" onclick="openFlow('support')"><div class="svc-ic">💬</div><div class="svc-l">Підтримка</div></div>
+    <div class="svc-btn" onclick="openFlow('support')"><div class="svc-ic">📩</div><div class="svc-l">Підтримка</div></div>
   </div>
   <div class="sec">
-    <div class="sec-hd">
-      <div class="sec-title">Останні операції</div>
-    </div>
+    <div class="sec-hd"><div class="sec-title">Останні операції</div></div>
     <div class="hprev" id="histList"><div class="empty-state">Операцій немає</div></div>
   </div>
 </div>
 
-<!-- ══ SHOP ══ -->
 <div class="page" id="pg-shop">
   <div class="hdr">
     <div>
@@ -371,7 +390,6 @@ textarea.fif{resize:none}
   <div class="pgrid" id="shopGrid"><div class="empty-state" style="grid-column:1/-1">Завантаження...</div></div>
 </div>
 
-<!-- ══ CHAT ══ -->
 <div class="page" id="pg-chat">
   <div class="hdr" style="flex-shrink:0">
     <div><div class="hdr-greet">Онлайн підтримка</div><div class="hdr-nick" style="font-size:16px">Чат</div></div>
@@ -383,7 +401,6 @@ textarea.fif{resize:none}
   </div>
 </div>
 
-<!-- ══ PROFILE ══ -->
 <div class="page" id="pg-prof">
   <div class="prof-hdr">
     <div class="prof-av" id="profAvEl">🐻</div>
@@ -407,20 +424,6 @@ textarea.fif{resize:none}
   </div>
 </div>
 
-<!-- ══ CASINO ══ -->
-<div class="page" id="pg-casino">
-  <div class="hdr"><div><div class="hdr-greet">Спробуй удачу</div><div class="hdr-nick" style="font-size:16px">Казино</div></div></div>
-  <div class="sec">
-    <div class="hprev" style="padding:28px 20px;text-align:center">
-      <div style="font-size:48px;margin-bottom:12px">🎰</div>
-      <div style="font-size:14px;font-weight:700;margin-bottom:6px">Казино Bears</div>
-      <div style="font-size:12px;color:var(--sub);margin-bottom:18px">Відкрийте казино в окремій вкладці</div>
-      <button class="fbtn fbtn-g" onclick="location.href='index.html'">Відкрити казино</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ ADMIN ══ -->
 <div class="page" id="pg-admin">
   <div class="hdr"><div><div class="hdr-greet">Панель керування</div><div class="hdr-nick" style="font-size:16px">Адмінка</div></div></div>
   <div style="height:12px"></div>
@@ -428,7 +431,7 @@ textarea.fif{resize:none}
   <div class="asec">
     <div class="asec-lbl">💬 Чат</div>
     <div class="acard">
-      <div class="admin-conv" id="adminConvEl"><div class="pend-none">Немає повідомлень</div></div>
+      <div id="adminConvEl"><div class="pend-none">Немає повідомлень</div></div>
       <div style="margin-top:8px">
         <select class="asel" id="adminTargetSel"><option value="">Оберіть юзера...</option></select>
         <div class="areply">
@@ -438,16 +441,12 @@ textarea.fif{resize:none}
       </div>
     </div>
   </div>
-
   <div class="div" style="margin:8px 18px"></div>
-
   <div class="asec">
     <div class="asec-lbl">📋 Заявки <span id="pendCountBadge" style="background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px"></span></div>
     <div class="acard"><div id="pendListEl"><div class="pend-none">Немає заявок</div></div></div>
   </div>
-
   <div class="div" style="margin:8px 18px"></div>
-
   <div class="asec">
     <div class="asec-lbl">💰 Баланс</div>
     <div class="acard">
@@ -465,16 +464,12 @@ textarea.fif{resize:none}
       </div>
     </div>
   </div>
-
   <div class="div" style="margin:8px 18px"></div>
-
   <div class="asec">
     <div class="asec-lbl">👥 Юзери</div>
     <div class="acard"><div id="userListEl"><div class="pend-none">Немає</div></div></div>
   </div>
-
   <div class="div" style="margin:8px 18px"></div>
-
   <div class="asec">
     <div class="asec-lbl">🛒 Товари</div>
     <div class="acard" id="adminShopCard">
@@ -504,9 +499,9 @@ textarea.fif{resize:none}
         <div class="apf-img-wrap" id="newPetImgPrev">📷<input type="file" accept="image/*" id="newPetImgInp" onchange="onPetImg(this)"></div>
         <span style="font-size:10px;color:var(--sub)">Фото (необов'язково)</span>
       </div>
-      <div class="arow" style="margin-top:4px">
+      <div class="arow" style="margin-top:6px;gap:7px">
         <button class="fbtn fbtn-g" style="padding:10px" onclick="savePet()">💾 Зберегти</button>
-        <button class="abtn" style="background:var(--s3);color:var(--sub);border:1px solid var(--bd)" onclick="clearPetForm()">✖</button>
+        <button class="abtn" style="background:var(--s3);color:var(--sub);border:1px solid var(--bd);padding:10px 14px" onclick="clearPetForm()">✖</button>
       </div>
     </div>
     <div class="acard" style="margin-top:7px">
@@ -517,9 +512,6 @@ textarea.fif{resize:none}
   <div style="height:20px"></div>
 </div>
 
-</div><!-- /app end pages -->
-
-<!-- NAV inside app -->
 <nav class="bnav" id="bnav">
   <div class="bni on" id="ni-home" onclick="switchPage('home')"><div class="bni-ic">🏠</div>Головна</div>
   <div class="bni" id="ni-shop" onclick="switchPage('shop')"><div class="bni-ic">🛒</div>Магазин</div>
@@ -532,7 +524,6 @@ textarea.fif{resize:none}
 
 <div id="toast"></div>
 
-<!-- FLOW OVERLAY -->
 <div id="fov">
   <div class="fhdr">
     <div class="fbk" onclick="closeFlow()">←</div>
@@ -543,6 +534,7 @@ textarea.fif{resize:none}
 </div>
 
 <script>
+
 // ════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════
@@ -1380,6 +1372,7 @@ function onPetImg(inp){
 applyNick();
 updateStats();
 initFB();
+
 </script>
 </body>
 </html>
