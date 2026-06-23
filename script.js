@@ -755,22 +755,59 @@ db.ref('players/'+myId).on('value',snap=>{
         // Якщо щойно зберігали — не перезаписуємо локальний стан
         // щоб Firebase не відкотив зміни балансу назад
         if(_saving){
-            // Оновлюємо тільки те що не може змінитись локально
-            // (наприклад дані від інших гравців — але для поточного гравця пропускаємо)
             ren();
             if(!_splashFired){ _splashFired=true; if(window._splashDone) window._splashDone(); }
             return;
         }
-        // Зберігаємо локальні дані що можуть бути новіші ніж у Firebase
+        // Зберігаємо важливі локальні дані
+        const curB = s.b;
+        const curInv = s.inv ? [...s.inv] : [];
+        const curArtifacts = s.artifacts ? [...s.artifacts] : [];
         const curDaily = s.daily;
         const curAdoptPurchases = s.adoptPurchases;
-        s=d;
-        if(!s.inv)s.inv=[];
-        // Якщо локальний daily новіший (той самий день) — залишаємо його
+        const curPassXP = s.passXP;
+        const curPassClaimed = s.passClaimed;
+        const curPassClaimedBonus = s.passClaimedBonus;
+
+        s = d;
+        if(!s.inv) s.inv = [];
+        if(!s.artifacts) s.artifacts = [];
+
+        // Якщо локальний баланс більший — захищаємо від відкату
+        if(curB > (s.b || 0) && !_splashFired) {
+            // При першому завантаженні беремо дані Firebase як авторитетні
+        } else if(_splashFired && curB !== (s.b||0)) {
+            // Після першого завантаження захищаємо локальний стан від відкату
+            // (це покриває кейс де Firebase повертає старіші дані)
+            s.b = Math.max(curB, s.b||0);
+        }
+
+        // Мерджимо інвентар — беремо більший список
+        if(_splashFired && curInv.length > s.inv.length) {
+            s.inv = curInv;
+        }
+
+        // Мерджимо артефакти
+        if(_splashFired && curArtifacts.length > s.artifacts.length) {
+            s.artifacts = curArtifacts;
+        }
+
+        // Якщо локальний daily новіший — залишаємо
         if(curDaily && curDaily.day === todayKey() && (!s.daily || s.daily.day !== todayKey())){
             s.daily = curDaily;
         }
-        // Якщо локальний adoptPurchases має більше покупок — мерджимо (беремо максимум)
+        // Захищаємо passXP від відкату
+        if(_splashFired && curPassXP && (curPassXP > (s.passXP||0))) {
+            s.passXP = curPassXP;
+        }
+        if(_splashFired && curPassClaimed && curPassClaimed.length > (s.passClaimed||[]).length) {
+            s.passClaimed = curPassClaimed;
+        }
+        if(_splashFired && curPassClaimedBonus && curPassClaimedBonus > (s.passClaimedBonus||0)) {
+            s.passClaimedBonus = curPassClaimedBonus;
+        }
+
+        // Мерджимо adoptPurchases
         if(curAdoptPurchases){
             if(!s.adoptPurchases) s.adoptPurchases={};
             Object.entries(curAdoptPurchases).forEach(([id,qty])=>{
@@ -778,7 +815,7 @@ db.ref('players/'+myId).on('value',snap=>{
             });
         }
     }
-    else{db.ref('players/'+myId).set(s);}
+    else{ db.ref('players/'+myId).set(s); }
     ren();
     if(!_splashFired){ _splashFired=true; if(window._splashDone) window._splashDone(); }
 });
@@ -846,35 +883,43 @@ function ren(){
     const bonusLbl = document.getElementById('pet-bonus-lbl');
     if (bonusLbl) bonusLbl.textContent = L('bonusLabelHud');
 
-    const hudWrap = document.getElementById('p-hud-wrap');
+    // Pet HUD прихований (пети відключені від UI, але збережені в базі)
+    const petHudEl = document.querySelector('.pet-hud');
+    if (petHudEl) petHudEl.style.display = 'none';
 
-    if (s.p) {
-        if (hudWrap) {
-            const imgSrc = getPetImageSrc(s.p);
-            if (imgSrc.type === 'img') {
-                hudWrap.innerHTML = `<img src="${imgSrc.src}" style="width:52px;height:52px;object-fit:contain;">`;
-            } else {
-                hudWrap.innerHTML = `<span style="font-size:34px;animation:pet-float 3s ease-in-out infinite">${imgSrc.src}</span>`;
+    // Артефакт HUD — показуємо активний артефакт
+    const artHudEl = document.getElementById('artifact-hud');
+    if (artHudEl) {
+        const activeArt = (s.artifacts||[]).find(a=>a.active);
+        // Також показуємо pending BB від петів якщо є
+        const pendBB = getPetPendingIncome ? getPetPendingIncome() : 0;
+        const bbphTotal = getPetTotalBBph ? getPetTotalBBph() : 0;
+        if (activeArt || bbphTotal > 0) {
+            artHudEl.style.display = 'flex';
+            artHudEl.style.flexWrap = 'wrap';
+            artHudEl.style.gap = '10px';
+            let hudHTML = '';
+            if(activeArt){
+                const artImg = activeArt.photoUrl
+                    ? `<img src="${activeArt.photoUrl}" style="width:36px;height:36px;object-fit:cover;border-radius:8px;flex-shrink:0">`
+                    : `<span style="font-size:24px;flex-shrink:0">${activeArt.emoji||'💎'}</span>`;
+                hudHTML += `<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+                    ${artImg}
+                    <div><div style="font-size:12px;font-weight:800;color:var(--accent2)">${activeArt.name}</div>
+                    <div style="font-size:10px;color:var(--muted)">+${activeArt.bonus}% до перемог</div></div>
+                </div>`;
             }
+            if(bbphTotal > 0){
+                hudHTML += `<div style="display:flex;align-items:center;gap:6px;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:10px;padding:5px 10px;cursor:pointer" onclick="setInvTab('pets');tab('inv',document.querySelector('.nav-tab[onclick*=inv]'))">
+                    <span style="font-size:16px">🐾</span>
+                    <div><div style="font-size:11px;font-weight:800;color:var(--success)">+${pendBB} BB</div>
+                    <div style="font-size:9px;color:var(--muted)">${bbphTotal}/год · Зібрати</div></div>
+                </div>`;
+            }
+            artHudEl.innerHTML = hudHTML;
+        } else {
+            artHudEl.style.display = 'none';
         }
-        document.getElementById('p-name').innerText  = s.p.n;
-        document.getElementById('p-m').innerText     = 'x' + s.p.m.toFixed(3);
-        document.getElementById('p-l').innerText     = s.p.lvl || 1;
-        const rb = document.getElementById('p-rarity');
-        rb.innerText = s.p.r;
-        rb.style.background = (s.p.c||'#94a3b8') + '22';
-        rb.style.color = s.p.c || '#94a3b8';
-        rb.style.border = `1px solid ${s.p.c||'#94a3b8'}44`;
-    } else {
-        if (hudWrap) hudWrap.innerHTML = `<span style="font-size:34px">🥚</span>`;
-        document.getElementById('p-name').innerText = L('noPet');
-        document.getElementById('p-m').innerText    = 'x1.000';
-        document.getElementById('p-l').innerText    = '1';
-        const rb = document.getElementById('p-rarity');
-        rb.innerText = L('noPetRarity');
-        rb.style.background = 'rgba(107,114,128,.2)';
-        rb.style.color = '#9ca3af';
-        rb.style.border = '1px solid rgba(107,114,128,.3)';
     }
 
     if (ADMINS.includes(Number(myId)))
@@ -1134,36 +1179,104 @@ window.listOnMarket=petId=>{
 // ============================================================
 // ІНВЕНТАР (canvas pets)
 // ============================================================
+let _invTab = 'artifacts'; // default to artifacts
+window.setInvTab = t => { _invTab = t; renderInv(); };
+
 function renderInv(){
     stopAllPetAnims();
     const el=document.getElementById('inv-list');
     const countEl=document.getElementById('inv-count');
-    if(countEl) countEl.textContent=s.inv.length ? `${s.inv.length} ${L('invCountLabel')}` : '';
+    if(countEl) countEl.textContent='';
 
     // Pokédex mode
     if(showingDex){ el.innerHTML=renderPokedex(); return; }
 
-    // Pokédex button
-    const dexBtn=`<button class="btn-dex" onclick="togglePokedex()">📖 Покедекс</button>`;
+    // Tab switcher
+    const tabBar=`<div style="display:flex;gap:8px;margin-bottom:12px">
+        <button onclick="setInvTab('artifacts')" style="flex:1;padding:9px;border-radius:10px;border:1.5px solid ${_invTab==='artifacts'?'var(--accent)':'rgba(255,255,255,.1)'};background:${_invTab==='artifacts'?'rgba(var(--accent-rgb),.15)':'rgba(255,255,255,.04)'};color:${_invTab==='artifacts'?'var(--accent2)':'var(--muted)'};font-weight:700;font-size:12px;font-family:inherit;cursor:pointer">💎 Артефакти</button>
+        <button onclick="setInvTab('pets')" style="flex:1;padding:9px;border-radius:10px;border:1.5px solid ${_invTab==='pets'?'var(--accent)':'rgba(255,255,255,.1)'};background:${_invTab==='pets'?'rgba(var(--accent-rgb),.15)':'rgba(255,255,255,.04)'};color:${_invTab==='pets'?'var(--accent2)':'var(--muted)'};font-weight:700;font-size:12px;font-family:inherit;cursor:pointer">🐾 Пети</button>
+    </div>`;
 
+    // ARTIFACTS TAB
+    if(_invTab==='artifacts'){
+        const arts=s.artifacts||[];
+        if(!arts.length){
+            el.innerHTML=tabBar+`<div class="inv-empty">
+                <div style="font-size:52px;margin-bottom:12px">💎</div>
+                <div style="font-weight:700;font-size:15px">Немає артефактів</div>
+                <div style="font-size:12px;opacity:.6;margin-top:4px">Артефакти видаються адміністратором</div>
+            </div>`;
+            return;
+        }
+        let ah=tabBar;
+        arts.forEach((art,i)=>{
+            const active=!!art.active;
+            const artIcon = art.photoUrl
+                ? `<div style="width:56px;height:56px;border-radius:14px;overflow:hidden;border:2px solid rgba(var(--accent-rgb),.35);flex-shrink:0;background:rgba(255,255,255,.05)"><img src="${art.photoUrl}" style="width:100%;height:100%;object-fit:cover"></div>`
+                : `<div style="width:56px;height:56px;border-radius:14px;background:rgba(var(--accent-rgb),.12);border:1.5px solid rgba(var(--accent-rgb),.25);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0">${art.emoji||'💎'}</div>`;
+            ah+=`<div style="background:${active?'rgba(var(--accent-rgb),.1)':'rgba(255,255,255,.04)'};border:1.5px solid ${active?'rgba(var(--accent-rgb),.4)':'rgba(255,255,255,.08)'};border-radius:14px;padding:13px;margin-bottom:10px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden">
+                ${active?`<div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)"></div>`:''}
+                ${artIcon}
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:3px">${art.name}</div>
+                    <div style="font-size:11px;color:var(--accent2);font-weight:700">+${art.bonus}% до перемог</div>
+                    ${art.desc?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${art.desc}</div>`:''}
+                    ${active?`<div style="font-size:10px;color:var(--success);font-weight:700;margin-top:4px">✦ Активний</div>`:''}
+                </div>
+                <button onclick="equipArtifact(${i})" style="padding:8px 12px;border-radius:10px;border:1.5px solid ${active?'rgba(var(--accent-rgb),.5)':'rgba(255,255,255,.15)'};background:${active?'rgba(var(--accent-rgb),.2)':'rgba(255,255,255,.06)'};color:${active?'var(--accent2)':'var(--muted)'};font-weight:700;font-size:12px;font-family:inherit;cursor:pointer;flex-shrink:0">${active?'✅':'Взяти'}</button>
+            </div>`;
+        });
+        el.innerHTML=ah;
+        return;
+    }
+
+    // PETS TAB
+    const dexBtn=`<button class="btn-dex" onclick="togglePokedex()">📖 Покедекс</button>`;
     if(!s.inv||!s.inv.length){
-        el.innerHTML=dexBtn+`<div class="inv-empty">
+        el.innerHTML=tabBar+dexBtn+`<div class="inv-empty">
             <div style="font-size:52px;margin-bottom:12px">🥚</div>
             <div style="font-weight:700;font-size:15px">${L('invEmpty')}</div>
             <div style="font-size:12px;opacity:.6;margin-top:4px">${L('invEmptySub')}</div>
         </div>`;
         return;
     }
-    let h=dexBtn;
+
+    // Collect BB panel — show if any pet has bbph
+    const totalBBph = getPetTotalBBph();
+    const pendingBB = getPetPendingIncome();
+    const now = Date.now();
+    const lastCol = s.lastPetCollect || now;
+    const elapsed = Math.min((now - lastCol)/3600000, 24);
+    let collectPanel = '';
+    if(totalBBph > 0){
+        const hoursStr = elapsed >= 1 ? `${elapsed.toFixed(1)} год` : `${Math.round(elapsed*60)} хв`;
+        collectPanel = `<div style="background:rgba(var(--accent-rgb),.08);border:1.5px solid rgba(var(--accent-rgb),.25);border-radius:14px;padding:13px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
+            <div style="font-size:30px">🐾</div>
+            <div style="flex:1">
+                <div style="font-size:13px;font-weight:800;color:var(--accent2)">Пасивний дохід</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">${totalBBph} BB/год · накопичено за ${hoursStr}</div>
+                <div style="font-size:18px;font-weight:900;color:var(--success);margin-top:4px">+${pendingBB} BB</div>
+            </div>
+            <button onclick="collectPetIncome()" style="padding:10px 14px;border-radius:12px;border:1.5px solid rgba(var(--accent-rgb),.5);background:rgba(var(--accent-rgb),.2);color:var(--accent2);font-weight:800;font-size:13px;font-family:inherit;cursor:pointer;flex-shrink:0;${pendingBB<=0?'opacity:.4;cursor:not-allowed':''}">
+                ${pendingBB>0?'💰 Зібрати':'⏳ Копиться'}
+            </button>
+        </div>`;
+    }
+
+    let h=tabBar+collectPanel+dexBtn;
     s.inv.forEach((p,i)=>{
         const eq=s.p&&s.p.id===p.id;
         const cid=`pet-vis-${i}`;
         const pvl=p.lvl||1, pxp=s.p&&s.p.id===p.id?s.x:0;
         const pct=eq?Math.min((pxp/xpForLevel(pvl))*100,100):0;
         const qsPrice = Math.floor(p.m * 50);
+        // Photo or emoji/canvas
+        const petImg = p.photoUrl
+            ? `<div style="width:68px;height:68px;flex-shrink:0;border-radius:12px;overflow:hidden;border:2px solid ${p.c}44;background:rgba(255,255,255,.05)"><img src="${p.photoUrl}" style="width:100%;height:100%;object-fit:cover"></div>`
+            : `<div id="${cid}" data-size="68" style="flex-shrink:0"></div>`;
         h+=`<div class="pet-card${eq?' pet-eq':''}">
             <div class="pet-stripe" style="background:${p.c}"></div>
-            <div id="${cid}" data-size="68" style="flex-shrink:0"></div>
+            ${petImg}
             <div class="pet-info" style="overflow:hidden">
                 <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
                     <div class="pet-badge" style="background:${p.c}22;color:${p.c};border:1px solid ${p.c}44">${p.r}</div>
@@ -1171,6 +1284,7 @@ function renderInv(){
                 </div>
                 <div class="pet-name">${p.n}</div>
                 <div class="pet-stats"><span>${L('bonusWord')} <b style="color:${p.c}">x${p.m.toFixed(3)}</b> · LVL <b style="color:#fff">${pvl}</b></span></div>
+                ${p.bbph>0?`<div style="font-size:10px;color:var(--accent2);font-weight:700;margin-top:2px">💰 ${p.bbph} BB/год офлайн</div>`:''}
                 ${eq?`<div style="margin-top:5px">
                     <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:2px">
                         <span>XP</span><span>${pxp}/${xpForLevel(pvl)}</span>
@@ -1186,9 +1300,18 @@ function renderInv(){
         </div>`;
     });
     el.innerHTML=h;
-    requestAnimationFrame(()=>{ s.inv.forEach((p,i)=>startPetAnim(`pet-vis-${i}`,p)); });
+    // Only animate pets without photoUrl
+    requestAnimationFrame(()=>{ s.inv.forEach((p,i)=>{ if(!p.photoUrl) startPetAnim(`pet-vis-${i}`,p); }); });
 }
 window.equip=id=>{s.p=s.inv.find(i=>i.id===id);save();renderInv();ren();};
+window.equipArtifact=function(idx){
+    if(!s.artifacts) s.artifacts=[];
+    const wasActive=s.artifacts[idx]&&s.artifacts[idx].active;
+    s.artifacts.forEach(a=>a.active=false);
+    if(!wasActive) s.artifacts[idx].active=true;
+    save(); renderInv(); ren();
+    showToast(wasActive?'🔓 Артефакт знятий':'💎 Артефакт активовано!');
+};
 window.quickSell=(petId,price)=>{
     const pet=s.inv.find(p=>p.id===petId);
     if(!pet) return;
@@ -1504,8 +1627,13 @@ window.play=()=>{
     } else if(g==='bj') startBJ(bt);
 };
 
+function getArtifactBonus(){
+    const activeArt=(s.artifacts||[]).find(a=>a.active);
+    return activeArt ? 1 + (activeArt.bonus||0)/100 : 1;
+}
+
 function res(win,bt,m,msg){
-    const bon=s.p?s.p.m:1;
+    const bon=(s.p?s.p.m:1) * getArtifactBonus();
     if(win){const w=(bt*m-bt)*bon;s.b+=w;s.x+=Math.floor(bt/2);document.getElementById('g-stat').innerHTML=`<span style="color:var(--success)">+${w.toFixed(2)} BB</span><br><small>${msg}</small>`;checkPetLevelUp();dailyProgress('win');dailyProgress('play');}
     else{s.b-=bt;document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bt.toFixed(2)} BB</span><br><small>${msg}</small>`;dailyProgress('lose');dailyProgress('play');}
     save();
@@ -1562,6 +1690,8 @@ function loadAdmin(){
         <div class="a-tab ${currentAdminTab==='stats'?'active':''}"     onclick="setAdminTab('stats')">📊 Стат</div>
         <div class="a-tab ${currentAdminTab==='balance'?'active':''}"   onclick="setAdminTab('balance')">💰 BB</div>
         <div class="a-tab ${currentAdminTab==='inv'?'active':''}"       onclick="setAdminTab('inv')">🐾 Пети</div>
+        <div class="a-tab ${currentAdminTab==='createpet'?'active':''}" onclick="setAdminTab('createpet')">➕🐾</div>
+        <div class="a-tab ${currentAdminTab==='artifacts'?'active':''}" onclick="setAdminTab('artifacts')">💎 Арт</div>
         <div class="a-tab ${currentAdminTab==='petmult'?'active':''}"   onclick="setAdminTab('petmult')">⚡ Множ.</div>
         <div class="a-tab ${currentAdminTab==='promo'?'active':''}"     onclick="setAdminTab('promo')">🎟 Промо</div>
         <div class="a-tab ${currentAdminTab==='channels'?'active':''}"  onclick="setAdminTab('channels')">📢</div>
@@ -1569,6 +1699,83 @@ function loadAdmin(){
         <div class="a-tab ${currentAdminTab==='adoptme'?'active':''}"   onclick="setAdminTab('adoptme')">AM</div>
         <div class="a-tab ${currentAdminTab==='orders'?'active':''}"    onclick="setAdminTab('orders')" id="admin-orders-tab">📬 <span id="admin-orders-badge" style="display:none;background:#ef4444;color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;margin-left:2px">!</span></div>
     </div>`;
+
+    // ── СТВОРИТИ ПЕТА ──
+    if(currentAdminTab==='createpet'){
+        document.getElementById('admin-list').innerHTML=makeTabs()+`
+        <div class="admin-card">
+            <div class="card-title">➕ Створити пета і видати гравцю</div>
+
+            <label class="field-label">Фото пета (URL зображення)</label>
+            <input type="text" id="cp-photo" placeholder="https://i.imgur.com/..." style="margin-bottom:6px" oninput="previewPetPhoto()">
+            <div id="cp-photo-preview" style="display:none;margin-bottom:10px;text-align:center">
+                <img id="cp-photo-img" src="" style="width:80px;height:80px;object-fit:contain;border-radius:14px;border:2px solid rgba(var(--accent-rgb),.3);background:rgba(255,255,255,.05)">
+                <div style="font-size:10px;color:var(--muted);margin-top:4px">Превʼю фото</div>
+            </div>
+
+            <label class="field-label">Emoji (якщо немає фото)</label>
+            <input type="text" id="cp-emoji" placeholder="🐶" style="font-size:24px;text-align:center;margin-bottom:8px">
+
+            <label class="field-label">Назва</label>
+            <input type="text" id="cp-name" placeholder="Золотий Дракон" style="margin-bottom:8px">
+
+            <label class="field-label">Рідкість</label>
+            <select id="cp-rarity" style="margin-bottom:8px">
+                <option value="Звичайний">Звичайний</option>
+                <option value="Незвичайний">Незвичайний</option>
+                <option value="Рідкісний">Рідкісний</option>
+                <option value="Епічний" selected>Епічний</option>
+                <option value="Легендарний">Легендарний</option>
+                <option value="Міфічний">Міфічний</option>
+            </select>
+
+            <label class="field-label">Бонус до ставок (множник, напр. 1.15)</label>
+            <input type="number" id="cp-mult" placeholder="1.15" value="1.10" step="0.005" min="1" max="5" style="margin-bottom:8px">
+
+            <label class="field-label">BB/год (пасивний дохід офлайн)</label>
+            <input type="number" id="cp-bbph" placeholder="10" value="0" min="0" style="margin-bottom:8px">
+            <div style="font-size:10px;color:var(--muted);margin-bottom:10px">💡 Гравець сам забирає накопичені BB при вході в гру (макс. 24год офлайн)</div>
+
+            <label class="field-label">ID гравця Telegram</label>
+            <input type="text" id="cp-uid" placeholder="123456789" style="margin-bottom:12px">
+
+            <button class="btn" onclick="adminCreateAndGivePet()">🐾 Створити і видати</button>
+        </div>`;
+        return;
+    }
+
+    // ── АРТЕФАКТИ ──
+    if(currentAdminTab==='artifacts'){
+        document.getElementById('admin-list').innerHTML=makeTabs()+`
+        <div class="admin-card">
+            <div class="card-title">💎 Створити артефакт і видати гравцю</div>
+
+            <label class="field-label">Фото артефакту (URL зображення)</label>
+            <input type="text" id="art-photo" placeholder="https://i.imgur.com/..." style="margin-bottom:6px" oninput="previewArtPhoto()">
+            <div id="art-photo-preview" style="display:none;margin-bottom:10px;text-align:center">
+                <img id="art-photo-img" src="" style="width:80px;height:80px;object-fit:contain;border-radius:14px;border:2px solid rgba(var(--accent-rgb),.3);background:rgba(255,255,255,.05)">
+                <div style="font-size:10px;color:var(--muted);margin-top:4px">Превʼю фото</div>
+            </div>
+
+            <label class="field-label">Emoji (якщо немає фото)</label>
+            <input type="text" id="art-emoji" placeholder="💎" style="font-size:24px;text-align:center;margin-bottom:8px">
+
+            <label class="field-label">Назва</label>
+            <input type="text" id="art-name" placeholder="Амулет Удачі" style="margin-bottom:8px">
+
+            <label class="field-label">Опис (необов'язково)</label>
+            <input type="text" id="art-desc" placeholder="Давній артефакт що приносить удачу..." style="margin-bottom:8px">
+
+            <label class="field-label">Бонус до перемог (%)</label>
+            <input type="number" id="art-bonus" placeholder="10" value="5" min="1" max="100" style="margin-bottom:12px">
+
+            <label class="field-label">ID гравця Telegram</label>
+            <input type="text" id="art-uid" placeholder="123456789" style="margin-bottom:12px">
+
+            <button class="btn" onclick="adminCreateAndGiveArtifact()">💎 Створити і видати</button>
+        </div>`;
+        return;
+    }
 
     // ── ОГОЛОШЕННЯ ──
     if(currentAdminTab==='announce'){
@@ -1952,6 +2159,78 @@ window.adminSavePetMult=(key,petName)=>{
 };
 window.adminResetPetMult=(key)=>{
     db.ref('petmults/'+key).remove().then(()=>{showToast('↩ Повернуто до базового');loadAdmin();});
+};
+
+// ── СТВОРЕННЯ ПЕТА + ВИДАЧА ──
+// Preview helpers for admin photo fields
+window.previewPetPhoto=function(){
+    const url=(document.getElementById('cp-photo')?.value||'').trim();
+    const wrap=document.getElementById('cp-photo-preview');
+    const img=document.getElementById('cp-photo-img');
+    if(url&&wrap&&img){wrap.style.display='block';img.src=url;}
+    else if(wrap) wrap.style.display='none';
+};
+window.previewArtPhoto=function(){
+    const url=(document.getElementById('art-photo')?.value||'').trim();
+    const wrap=document.getElementById('art-photo-preview');
+    const img=document.getElementById('art-photo-img');
+    if(url&&wrap&&img){wrap.style.display='block';img.src=url;}
+    else if(wrap) wrap.style.display='none';
+};
+
+window.adminCreateAndGivePet=async function(){
+    const photo=(document.getElementById('cp-photo')?.value||'').trim();
+    const emoji=(document.getElementById('cp-emoji')?.value||'').trim()||'🐾';
+    const name=(document.getElementById('cp-name')?.value||'').trim();
+    const rarity=document.getElementById('cp-rarity')?.value||'Епічний';
+    const mult=parseFloat(document.getElementById('cp-mult')?.value)||1.10;
+    const bbph=parseFloat(document.getElementById('cp-bbph')?.value)||0;
+    const uid=(document.getElementById('cp-uid')?.value||'').trim();
+    if(!name) return showToast('❌ Введи назву пета!');
+    if(!uid)  return showToast('❌ Введи ID гравця!');
+    const RARITY_COLORS={'Звичайний':'#94a3b8','Незвичайний':'#3b82f6','Рідкісний':'#a855f7','Епічний':'#f59e0b','Легендарний':'#f43f5e','Міфічний':'#06b6d4'};
+    const pet={
+        id:Date.now(),n:name,s:emoji,r:rarity,
+        m:Math.round(mult*1000)/1000,
+        c:RARITY_COLORS[rarity]||'#94a3b8',
+        lvl:1,bbph:bbph,adminCreated:true,
+        // Фото — зберігаємо як photoUrl, відображається замість emoji
+        ...(photo ? {photoUrl:photo} : {})
+    };
+    const snap=await db.ref('players/'+uid).once('value');
+    if(!snap.exists()) return showToast('❌ Гравця не знайдено!');
+    const pData=snap.val();
+    const inv=pData.inv||[];
+    inv.push(pet);
+    // Також записуємо lastPetCollect якщо не існує (щоб офлайн дохід рахувався з моменту видачі)
+    const updates={'inv':inv};
+    if(!pData.lastPetCollect) updates['lastPetCollect']=Date.now();
+    await db.ref('players/'+uid).update(updates);
+    showToast(`✅ ${photo?'📸':emoji} ${name} видано гравцю! BB/год: ${bbph}`);
+};
+
+// ── СТВОРЕННЯ АРТЕФАКТУ + ВИДАЧА ──
+window.adminCreateAndGiveArtifact=async function(){
+    const photo=(document.getElementById('art-photo')?.value||'').trim();
+    const emoji=(document.getElementById('art-emoji')?.value||'').trim()||'💎';
+    const name=(document.getElementById('art-name')?.value||'').trim();
+    const desc=(document.getElementById('art-desc')?.value||'').trim();
+    const bonus=parseFloat(document.getElementById('art-bonus')?.value)||5;
+    const uid=(document.getElementById('art-uid')?.value||'').trim();
+    if(!name) return showToast('❌ Введи назву артефакту!');
+    if(!uid)  return showToast('❌ Введи ID гравця!');
+    const artifact={
+        id:Date.now(),name,emoji,desc,
+        bonus:Math.round(bonus),active:false,
+        ...(photo ? {photoUrl:photo} : {})
+    };
+    const snap=await db.ref('players/'+uid).once('value');
+    if(!snap.exists()) return showToast('❌ Гравця не знайдено!');
+    const pData=snap.val();
+    const arts=pData.artifacts||[];
+    arts.push(artifact);
+    await db.ref('players/'+uid+'/artifacts').set(arts);
+    showToast(`✅ ${photo?'📸':emoji} ${name} (+${bonus}%) видано гравцю!`);
 };
 
 // ── Хелпери промокодів ──
@@ -2523,3 +2802,47 @@ setTimeout(initAnnounce, 1500);
 setInterval(()=>{
     if(document.getElementById('v-shop')?.style.display!=='none') renderShop();
 }, 60000);
+
+// ── ПАСИВНИЙ ДОХІД ПЕТІВ (BB/год, ОФЛАЙН) ──
+function getPetTotalBBph(){
+    return (s.inv||[]).reduce((sum,p)=>(p.bbph&&p.bbph>0?sum+p.bbph:sum),0);
+}
+
+function getPetPendingIncome(){
+    const now = Date.now();
+    const lastCollect = s.lastPetCollect || now;
+    const elapsedHours = Math.min((now - lastCollect) / 3600000, 24); // макс 24год
+    const totalBBph = getPetTotalBBph();
+    if(totalBBph <= 0 || elapsedHours < 0.01) return 0;
+    return Math.floor(totalBBph * elapsedHours);
+}
+
+// Гравець сам натискає "Зібрати" — ця функція викликається з кнопки
+window.collectPetIncome=function(){
+    const earned = getPetPendingIncome();
+    if(earned <= 0) return showToast('🕐 Ще нічого не накопичилось');
+    s.b += earned;
+    s.lastPetCollect = Date.now();
+    save();
+    showToast(`🐾 Зібрано +${earned} BB від петів!`);
+    ren();
+    renderInv();
+};
+
+// При вході — автоматично показуємо скільки накопичилось (але не забираємо)
+function checkPetIncomeOnLogin(){
+    if(!_splashFired) return;
+    const earned = getPetPendingIncome();
+    const totalBBph = getPetTotalBBph();
+    if(totalBBph > 0 && earned > 0){
+        // Ставимо lastPetCollect якщо ще не встановлено
+        if(!s.lastPetCollect){ s.lastPetCollect = Date.now(); save(); return; }
+        setTimeout(()=>{
+            showToast(`🐾 Накопичено <b>${earned} BB</b> від петів — зайди в Пети щоб зібрати!`);
+        }, 2500);
+    } else if(totalBBph > 0 && !s.lastPetCollect){
+        s.lastPetCollect = Date.now(); save();
+    }
+}
+
+setTimeout(checkPetIncomeOnLogin, 3500);

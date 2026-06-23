@@ -591,25 +591,23 @@ nav{
 
 <div class="container">
 
-  <!-- PET HUD -->
-  <div class="pet-hud">
-    <div class="pet-hud-img" id="p-hud-wrap">
-      <span id="p-img">🥚</span>
-    </div>
+  <!-- PET HUD (прихований, дані збережено) -->
+  <div class="pet-hud" style="display:none">
+    <div class="pet-hud-img" id="p-hud-wrap"><span id="p-img">🥚</span></div>
     <div class="pet-hud-info">
       <div class="pet-hud-top">
         <div id="p-rarity" class="rarity-badge" style="background:rgba(107,114,128,.2);color:#9ca3af">НЕМАЄ</div>
         <div class="pet-hud-name" id="p-name">Обери пета</div>
       </div>
-      <div class="xp-row">
-        <span id="pet-bonus-lbl">БОНУС</span>
-        <span>LVL <b id="p-l" style="color:#fff">1</b> · <span id="xp-text" style="color:var(--accent)">0 XP</span></span>
-      </div>
+      <div class="xp-row"><span id="pet-bonus-lbl">БОНУС</span><span>LVL <b id="p-l">1</b> · <span id="xp-text">0 XP</span></span></div>
       <div class="xp-bar"><div id="xp-f" class="xp-fill" style="width:0%"></div></div>
-      <div class="pet-hud-stats">
-        <span><b id="p-m">x1.000</b></span>
-      </div>
+      <div class="pet-hud-stats"><span><b id="p-m">x1.000</b></span></div>
     </div>
+  </div>
+
+  <!-- ARTIFACT HUD -->
+  <div id="artifact-hud" style="display:none;align-items:center;gap:12px;background:rgba(0,0,0,.4);border:1.5px solid rgba(var(--accent-rgb),.25);border-radius:var(--radius);padding:11px 13px;margin-bottom:10px;position:relative;overflow:hidden">
+    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.7"></div>
   </div>
 
   <!-- GAMES -->
