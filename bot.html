@@ -36,8 +36,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .sp-logo{display:flex;flex-direction:column;align-items:center;gap:16px;animation:spIn .9s cubic-bezier(.34,1.56,.64,1) both}
 @keyframes spIn{from{transform:scale(.6) translateY(20px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
 .sp-icon{width:96px;height:96px;border-radius:28px;background:linear-gradient(145deg,#1e1600,#130f01);border:1px solid rgba(200,146,42,.4);display:flex;align-items:center;justify-content:center;font-size:48px;box-shadow:0 0 0 1px rgba(200,146,42,.1),0 20px 60px rgba(0,0,0,.5),0 0 80px rgba(200,146,42,.15),inset 0 1px 0 rgba(255,255,255,.06)}
-.sp-title{font-family:var(--display);font-size:26px;font-weight:900;letter-spacing:8px;color:transparent;background:linear-gradient(135deg,var(--gold2),var(--gold3));-webkit-background-clip:text;background-clip:text;text-align:center}
-.sp-sub{font-size:9px;font-weight:700;letter-spacing:6px;color:var(--sub);text-transform:uppercase;margin-top:-10px}
+.sp-title{font-family:var(--display);font-size:18px;font-weight:900;letter-spacing:2px;color:transparent;background:linear-gradient(135deg,var(--gold2),var(--gold3));-webkit-background-clip:text;background-clip:text;text-align:center;white-space:nowrap}
+.sp-sub{font-size:9px;font-weight:600;letter-spacing:2px;color:var(--sub);text-transform:none;margin-top:-6px;text-align:center}
 .sp-bar{width:100px;height:1.5px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;animation:fadeUp .5s .6s ease both}
 .sp-fill{height:100%;width:0;background:linear-gradient(90deg,transparent,var(--gold2),var(--gold3),var(--gold2),transparent);animation:loadBar 1.8s .65s cubic-bezier(.4,0,.2,1) forwards}
 @keyframes loadBar{to{width:100%}}
@@ -158,8 +158,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .prof-id{font-size:11px;color:var(--sub);font-family:var(--mono);margin-top:-5px}
 
 /* FLOW */
-#fov{position:fixed;inset:0;z-index:300;background:var(--bg);display:none;flex-direction:column}
-#fov.open{display:flex;animation:pageIn .25s cubic-bezier(.4,0,.2,1)}
+#fov{position:fixed;inset:0;z-index:300;background:var(--bg);display:none;flex-direction:column;pointer-events:none}
+#fov.open{display:flex;pointer-events:all}
 .fhdr{background:linear-gradient(180deg,var(--s1) 0%,rgba(13,15,20,.95) 100%);border-bottom:1px solid var(--bd);padding:13px 16px;display:flex;align-items:center;gap:11px;flex-shrink:0;backdrop-filter:blur(20px)}
 .fbk{width:34px;height:34px;border-radius:10px;background:var(--s3);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--muted);cursor:pointer;flex-shrink:0;transition:all .15s}
 .fbk:active{background:var(--s4);transform:scale(.9)}
@@ -219,11 +219,11 @@ textarea.fif{resize:none}
 .acard{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:14px;position:relative;overflow:hidden}
 .acard::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent)}
 .acard-t{font-size:12px;font-weight:700;margin-bottom:10px;color:var(--text)}
-.arow{display:flex;gap:7px;margin-bottom:8px}
-.ain{flex:1;background:var(--s3);border:1.5px solid var(--bd);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--text);font-family:var(--font);outline:none;transition:border-color .2s}
+.arow{display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap}
+.ain{flex:1;min-width:0;background:var(--s3);border:1.5px solid var(--bd);border-radius:10px;padding:9px 10px;font-size:12px;color:var(--text);font-family:var(--font);outline:none;transition:border-color .2s}
 .ain:focus{border-color:rgba(200,146,42,.4)}
 .ain::placeholder{color:var(--sub)}
-.abtn{padding:9px 14px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;transition:all .15s}
+.abtn{padding:9px 12px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;transition:all .15s;flex-shrink:0}
 .abtn-g{background:linear-gradient(135deg,var(--green),#16a34a);color:#000;box-shadow:0 3px 10px rgba(34,197,94,.2)}
 .abtn-r{background:linear-gradient(135deg,var(--red),#dc2626);color:#fff;box-shadow:0 3px 10px rgba(239,68,68,.2)}
 .abtn:active{transform:scale(.92)}
@@ -316,8 +316,8 @@ nav.bnav { flex-shrink: 0; }
   <div class="sp-logo">
     <div class="sp-icon">🐻</div>
     <div>
-      <div class="sp-title">BEARS</div>
-      <div class="sp-sub">shop & trade</div>
+      <div class="sp-title">BEARS BOT</div>
+      <div class="sp-sub">Bears company studio</div>
     </div>
   </div>
   <div class="sp-bar"><div class="sp-fill"></div></div>
@@ -415,9 +415,35 @@ nav.bnav { flex-shrink: 0; }
     <div class="pin-lbl">Нікнейм</div>
     <input class="pin" id="nickInp" placeholder="Введіть нікнейм...">
   </div>
-  <div style="padding:10px 18px">
+  <div style="padding:8px 18px">
     <button class="fbtn fbtn-g" onclick="saveNick()">Зберегти нік</button>
   </div>
+
+  <!-- Theme toggle -->
+  <div style="padding:0 18px;margin-top:4px">
+    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:13px;font-weight:700">🌗 Тема</div>
+        <div style="font-size:11px;color:var(--sub);margin-top:2px" id="themeLabel">Темна</div>
+      </div>
+      <div onclick="toggleTheme()" style="width:48px;height:26px;border-radius:13px;background:var(--s3);border:1px solid var(--bd);cursor:pointer;position:relative;transition:.3s" id="themeToggle">
+        <div id="themeThumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--sub);transition:.3s"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Language -->
+  <div style="padding:8px 18px">
+    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">🌐 Мова інтерфейсу</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="setLang('uk')" id="langUk" style="flex:1;padding:9px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);border:1.5px solid rgba(200,146,42,.4);background:rgba(200,146,42,.1);color:var(--gold2)">🇺🇦 Укр</button>
+        <button onclick="setLang('ru')" id="langRu" style="flex:1;padding:9px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);border:1px solid var(--bd);background:var(--s3);color:var(--muted)">🇷🇺 Рус</button>
+        <button onclick="setLang('en')" id="langEn" style="flex:1;padding:9px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);border:1px solid var(--bd);background:var(--s3);color:var(--muted)">🇬🇧 Eng</button>
+      </div>
+    </div>
+  </div>
+
   <div class="sec">
     <div class="sec-hd"><div class="sec-title">Вся історія</div></div>
     <div class="hprev" id="fullHistList"><div class="empty-state">Операцій немає</div></div>
@@ -430,14 +456,19 @@ nav.bnav { flex-shrink: 0; }
 
   <div class="asec">
     <div class="asec-lbl">💬 Чат</div>
-    <div class="acard">
-      <div id="adminConvEl"><div class="pend-none">Немає повідомлень</div></div>
-      <div style="margin-top:8px">
-        <select class="asel" id="adminTargetSel"><option value="">Оберіть юзера...</option></select>
-        <div class="areply">
-          <textarea class="areply-inp" id="adminReplyInp" placeholder="Відповідь..." rows="2"></textarea>
-          <button class="areply-btn" onclick="adminSend()">➤</button>
-        </div>
+    <div class="acard" id="adminChatCard">
+      <div id="adminUserListEl"><div class="pend-none">Завантаження...</div></div>
+    </div>
+    <!-- Chat with specific user (hidden by default) -->
+    <div class="acard" id="adminSingleChat" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <button onclick="closeAdminUserChat()" style="background:var(--s3);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;color:var(--muted);font-size:13px;cursor:pointer;font-family:var(--font)">← Назад</button>
+        <div style="font-size:13px;font-weight:700" id="adminChatUserLabel">Чат</div>
+      </div>
+      <div id="adminSingleMsgs" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+      <div class="areply">
+        <textarea class="areply-inp" id="adminReplyInp" placeholder="Відповідь..." rows="2"></textarea>
+        <button class="areply-btn" onclick="adminSend()">➤</button>
       </div>
     </div>
   </div>
@@ -606,9 +637,12 @@ function showToast(msg){
   clearTimeout(_toastT);_toastT=setTimeout(function(){t.classList.remove('show');},2500);
 }
 function notifyAdmins(text){
+  // Write notification to each admin's special notifications + to user's chat for context
   ADMIN_IDS.forEach(function(aid){
-    db.ref('chat/'+aid).push({from:'user',text:text,time:nowTime(),nick:nick,userId:myId,isNotify:true});
+    db.ref('notifications/'+aid).push({from:'system',text:text,time:nowTime(),nick:nick,userId:myId,isNotify:true});
   });
+  // Also write to user's own chat thread so admins see it when opening that user
+  db.ref('chat/'+myId).push({from:'user',text:'📋 ЗАЯВКА: '+text,time:nowTime(),nick:nick,userId:myId,isNotify:true});
 }
 
 // ════════════════════════════════════════════
@@ -656,9 +690,19 @@ function setBalance(v){
 // FIREBASE
 // ════════════════════════════════════════════
 function initFB(){
-  // Читаємо баланс в реальному часі — ТІЛЬКИ читаємо, ніколи не пишемо 0
+  // Читаємо баланс в реальному часі з users/
   db.ref('users/'+myId+'/balance').on('value',function(snap){
-    if(snap.val()!==null) setBalance(snap.val());
+    var v=snap.val();
+    if(v!==null && v!==undefined) setBalance(v);
+  });
+  // Також слухаємо players/ (казино пише туди)
+  db.ref('players/'+myId+'/botBalance').on('value',function(snap){
+    var v=snap.val();
+    if(v!==null && v!==undefined){
+      setBalance(v);
+      // Синхронізуємо до users/ щоб інші могли читати
+      db.ref('users/'+myId+'/balance').set(v);
+    }
   });
 
   // Профіль
@@ -666,7 +710,8 @@ function initFB(){
     var d=snap.val();
     if(d&&d.nick){nick=d.nick;applyNick();}
     // Реєструємо без перезапису балансу
-    db.ref('users/'+myId).update({nick:nick,id:myId});
+    db.ref('users/'+myId+'/nick').set(nick);
+  db.ref('users/'+myId+'/id').set(myId);
   });
 
   // Статистика і нік
@@ -733,7 +778,8 @@ function addHist(item){
   updateStats();
   db.ref('history/'+myId+'/'+item.id).set(item);
   db.ref('botdata/'+myId+'/stats').set(stats);
-  db.ref('users/'+myId).update({nick:nick,id:myId});
+  db.ref('users/'+myId+'/nick').set(nick);
+  db.ref('users/'+myId+'/id').set(myId);
   renderHistory();
 }
 function renderHistory(){
@@ -808,8 +854,21 @@ function openShopFlow(key){
     var item={type:'shop',label:'Купівля товару',detail:pet.key+' · '+pet.price+' R',status:'pending',petKey:pet._key,petName:pet.key,price:pet.price};
     addHist(item);
     db.ref('pending/'+item.id).set(item);
-    notifyAdmins('🛒 Нове замовлення від #'+myId+' ('+nick+'): '+pet.key+' за '+pet.price+' R');
-    closeFlow(); showToast('✅ Замовлення відправлено!');
+    notifyAdmins('🛒 Замовлення від #'+myId+' ('+nick+'): '+pet.key+' · '+pet.price+' R');
+    // Show success screen
+    c.innerHTML='';
+    var wc=mk('div','fwc');
+    var ra=RC[pet.cat]||RC.common;
+    wc.innerHTML='<div class="fwi">'+(pet.emoji||'🐾')+'</div>'
+      +'<div class="fwt">Замовлення прийнято!</div>'
+      +'<div class="fwx" style="margin-bottom:12px">Ви придбали <b style=\'color:var(--text)\'>'+pet.key+'</b>'
+      +'<br><span style=\'color:'+ra.color+'\'>'+ra.label+'</span>'
+      +'<br><br>💰 Списано: <b style=\'color:var(--gold2)\'>'+pet.price+' R</b>'
+      +'<br>💳 Залишок: <b style=\'color:var(--gold2)\'>'+nb+' R</b>'
+      +'<br><br>👨‍💼 Адміністратор зв’яжеться з вами у найближчий час.</div>';
+    var b2=mk('button','fbtn fbtn-g'); b2.textContent='На головну';
+    b2.onclick=function(){closeFlow();switchPage('home');};
+    c.appendChild(wc); c.appendChild(b2);
   };
   yn.appendChild(yes); yn.appendChild(no);
   c.appendChild(conf); c.appendChild(err); c.appendChild(yn);
@@ -821,7 +880,12 @@ function openShopFlow(key){
 // ════════════════════════════════════════════
 var _chatSnap=null;
 function loadChat(){
-  el('chatDot').classList.remove('show');
+  var dot=el('chatDot');
+  if(dot) dot.classList.remove('show');
+  // Force re-render by reading current snapshot
+  db.ref('chat/'+myId).once('value',function(snap){
+    renderChat(snap);
+  });
 }
 function renderChat(snap){
   var body=el('chatBody'); if(!body) return;
@@ -853,9 +917,57 @@ function saveNick(){
   var v=(el('nickInp')||{value:''}).value.trim();
   if(!v){showToast('⚠️ Введіть нік');return;}
   nick=v; applyNick();
-  db.ref('users/'+myId).update({nick:nick,id:myId});
+  db.ref('users/'+myId+'/nick').set(nick);
+  db.ref('users/'+myId+'/id').set(myId);
   db.ref('botdata/'+myId+'/nick').set(nick);
   showToast('✅ Нік збережено!');
+}
+
+// ── THEME ──
+var isDark=true;
+function toggleTheme(){
+  isDark=!isDark;
+  applyTheme();
+  localStorage.setItem('theme',isDark?'dark':'light');
+}
+function applyTheme(){
+  var r=document.documentElement.style;
+  if(isDark){
+    r.setProperty('--bg','#06070a');r.setProperty('--s1','#0d0f14');
+    r.setProperty('--s2','#13161e');r.setProperty('--s3','#191d27');r.setProperty('--s4','#1f2330');
+    r.setProperty('--text','#eef0f8');r.setProperty('--sub','#64748b');r.setProperty('--muted','#9aa3b2');
+    r.setProperty('--bd','rgba(255,255,255,.1)');r.setProperty('--b2','rgba(255,255,255,.16)');
+    setText('themeLabel','Темна');
+    var t=el('themeToggle'); if(t) t.style.background='var(--s3)';
+    var th=el('themeThumb'); if(th){th.style.left='3px';th.style.background='var(--sub)';}
+  } else {
+    r.setProperty('--bg','#f0f2f5');r.setProperty('--s1','#ffffff');
+    r.setProperty('--s2','#ffffff');r.setProperty('--s3','#f4f5f8');r.setProperty('--s4','#eceef2');
+    r.setProperty('--text','#0f1117');r.setProperty('--sub','#64748b');r.setProperty('--muted','#4a5568');
+    r.setProperty('--bd','rgba(0,0,0,.08)');r.setProperty('--b2','rgba(0,0,0,.12)');
+    setText('themeLabel','Світла');
+    var t=el('themeToggle'); if(t) t.style.background='rgba(200,146,42,.3)';
+    var th=el('themeThumb'); if(th){th.style.left='25px';th.style.background='var(--gold)';}
+  }
+}
+
+// ── LANGUAGE ──
+var curLang='uk';
+var LANGS={
+  uk:{greet:'Вітаємо,',shopTitle:'Магазин',chatTitle:'Чат',profTitle:'Профіль'},
+  ru:{greet:'Добро пожаловать,',shopTitle:'Магазин',chatTitle:'Чат',profTitle:'Профиль'},
+  en:{greet:'Welcome,',shopTitle:'Shop',chatTitle:'Chat',profTitle:'Profile'}
+};
+function setLang(l){
+  curLang=l;
+  localStorage.setItem('lang',l);
+  ['langUk','langRu','langEn'].forEach(function(id){
+    var e=el(id);
+    if(e){e.style.borderColor='var(--bd)';e.style.background='var(--s3)';e.style.color='var(--muted)';}
+  });
+  var active=el('lang'+l.charAt(0).toUpperCase()+l.slice(1));
+  if(active){active.style.borderColor='rgba(200,146,42,.4)';active.style.background='rgba(200,146,42,.1)';active.style.color='var(--gold2)';}
+  showToast('✅ Мову змінено');
 }
 
 // ════════════════════════════════════════════
@@ -1149,45 +1261,95 @@ function loadAdmin(){
 
 // ── Admin chat ──
 var _adminChatRef=null;
+var _adminOpenUid=null;
+var _adminChatUserRef=null;
+
 function loadAdminChat(){
-  var box=el('adminConvEl'), sel=el('adminTargetSel');
+  var box=el('adminUserListEl');
+  if(!box) return;
   if(_adminChatRef) _adminChatRef.off();
   _adminChatRef=db.ref('chat');
+  // Also listen for new notifications
+  db.ref('notifications/'+myId).on('value',function(nSnap){
+    var dot=el('chatDot'); if(nSnap&&nSnap.exists()&&dot) dot.classList.add('show');
+  });
   _adminChatRef.on('value',function(snap){
     if(!snap.exists()){box.innerHTML='<div class="pend-none">Немає повідомлень</div>';return;}
-    var html=''; var uids=[];
-    var curSelVal=sel?sel.value:'';
+    var html='';
     snap.forEach(function(uSnap){
-      var uid=uSnap.key; uids.push(uid);
-      html+='<div style="font-size:10px;color:var(--sub);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin:8px 0 5px">👤 '+uid+'</div>';
-      uSnap.forEach(function(mSnap){
-        var m=mSnap.val();
-        html+='<div class="acmsg '+(m.from==='user'?'fu':'fa')+'">'
-          +'<div class="acmsg-top"><span class="acmsg-who">'+(m.from==='user'?'👤 '+(m.nick||uid):'👨‍💼 Admin')+'</span>'
-          +'<span class="acmsg-time">'+m.time+'</span></div>'
-          +'<div class="acmsg-txt">'+m.text+'</div></div>';
-      });
-      html+='<button onclick="quickReply(\''+uid+'\')" style="width:100%;padding:7px;margin:4px 0 8px;background:rgba(200,146,42,.08);border:1px solid rgba(200,146,42,.2);border-radius:8px;color:var(--gold);font-size:11px;cursor:pointer;font-family:var(--font)">💬 Відповісти #'+uid+'</button>';
+      var uid=uSnap.key;
+      var msgs=[]; uSnap.forEach(function(m){msgs.push(m.val());});
+      var last=msgs[msgs.length-1]||{};
+      var unread=msgs.filter(function(m){return m.from==='user';}).length;
+      var hasNew=unread>0;
+      html+='<div onclick="openAdminUserChat(\''+uid+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer;transition:.15s">'
+        +'<div style="width:38px;height:38px;border-radius:11px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">👤</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">'
+        +uid
+        +(hasNew?'<span style="background:var(--red);color:#fff;font-size:9px;padding:2px 6px;border-radius:20px;font-weight:700">NEW</span>':'')
+        +'</div>'
+        +'<div style="font-size:11px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(last.text||'').slice(0,40)+'</div>'
+        +'</div>'
+        +'<div style="font-size:10px;color:var(--sub);flex-shrink:0">'+(last.time||'')+'</div>'
+        +'</div>';
     });
     box.innerHTML=html||'<div class="pend-none">Немає повідомлень</div>';
-    if(sel){
-      sel.innerHTML='<option value="">Оберіть юзера...</option>';
-      uids.forEach(function(u){sel.innerHTML+='<option value="'+u+'">'+u+'</option>';});
-    }
+    // Refresh open chat if active
+    if(_adminOpenUid) openAdminUserChat(_adminOpenUid);
   });
 }
-function quickReply(uid){
-  var sel=el('adminTargetSel'); if(sel) sel.value=uid;
-  var inp=el('adminReplyInp'); if(inp) inp.focus();
+
+function openAdminUserChat(uid){
+  _adminOpenUid=uid;
+  var card=el('adminSingleChat');
+  var listCard=el('adminChatCard');
+  if(!card) return;
+  
+  setText('adminChatUserLabel','#'+uid);
+  card.style.display='block';
+  // Hide user list temporarily
+  var userList=el('adminUserListEl');
+  if(userList) userList.style.display='none';
+
+  var msgs=el('adminSingleMsgs');
+  if(!msgs) return;
+  
+  if(_adminChatUserRef) _adminChatUserRef.off();
+  _adminChatUserRef=db.ref('chat/'+uid);
+  _adminChatUserRef.on('value',function(snap){
+    if(!snap.exists()){msgs.innerHTML='<div class="pend-none">Немає повідомлень</div>';return;}
+    var html='';
+    snap.forEach(function(ch){
+      var m=ch.val();
+      html+='<div class="acmsg '+(m.from==='user'?'fu':'fa')+'">'
+        +'<div class="acmsg-top">'
+        +'<span class="acmsg-who">'+(m.from==='user'?'👤 '+(m.nick||uid):'👨‍💼 Admin')+'</span>'
+        +'<span class="acmsg-time">'+m.time+'</span>'
+        +'</div>'
+        +'<div class="acmsg-txt">'+m.text+'</div>'
+        +'</div>';
+    });
+    msgs.innerHTML=html;
+    msgs.scrollTop=msgs.scrollHeight;
+  });
 }
+
+function closeAdminUserChat(){
+  _adminOpenUid=null;
+  if(_adminChatUserRef){_adminChatUserRef.off();_adminChatUserRef=null;}
+  var card=el('adminSingleChat'); if(card) card.style.display='none';
+  var userList=el('adminUserListEl'); if(userList) userList.style.display='';
+}
+
 function adminSend(){
-  var uid=(el('adminTargetSel')||{value:''}).value.trim();
+  var uid=_adminOpenUid;
   var text=(el('adminReplyInp')||{value:''}).value.trim();
-  if(!uid){showToast('⚠️ Оберіть юзера');return;}
+  if(!uid){showToast('⚠️ Відкрийте чат з юзером');return;}
   if(!text){showToast('⚠️ Введіть текст');return;}
   el('adminReplyInp').value='';
   db.ref('chat/'+uid).push({from:'admin',text:text,time:nowTime(),nick:'Admin'});
-  showToast('✅ Надіслано #'+uid);
+  showToast('✅ Надіслано');
 }
 
 // ── Admin pending ──
@@ -1369,6 +1531,13 @@ function onPetImg(inp){
 // ════════════════════════════════════════════
 // START
 // ════════════════════════════════════════════
+// Init theme
+var _savedTheme=localStorage.getItem('theme');
+if(_savedTheme==='light'){isDark=false;}
+applyTheme();
+// Init lang
+var _savedLang=localStorage.getItem('lang');
+if(_savedLang) setLang(_savedLang);
 applyNick();
 updateStats();
 initFB();
