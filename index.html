@@ -1137,22 +1137,35 @@ const ADMIN_ONLY_PETS = [
 // ЩОДЕННІ ЗАВДАННЯ
 // ============================================================
 const DAILY_QUESTS_DEF = [
-    {id:'play5', icon:'🎮', title:'Зіграй 5 ігор',        type:'play',   need:5, reward:{type:'xp',amount:300}},
-    {id:'open1', icon:'📦', title:'Відкрий 1 кейс',        type:'case',   need:1, reward:{type:'bb',amount:100}},
-    {id:'win3',  icon:'🏆', title:'Виграй 3 рази поспіль', type:'winrow', need:3, reward:{type:'bb',amount:200}},
+    // 🟢 Легкі
+    {id:'play5',   icon:'🎮', title:'Зіграй 5 ігор',              type:'play',   need:5,    reward:{type:'bb', amount:75},  tier:'easy'},
+    {id:'play15',  icon:'🕹️', title:'Зіграй 15 ігор',             type:'play',   need:15,   reward:{type:'bb', amount:150}, tier:'easy'},
+    {id:'open1',   icon:'📦', title:'Відкрий 1 кейс',             type:'case',   need:1,    reward:{type:'bb', amount:100}, tier:'easy'},
+    {id:'win3',    icon:'🏆', title:'Виграй 3 рази поспіль',      type:'winrow', need:3,    reward:{type:'bb', amount:200}, tier:'easy'},
+    // 🟡 Середні
+    {id:'win10',   icon:'🥇', title:'Виграй 10 ігор',             type:'win',    need:10,   reward:{type:'bb', amount:350}, tier:'med'},
+    {id:'bet500',  icon:'💸', title:'Постав 500 BB за день',      type:'betted', need:500,  reward:{type:'bb', amount:200}, tier:'med'},
+    {id:'open3',   icon:'🎁', title:'Відкрий 3 кейси',            type:'case',   need:3,    reward:{type:'bb', amount:300}, tier:'med'},
+    {id:'winrow5', icon:'🔥', title:'5 перемог поспіль',          type:'winrow', need:5,    reward:{type:'bb', amount:600}, tier:'med'},
+    // 🔴 Важкі
+    {id:'play30',  icon:'🎯', title:'Зіграй 30 ігор',             type:'play',   need:30,   reward:{type:'bb', amount:500}, tier:'hard'},
+    {id:'win25',   icon:'👑', title:'Виграй 25 ігор',             type:'win',    need:25,   reward:{type:'bb', amount:800}, tier:'hard'},
+    {id:'open5',   icon:'💥', title:'Відкрий 5 кейсів',           type:'case',   need:5,    reward:{type:'bb', amount:600}, tier:'hard'},
+    {id:'bet2000', icon:'💎', title:'Постав 2 000 BB за день',    type:'betted', need:2000, reward:{type:'bb', amount:700}, tier:'hard'},
+    {id:'winrow7', icon:'⚡', title:'7 перемог поспіль — ЛЕГЕНДА',type:'winrow', need:7,    reward:{type:'bb', amount:1500},tier:'hard'},
 ];
 
 function todayKey(){ return new Date().toISOString().slice(0,10); }
 
 function getDailyState(){
     if(!s.daily||s.daily.day!==todayKey())
-        s.daily={day:todayKey(),play:0,case:0,winrow:0,done:{}};
+        s.daily={day:todayKey(),play:0,case:0,winrow:0,win:0,betted:0,done:{}};
     return s.daily;
 }
 
 function dailyProgress(type,amount=1){
     const d=getDailyState();
-    if(type==='win')       d.winrow=(d.winrow||0)+1;
+    if(type==='win'){      d.winrow=(d.winrow||0)+1; d.win=(d.win||0)+1; }
     else if(type==='lose') d.winrow=0;
     else                   d[type]=(d[type]||0)+amount;
     DAILY_QUESTS_DEF.forEach(q=>{
@@ -1160,8 +1173,8 @@ function dailyProgress(type,amount=1){
         const cur=q.type==='winrow'?(d.winrow||0):(d[q.type]||0);
         if(cur>=q.need){
             d.done[q.id]=true;
-            if(q.reward.type==='bb'){s.b+=q.reward.amount;showToast(`\u2705 Завдання виконано! +${q.reward.amount} BB`);}
-            if(q.reward.type==='xp'){s.x=(s.x||0)+q.reward.amount;checkPetLevelUp();showToast(`\u2705 Завдання виконано! +${q.reward.amount} XP`);}
+            if(q.reward.type==='bb'){s.b+=q.reward.amount;showToast(`✅ Завдання виконано! +${q.reward.amount} BB`);}
+            if(q.reward.type==='xp'){s.x=(s.x||0)+q.reward.amount;checkPetLevelUp();showToast(`✅ Завдання виконано! +${q.reward.amount} XP`);}
         }
     });
     save();
@@ -1176,25 +1189,53 @@ function renderDailyQuests(){
     midnight.setHours(24,0,0,0);
     const diff=midnight-now;
     const hh=Math.floor(diff/3600000),mm=Math.floor((diff%3600000)/60000);
-    const rows=DAILY_QUESTS_DEF.map(q=>{
-        const done=!!d.done[q.id];
-        const cur=Math.min(q.type==='winrow'?(d.winrow||0):(d[q.type]||0),q.need);
-        const pct=Math.round(cur/q.need*100);
-        const rwStr=q.reward.type==='bb'?`+${q.reward.amount} BB`:`+${q.reward.amount} XP`;
-        return `<div class="dq-row${done?' dq-done':''}">
-            <div class="dq-icon">${q.icon}</div>
-            <div class="dq-info">
-                <div class="dq-title-q">${q.title}</div>
-                <div class="dq-bar-wrap"><div class="dq-bar" style="width:${pct}%"></div></div>
-                <div class="dq-sub">${cur}/${q.need} &middot; <b style="color:var(--accent2)">${rwStr}</b></div>
-            </div>
-            ${done?'<div class="dq-check">\u2705</div>':''}
-        </div>`;
-    }).join('');
+
+    const totalDone=DAILY_QUESTS_DEF.filter(q=>d.done[q.id]).length;
+    const totalBBLeft=DAILY_QUESTS_DEF.filter(q=>!d.done[q.id]&&q.reward.type==='bb').reduce((s,q)=>s+q.reward.amount,0);
+
+    const tiers=[
+        {label:'🟢 Легкі',   key:'easy'},
+        {label:'🟡 Середні', key:'med'},
+        {label:'🔴 Важкі',   key:'hard'},
+    ];
+
+    let rows='';
+    tiers.forEach(tier=>{
+        const qs=DAILY_QUESTS_DEF.filter(q=>q.tier===tier.key);
+        rows+=`<div style="font-size:10px;font-weight:800;color:#6b7280;letter-spacing:.5px;margin:10px 0 5px;padding-left:2px">${tier.label}</div>`;
+        qs.forEach(q=>{
+            const done=!!d.done[q.id];
+            const cur=Math.min(q.type==='winrow'?(d.winrow||0):(d[q.type]||0),q.need);
+            const pct=Math.round(cur/q.need*100);
+            const rwStr=`+${q.reward.amount} BB`;
+            const barColor=tier.key==='hard'?'linear-gradient(90deg,#ef4444,#f97316)':tier.key==='med'?'linear-gradient(90deg,#f59e0b,#eab308)':'linear-gradient(90deg,var(--accent),var(--accent2))';
+            rows+=`<div class="dq-row${done?' dq-done':''}">
+                <div class="dq-icon">${q.icon}</div>
+                <div class="dq-info">
+                    <div class="dq-title-q">${q.title}</div>
+                    <div class="dq-bar-wrap"><div class="dq-bar" style="width:${pct}%;background:${done?'#374151':barColor}"></div></div>
+                    <div class="dq-sub">${cur}/${q.need} · <b style="color:${done?'#6b7280':'var(--accent2)'}">${rwStr}</b></div>
+                </div>
+                ${done?'<div class="dq-check">✅</div>':''}
+            </div>`;
+        });
+    });
+
     el.innerHTML=`<div class="dq-header">
-        <span class="dq-title-main">\uD83D\uDCCB Щоденні завдання</span>
-        <span class="dq-timer">\uD83D\uDD04 ${hh}г ${mm}хв</span>
-    </div>${rows}`;
+        <span class="dq-title-main">📋 Щоденні завдання</span>
+        <span class="dq-timer">🔄 ${hh}г ${mm}хв</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="flex:1;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:10px;padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:900;color:#4ade80">${totalDone}/${DAILY_QUESTS_DEF.length}</div>
+            <div style="font-size:9px;color:#6b7280">ВИКОНАНО</div>
+        </div>
+        <div style="flex:1;background:rgba(var(--accent-rgb),.07);border:1px solid rgba(var(--accent-rgb),.2);border-radius:10px;padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:900;color:var(--accent2)">${totalBBLeft}</div>
+            <div style="font-size:9px;color:#6b7280">BB ЗАЛИШИЛОСЬ</div>
+        </div>
+    </div>
+    ${rows}`;
 }
 
 // ============================================================
@@ -1916,36 +1957,97 @@ window.listOnMarket=petId=>{
 // ============================================================
 // ІНВЕНТАР (canvas pets)
 // ============================================================
+let _invTab='pets';
+window.setInvTab=t=>{_invTab=t;renderInv();};
+
 function renderInv(){
     stopAllPetAnims();
     const el=document.getElementById('inv-list');
     const countEl=document.getElementById('inv-count');
-    if(countEl) countEl.textContent=s.inv.length ? `${s.inv.length} ${L('invCountLabel')}` : '';
-
-    // Pokédex mode
+    if(countEl) countEl.textContent='';
     if(showingDex){ el.innerHTML=renderPokedex(); return; }
 
-    // Pokédex button
+    const tabBar=`<div style="display:flex;gap:8px;margin-bottom:12px">
+        <button onclick="setInvTab('pets')" style="flex:1;padding:9px;border-radius:10px;border:1.5px solid ${_invTab==='pets'?'var(--accent)':'rgba(255,255,255,.1)'};background:${_invTab==='pets'?'rgba(var(--accent-rgb),.15)':'rgba(255,255,255,.04)'};color:${_invTab==='pets'?'var(--accent2)':'var(--muted)'};font-weight:700;font-size:12px;font-family:inherit;cursor:pointer">🐾 Пети</button>
+        <button onclick="setInvTab('artifacts')" style="flex:1;padding:9px;border-radius:10px;border:1.5px solid ${_invTab==='artifacts'?'var(--accent)':'rgba(255,255,255,.1)'};background:${_invTab==='artifacts'?'rgba(var(--accent-rgb),.15)':'rgba(255,255,255,.04)'};color:${_invTab==='artifacts'?'var(--accent2)':'var(--muted)'};font-weight:700;font-size:12px;font-family:inherit;cursor:pointer">💎 Артефакти</button>
+    </div>`;
+
+    // ── АРТЕФАКТИ ──
+    if(_invTab==='artifacts'){
+        const arts=s.artifacts||[];
+        if(!arts.length){
+            el.innerHTML=tabBar+`<div class="inv-empty"><div style="font-size:52px;margin-bottom:12px">💎</div>
+                <div style="font-weight:700;font-size:15px">Немає артефактів</div>
+                <div style="font-size:12px;opacity:.6;margin-top:4px">Артефакти видаються адміністратором</div></div>`;
+            return;
+        }
+        let ah=tabBar;
+        arts.forEach((art,i)=>{
+            const active=!!art.active;
+            const artIcon=art.photoUrl
+                ?`<div style="width:56px;height:56px;border-radius:14px;overflow:hidden;border:2px solid rgba(var(--accent-rgb),.35);flex-shrink:0"><img src="${art.photoUrl}" style="width:100%;height:100%;object-fit:cover"></div>`
+                :`<div style="width:56px;height:56px;border-radius:14px;background:rgba(var(--accent-rgb),.12);border:1.5px solid rgba(var(--accent-rgb),.25);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0">${art.emoji||'💎'}</div>`;
+            ah+=`<div style="background:${active?'rgba(var(--accent-rgb),.1)':'rgba(255,255,255,.04)'};border:1.5px solid ${active?'rgba(var(--accent-rgb),.4)':'rgba(255,255,255,.08)'};border-radius:14px;padding:13px;margin-bottom:8px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden">
+                ${active?`<div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)"></div>`:''}
+                ${artIcon}
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:3px">${art.name}</div>
+                    <div style="font-size:11px;color:var(--accent2);font-weight:700">+${art.bonus}% до перемог</div>
+                    ${art.desc?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${art.desc}</div>`:''}
+                    ${active?`<div style="font-size:10px;color:var(--success);font-weight:700;margin-top:4px">✦ Активний</div>`:''}
+                </div>
+                <button onclick="equipArtifact(${i})" style="padding:8px 12px;border-radius:10px;border:1.5px solid ${active?'rgba(var(--accent-rgb),.5)':'rgba(255,255,255,.15)'};background:${active?'rgba(var(--accent-rgb),.2)':'rgba(255,255,255,.06)'};color:${active?'var(--accent2)':'var(--muted)'};font-weight:700;font-size:12px;font-family:inherit;cursor:pointer;flex-shrink:0">${active?'✅':'Взяти'}</button>
+            </div>`;
+        });
+        el.innerHTML=ah;
+        return;
+    }
+
+    // ── ПЕТИ ──
     const dexBtn=`<button class="btn-dex" onclick="togglePokedex()">📖 Покедекс</button>`;
 
+    // Collect panel
+    const bbph=typeof getPetTotalBBph==='function'?getPetTotalBBph():0;
+    const pending=typeof getPetPendingIncome==='function'?getPetPendingIncome():0;
+    let collectPanel='';
+    if(bbph>0){
+        const now=Date.now(),last=s.lastPetCollect||now;
+        const hrs=Math.min((now-last)/3600000,24);
+        const timeStr=hrs>=1?hrs.toFixed(1)+'г':(Math.round(hrs*60)+'хв');
+        collectPanel=`<div style="background:rgba(var(--accent-rgb),.08);border:1.5px solid rgba(var(--accent-rgb),.25);border-radius:14px;padding:13px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
+            <div style="font-size:28px">🐾</div>
+            <div style="flex:1">
+                <div style="font-size:13px;font-weight:800;color:var(--accent2)">Пасивний дохід</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">${bbph} BB/год · ${timeStr}</div>
+                <div style="font-size:18px;font-weight:900;color:var(--success);margin-top:4px">+${pending} BB</div>
+            </div>
+            <button onclick="collectPetIncome()" style="padding:10px 14px;border-radius:12px;border:1.5px solid rgba(var(--accent-rgb),.5);background:rgba(var(--accent-rgb),.2);color:var(--accent2);font-weight:800;font-size:13px;font-family:inherit;cursor:pointer;${pending<=0?'opacity:.4;cursor:not-allowed':''}">
+                ${pending>0?'💰 Зібрати':'⏳ Копиться'}
+            </button>
+        </div>`;
+    }
+
     if(!s.inv||!s.inv.length){
-        el.innerHTML=dexBtn+`<div class="inv-empty">
+        el.innerHTML=tabBar+collectPanel+dexBtn+`<div class="inv-empty">
             <div style="font-size:52px;margin-bottom:12px">🥚</div>
             <div style="font-weight:700;font-size:15px">${L('invEmpty')}</div>
             <div style="font-size:12px;opacity:.6;margin-top:4px">${L('invEmptySub')}</div>
         </div>`;
         return;
     }
-    let h=dexBtn;
+    let h=tabBar+collectPanel+dexBtn;
     s.inv.forEach((p,i)=>{
         const eq=s.p&&s.p.id===p.id;
         const cid=`pet-vis-${i}`;
         const pvl=p.lvl||1, pxp=s.p&&s.p.id===p.id?s.x:0;
         const pct=eq?Math.min((pxp/xpForLevel(pvl))*100,100):0;
         const qsPrice = Math.floor(p.m * 50);
+        const petImg=p.photoUrl
+            ?`<div style="width:68px;height:68px;flex-shrink:0;border-radius:12px;overflow:hidden;border:2px solid ${p.c}44"><img src="${p.photoUrl}" style="width:100%;height:100%;object-fit:cover"></div>`
+            :`<div id="${cid}" data-size="68" style="flex-shrink:0"></div>`;
         h+=`<div class="pet-card${eq?' pet-eq':''}">
             <div class="pet-stripe" style="background:${p.c}"></div>
-            <div id="${cid}" data-size="68" style="flex-shrink:0"></div>
+            ${petImg}
             <div class="pet-info" style="overflow:hidden">
                 <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
                     <div class="pet-badge" style="background:${p.c}22;color:${p.c};border:1px solid ${p.c}44">${p.r}</div>
@@ -1953,6 +2055,7 @@ function renderInv(){
                 </div>
                 <div class="pet-name">${p.n}</div>
                 <div class="pet-stats"><span>${L('bonusWord')} <b style="color:${p.c}">x${p.m.toFixed(3)}</b> · LVL <b style="color:#fff">${pvl}</b></span></div>
+                ${p.bbph>0?`<div style="font-size:10px;color:var(--accent2);font-weight:700;margin-top:2px">💰 ${p.bbph} BB/год офлайн</div>`:''}
                 ${eq?`<div style="margin-top:5px">
                     <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:2px">
                         <span>XP</span><span>${pxp}/${xpForLevel(pvl)}</span>
@@ -1968,7 +2071,7 @@ function renderInv(){
         </div>`;
     });
     el.innerHTML=h;
-    requestAnimationFrame(()=>{ s.inv.forEach((p,i)=>startPetAnim(`pet-vis-${i}`,p)); });
+    requestAnimationFrame(()=>{ s.inv.forEach((p,i)=>{ if(!p.photoUrl) startPetAnim(`pet-vis-${i}`,p); }); });
 }
 window.equip=id=>{s.p=s.inv.find(i=>i.id===id);save();renderInv();ren();};
 window.quickSell=(petId,price)=>{
@@ -2287,7 +2390,10 @@ window.play=()=>{
 };
 
 function res(win,bt,m,msg){
-    const bon=s.p?s.p.m:1;
+    const artBonus=typeof getArtifactBonus==='function'?getArtifactBonus():1;
+    const bon=(s.p?s.p.m:1)*artBonus;
+    dailyProgress('betted',bt);
+    if(typeof addPassXP==='function') addPassXP(Math.max(1,Math.floor(bt/10)));
     if(win){const w=(bt*m-bt)*bon;s.b+=w;s.x+=Math.floor(bt/2);document.getElementById('g-stat').innerHTML=`<span style="color:var(--success)">+${w.toFixed(2)} BB</span><br><small>${msg}</small>`;checkPetLevelUp();dailyProgress('win');dailyProgress('play');}
     else{s.b-=bt;document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bt.toFixed(2)} BB</span><br><small>${msg}</small>`;dailyProgress('lose');dailyProgress('play');}
     save();
@@ -2341,18 +2447,75 @@ function loadAdmin(){
     if(currentAdminTab==='inv'&&adminInvUserId){loadAdminUserInv(adminInvUserId,adminInvUserName);return;}
 
     const makeTabs=()=>`<div class="admin-tabs">
-        <div class="a-tab ${currentAdminTab==='stats'?'active':''}"     onclick="setAdminTab('stats')">📊 Стат</div>
-        <div class="a-tab ${currentAdminTab==='balance'?'active':''}"   onclick="setAdminTab('balance')">💰 BB</div>
-        <div class="a-tab ${currentAdminTab==='inv'?'active':''}"       onclick="setAdminTab('inv')">🐾 Пети</div>
-        <div class="a-tab ${currentAdminTab==='petmult'?'active':''}"   onclick="setAdminTab('petmult')">⚡ Множ.</div>
-        <div class="a-tab ${currentAdminTab==='promo'?'active':''}"     onclick="setAdminTab('promo')">🎟 Промо</div>
-        <div class="a-tab ${currentAdminTab==='channels'?'active':''}"  onclick="setAdminTab('channels')">📢</div>
-        <div class="a-tab ${currentAdminTab==='announce'?'active':''}"  onclick="setAdminTab('announce')">📣</div>
-        <div class="a-tab ${currentAdminTab==='adoptme'?'active':''}"   onclick="setAdminTab('adoptme')">AM</div>
-        <div class="a-tab ${currentAdminTab==='orders'?'active':''}"    onclick="setAdminTab('orders')" id="admin-orders-tab">📬 <span id="admin-orders-badge" style="display:none;background:#ef4444;color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;margin-left:2px">!</span></div>
+        <div class="a-tab ${currentAdminTab==='stats'?'active':''}"      onclick="setAdminTab('stats')">📊 Стат</div>
+        <div class="a-tab ${currentAdminTab==='balance'?'active':''}"    onclick="setAdminTab('balance')">💰 BB</div>
+        <div class="a-tab ${currentAdminTab==='inv'?'active':''}"        onclick="setAdminTab('inv')">🐾 Пети</div>
+        <div class="a-tab ${currentAdminTab==='createpet'?'active':''}"  onclick="setAdminTab('createpet')">➕🐾</div>
+        <div class="a-tab ${currentAdminTab==='artifacts'?'active':''}"  onclick="setAdminTab('artifacts')">💎 Арт</div>
+        <div class="a-tab ${currentAdminTab==='promo'?'active':''}"      onclick="setAdminTab('promo')">🎟 Промо</div>
+        <div class="a-tab ${currentAdminTab==='channels'?'active':''}"   onclick="setAdminTab('channels')">📢</div>
+        <div class="a-tab ${currentAdminTab==='announce'?'active':''}"   onclick="setAdminTab('announce')">📣</div>
+        <div class="a-tab ${currentAdminTab==='adoptme'?'active':''}"    onclick="setAdminTab('adoptme')">AM</div>
+        <div class="a-tab ${currentAdminTab==='orders'?'active':''}"     onclick="setAdminTab('orders')" id="admin-orders-tab">📬 <span id="admin-orders-badge" style="display:none;background:#ef4444;color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;margin-left:2px">!</span></div>
     </div>`;
 
-    // ── ОГОЛОШЕННЯ ──
+    // ── СТВОРИТИ ПЕТА ──
+    if(currentAdminTab==='createpet'){
+        document.getElementById('admin-list').innerHTML=makeTabs()+`
+        <div class="admin-card">
+            <div class="card-title">➕ Створити пета і видати гравцю</div>
+            <label class="field-label">Фото пета (URL)</label>
+            <input type="text" id="cp-photo" placeholder="https://i.imgur.com/..." style="margin-bottom:6px" oninput="previewPetPhoto()">
+            <div id="cp-photo-preview" style="display:none;margin-bottom:10px;text-align:center">
+                <img id="cp-photo-img" src="" style="width:80px;height:80px;object-fit:cover;border-radius:14px;border:2px solid rgba(var(--accent-rgb),.3)">
+            </div>
+            <label class="field-label">Emoji (якщо немає фото)</label>
+            <input type="text" id="cp-emoji" placeholder="🐶" style="font-size:24px;text-align:center;margin-bottom:8px">
+            <label class="field-label">Назва</label>
+            <input type="text" id="cp-name" placeholder="Золотий Дракон" style="margin-bottom:8px">
+            <label class="field-label">Рідкість</label>
+            <select id="cp-rarity" style="margin-bottom:8px">
+                <option>Звичайний</option><option>Незвичайний</option><option>Рідкісний</option>
+                <option selected>Епічний</option><option>Легендарний</option><option>Міфічний</option>
+            </select>
+            <label class="field-label">Бонус (множник, напр. 1.15)</label>
+            <input type="number" id="cp-mult" value="1.10" step="0.005" min="1" max="5" style="margin-bottom:8px">
+            <label class="field-label">BB/год (пасивний дохід офлайн)</label>
+            <input type="number" id="cp-bbph" value="0" min="0" style="margin-bottom:4px">
+            <div style="font-size:10px;color:var(--muted);margin-bottom:10px">💡 Гравець сам забирає накопичені BB (макс 24год офлайн)</div>
+            <label class="field-label">ID гравця Telegram</label>
+            <input type="text" id="cp-uid" placeholder="123456789" style="margin-bottom:12px">
+            <button class="btn" onclick="adminCreateAndGivePet()">🐾 Створити і видати</button>
+        </div>`;
+        return;
+    }
+
+    // ── АРТЕФАКТИ ──
+    if(currentAdminTab==='artifacts'){
+        document.getElementById('admin-list').innerHTML=makeTabs()+`
+        <div class="admin-card">
+            <div class="card-title">💎 Створити артефакт і видати гравцю</div>
+            <label class="field-label">Фото артефакту (URL)</label>
+            <input type="text" id="art-photo" placeholder="https://i.imgur.com/..." style="margin-bottom:6px" oninput="previewArtPhoto()">
+            <div id="art-photo-preview" style="display:none;margin-bottom:10px;text-align:center">
+                <img id="art-photo-img" src="" style="width:80px;height:80px;object-fit:cover;border-radius:14px;border:2px solid rgba(var(--accent-rgb),.3)">
+            </div>
+            <label class="field-label">Emoji (якщо немає фото)</label>
+            <input type="text" id="art-emoji" placeholder="💎" style="font-size:24px;text-align:center;margin-bottom:8px">
+            <label class="field-label">Назва</label>
+            <input type="text" id="art-name" placeholder="Амулет Удачі" style="margin-bottom:8px">
+            <label class="field-label">Опис (необов'язково)</label>
+            <input type="text" id="art-desc" placeholder="Давній артефакт..." style="margin-bottom:8px">
+            <label class="field-label">Бонус до перемог (%)</label>
+            <input type="number" id="art-bonus" value="5" min="1" max="100" style="margin-bottom:12px">
+            <label class="field-label">ID гравця Telegram</label>
+            <input type="text" id="art-uid" placeholder="123456789" style="margin-bottom:12px">
+            <button class="btn" onclick="adminCreateAndGiveArtifact()">💎 Створити і видати</button>
+        </div>`;
+        return;
+    }
+
+        // ── ОГОЛОШЕННЯ ──
     if(currentAdminTab==='announce'){
         db.ref('announce').once('value',snap=>{
             const cur=snap.val()||{};
@@ -2379,47 +2542,6 @@ function loadAdmin(){
                 <div style="font-size:13px;color:#fff">${cur.text}</div>
                 ${cur.link?`<div style="font-size:11px;color:var(--muted);margin-top:4px">🔗 ${cur.link}</div>`:''}
             </div>`:'<div class="admin-card" style="text-align:center;color:var(--muted);padding:16px">Активних оголошень немає</div>'}`;
-        });
-        return;
-    }
-
-    // ── РЕДАКТОР МНОЖНИКІВ ПЕТІВ ──
-    if(currentAdminTab==='petmult'){
-        // Отримуємо кастомні множники з Firebase
-        db.ref('petmults').once('value',snap=>{
-            const overrides=snap.val()||{};
-            const allPets=getAllPets();
-            let rows='';
-            allPets.forEach(pet=>{
-                const key=pet.n.replace(/[^a-zA-ZА-Яа-яёЁіІїЇєЄ0-9]/g,'_');
-                const currentMult=overrides[key]!==undefined ? overrides[key] : pet.m;
-                const isModified=overrides[key]!==undefined;
-                rows+=`<div class="admin-card" style="padding:10px 12px;${isModified?'border-color:rgba(251,191,36,.3)':''}">
-                    <div style="display:flex;align-items:center;gap:10px">
-                        <span style="font-size:24px;flex-shrink:0">${pet.s||'🐾'}</span>
-                        <div style="flex:1;min-width:0">
-                            <div style="font-weight:700;font-size:13px;color:#fff">${pet.n}</div>
-                            <div style="font-size:10px;color:var(--muted)">${pet.r} · База: <b>x${pet.m}</b>${isModified?` · <span style="color:var(--accent2)">Змінено: x${currentMult}</span>`:''}</div>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-                            <input type="number" id="pm-${key}" value="${currentMult}" step="0.005" min="1" max="5"
-                                style="width:72px;margin:0;text-align:center;font-size:13px;font-weight:700;padding:6px 8px">
-                            <button class="btn-ctrl b-add" style="padding:7px 10px;font-size:11px" onclick="adminSavePetMult('${key}','${pet.n}')">✓</button>
-                            ${isModified?`<button class="btn-ctrl b-sub" style="padding:7px 8px;font-size:11px" onclick="adminResetPetMult('${key}')">↩</button>`:''}
-                        </div>
-                    </div>
-                </div>`;
-            });
-            document.getElementById('admin-list').innerHTML=makeTabs()+`
-            <div class="admin-card" style="padding:12px">
-                <div style="font-size:11px;color:var(--muted);line-height:1.5">
-                    ⚡ Зміна множника діє одразу для всіх гравців.<br>
-                    ↩ — повернути до базового значення.<br>
-                    🟡 Підсвічені — вже змінені від базових.
-                </div>
-            </div>
-            <div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin:10px 0 8px">ВСІ ПЕТИ (${allPets.length})</div>
-            ${rows}`;
         });
         return;
     }
@@ -3309,40 +3431,43 @@ setInterval(()=>{
 
 // ════ BEARS PASS ════
 const PASS_LEVELS = [
-  {lvl:1,  xpNeeded:0,   reward:{type:'bb',    v:100,  label:'💰 100 BB'},           special:false},
-  {lvl:2,  xpNeeded:20,  reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
-  {lvl:3,  xpNeeded:50,  reward:{type:'petxp', v:100,  label:'✨ 100 Pet XP'},        special:false},
-  {lvl:4,  xpNeeded:70,  reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
-  {lvl:5,  xpNeeded:100, reward:{type:'bb',    v:50,   label:'💰 50 BB'},             special:false},
-  {lvl:6,  xpNeeded:120, reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
-  {lvl:7,  xpNeeded:160, reward:{type:'petxp', v:100,  label:'✨ 100 Pet XP'},        special:false},
-  {lvl:8,  xpNeeded:180, reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
-  {lvl:9,  xpNeeded:200, reward:{type:'bb',    v:50,   label:'💰 50 BB'},             special:false},
-  {lvl:10, xpNeeded:230, reward:{type:'case',  v:1,    label:'📦 BP CASE'},           special:true},
-  {lvl:11, xpNeeded:250, reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
-  {lvl:12, xpNeeded:250, reward:{type:'petxp', v:300,  label:'✨ 300 Pet XP'},        special:false},
-  {lvl:13, xpNeeded:250, reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
-  {lvl:14, xpNeeded:250, reward:{type:'bb',    v:50,   label:'💰 50 BB'},             special:false},
-  {lvl:15, xpNeeded:260, reward:{type:'case',  v:1,    label:'📦 BP CASE'},           special:true},
-  {lvl:16, xpNeeded:270, reward:{type:'dbl',   v:3,    label:'⚓ 3 Дублони'},         special:false},
-  {lvl:17, xpNeeded:300, reward:{type:'bb',    v:100,  label:'💰 100 BB'},            special:false},
-  {lvl:18, xpNeeded:310, reward:{type:'petxp', v:250,  label:'✨ 250 Pet XP'},        special:false},
-  {lvl:19, xpNeeded:320, reward:{type:'bb',    v:100,  label:'💰 100 BB'},            special:false},
-  {lvl:20, xpNeeded:325, reward:{type:'dbl',   v:1,    label:'⚓ 1 Дублон'},          special:false},
-  {lvl:21, xpNeeded:330, reward:{type:'petxp', v:200,  label:'✨ 200 Pet XP'},        special:false},
-  {lvl:22, xpNeeded:330, reward:{type:'bb',    v:100,  label:'💰 100 BB'},            special:false},
-  {lvl:23, xpNeeded:350, reward:{type:'dbl',   v:2,    label:'⚓ 2 Дублони'},         special:false},
-  {lvl:24, xpNeeded:360, reward:{type:'bb',    v:150,  label:'💰 150 BB'},            special:false},
-  {lvl:25, xpNeeded:370, reward:{type:'case',  v:1,    label:'📦 BP CASE'},           special:true},
-  {lvl:26, xpNeeded:400, reward:{type:'petxp', v:250,  label:'✨ 250 Pet XP'},        special:false},
-  {lvl:27, xpNeeded:430, reward:{type:'bb',    v:100,  label:'💰 100 BB'},            special:false},
-  {lvl:28, xpNeeded:460, reward:{type:'dbl',   v:3,    label:'⚓ 3 Дублони'},         special:false},
-  {lvl:29, xpNeeded:500, reward:{type:'case',  v:1,    label:'📦 BP CASE'},           special:true},
-  {lvl:30, xpNeeded:525, reward:{type:'pet',   v:1,    label:'🐛 Золотий Глист'},     special:true},
+  // ── Тиждень 1 (LVL 1-10) ──
+  {lvl:1,  xpNeeded:0,   reward:{type:'bb',    v:200,   label:'💰 200 BB'},             icon:'💰', special:false},
+  {lvl:2,  xpNeeded:100, reward:{type:'bb',    v:300,   label:'💰 300 BB'},             icon:'💰', special:false},
+  {lvl:3,  xpNeeded:100, reward:{type:'petxp', v:500,   label:'✨ 500 Pet XP'},         icon:'✨', special:false},
+  {lvl:4,  xpNeeded:150, reward:{type:'bb',    v:400,   label:'💰 400 BB'},             icon:'💰', special:false},
+  {lvl:5,  xpNeeded:150, reward:{type:'bb',    v:1000,  label:'💰 1 000 BB 🎉'},        icon:'🎉', special:true},
+  {lvl:6,  xpNeeded:200, reward:{type:'bb',    v:500,   label:'💰 500 BB'},             icon:'💰', special:false},
+  {lvl:7,  xpNeeded:200, reward:{type:'petxp', v:1000,  label:'✨ 1 000 Pet XP'},       icon:'✨', special:false},
+  {lvl:8,  xpNeeded:250, reward:{type:'case',  v:1,     label:'📦 Кейс (Стандарт)'},   icon:'📦', special:false},
+  {lvl:9,  xpNeeded:250, reward:{type:'bb',    v:600,   label:'💰 600 BB'},             icon:'💰', special:false},
+  {lvl:10, xpNeeded:300, reward:{type:'bb',    v:2500,  label:'💰 2 500 BB 👑'},        icon:'👑', special:true},
+  // ── Тиждень 2 (LVL 11-20) ──
+  {lvl:11, xpNeeded:300, reward:{type:'bb',    v:700,   label:'💰 700 BB'},             icon:'💰', special:false},
+  {lvl:12, xpNeeded:350, reward:{type:'petxp', v:1500,  label:'✨ 1 500 Pet XP'},       icon:'✨', special:false},
+  {lvl:13, xpNeeded:350, reward:{type:'bb',    v:800,   label:'💰 800 BB'},             icon:'💰', special:false},
+  {lvl:14, xpNeeded:400, reward:{type:'case',  v:1,     label:'📦 Кейс (Стандарт)'},   icon:'📦', special:false},
+  {lvl:15, xpNeeded:400, reward:{type:'bb',    v:5000,  label:'💰 5 000 BB 💎'},        icon:'💎', special:true},
+  {lvl:16, xpNeeded:450, reward:{type:'bb',    v:900,   label:'💰 900 BB'},             icon:'💰', special:false},
+  {lvl:17, xpNeeded:450, reward:{type:'petxp', v:2000,  label:'✨ 2 000 Pet XP'},       icon:'✨', special:false},
+  {lvl:18, xpNeeded:500, reward:{type:'bb',    v:1000,  label:'💰 1 000 BB'},           icon:'💰', special:false},
+  {lvl:19, xpNeeded:500, reward:{type:'case',  v:1,     label:'📦 Кейс (Рідкісний)'}, icon:'📦', special:false},
+  {lvl:20, xpNeeded:600, reward:{type:'bb',    v:10000, label:'💰 10 000 BB 🏆'},       icon:'🏆', special:true},
+  // ── Тиждень 3 (LVL 21-30) ──
+  {lvl:21, xpNeeded:600, reward:{type:'bb',    v:1200,  label:'💰 1 200 BB'},           icon:'💰', special:false},
+  {lvl:22, xpNeeded:700, reward:{type:'petxp', v:3000,  label:'✨ 3 000 Pet XP'},       icon:'✨', special:false},
+  {lvl:23, xpNeeded:700, reward:{type:'bb',    v:1500,  label:'💰 1 500 BB'},           icon:'💰', special:false},
+  {lvl:24, xpNeeded:800, reward:{type:'case',  v:2,     label:'📦📦 2 Кейси (Рідкісний)'}, icon:'📦', special:false},
+  {lvl:25, xpNeeded:800, reward:{type:'bb',    v:15000, label:'💰 15 000 BB ⭐'},       icon:'⭐', special:true},
+  {lvl:26, xpNeeded:900, reward:{type:'bb',    v:2000,  label:'💰 2 000 BB'},           icon:'💰', special:false},
+  {lvl:27, xpNeeded:900, reward:{type:'petxp', v:5000,  label:'✨ 5 000 Pet XP'},       icon:'✨', special:false},
+  {lvl:28, xpNeeded:1000,reward:{type:'bb',    v:2500,  label:'💰 2 500 BB'},           icon:'💰', special:false},
+  {lvl:29, xpNeeded:1000,reward:{type:'case',  v:3,     label:'📦📦📦 3 Кейси (Рідкісний)'}, icon:'📦', special:false},
+  {lvl:30, xpNeeded:1200,reward:{type:'bb',    v:50000, label:'💰 50 000 BB 🐻 GRAND'}, icon:'🐻', special:true},
 ];
 
-const PASS_BONUS_XP = 150;
-const PASS_BONUS_BB = 25;
+const PASS_BONUS_XP = 500;
+const PASS_BONUS_BB = 250;
 
 function getPassLevel(){
   const xp = s.passXP || 0;
@@ -3392,72 +3517,112 @@ function checkPassReset(){
 }
 
 function renderPass(){
-  const xp    = s.passXP || 0;
-  const lvl   = getPassLevel();
-  const info  = getPassXPInfo();
+  const xp      = s.passXP || 0;
+  const lvl     = getPassLevel();
+  const info    = getPassXPInfo();
   const claimed = s.passClaimed || [];
+  const maxLvl  = PASS_LEVELS.length;
+  const season  = s.passMonth || '—';
 
+  // Update header
   const fillEl = document.getElementById('pass-xp-fill');
   const curEl  = document.getElementById('pass-xp-cur');
   const nextEl = document.getElementById('pass-xp-next');
   const lvlEl  = document.getElementById('pass-cur-lvl');
+  const subEl  = document.querySelector('.pass-sub');
   if(fillEl) fillEl.style.width = info.pct+'%';
   if(curEl)  curEl.textContent  = info.cur;
-  if(nextEl) nextEl.textContent = info.next;
-  if(lvlEl)  lvlEl.textContent  = lvl;
+  if(nextEl) nextEl.textContent = lvl >= maxLvl ? 'МАКС' : info.next;
+  if(lvlEl)  lvlEl.textContent  = Math.min(lvl, maxLvl);
+  if(subEl)  subEl.textContent  = 'Безкоштовний · Сезон ' + season;
 
   const container = document.getElementById('pass-levels');
   if(!container) return;
 
-  let html = '';
+  // Stats bar
+  const claimedCount = claimed.length;
+  const claimedBB = PASS_LEVELS.filter(p=>claimed.includes(p.lvl)&&p.reward.type==='bb').reduce((a,p)=>a+p.reward.v,0);
+  const totalBB   = PASS_LEVELS.filter(p=>p.reward.type==='bb').reduce((a,p)=>a+p.reward.v,0);
+  const canClaimNow = PASS_LEVELS.filter(p=>lvl>=p.lvl&&!claimed.includes(p.lvl)).length;
+
+  let html = `<div style="display:flex;gap:8px;margin-bottom:14px">
+    <div style="flex:1;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:12px;padding:10px;text-align:center">
+      <div style="font-size:18px;font-weight:900;color:#4ade80">${claimedCount}/${maxLvl}</div>
+      <div style="font-size:9px;color:#6b7280;margin-top:1px">ЗАБРАНО</div>
+    </div>
+    <div style="flex:1;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:12px;padding:10px;text-align:center">
+      <div style="font-size:18px;font-weight:900;color:#fbbf24">${claimedBB.toLocaleString()}</div>
+      <div style="font-size:9px;color:#6b7280;margin-top:1px">BB ЗІБРАНО</div>
+    </div>
+    ${canClaimNow>0?`<div style="flex:1;background:rgba(var(--accent-rgb),.1);border:1.5px solid rgba(var(--accent-rgb),.4);border-radius:12px;padding:10px;text-align:center;animation:pass-glow 1.5s ease-in-out infinite">
+      <div style="font-size:18px;font-weight:900;color:var(--accent2)">${canClaimNow}</div>
+      <div style="font-size:9px;color:#6b7280;margin-top:1px">ЗАБРАТИ!</div>
+    </div>`:''}
+  </div>
+  <div style="font-size:11px;color:#6b7280;text-align:center;margin-bottom:14px">
+    💡 XP нараховується з кожної ставки · ${PASS_BONUS_XP} XP після макс. рівня = ${PASS_BONUS_BB} BB
+  </div>`;
+
   PASS_LEVELS.forEach(pl => {
     const isUnlocked = pl.lvl === 1 || lvl >= pl.lvl;
     const isClaimed  = claimed.includes(pl.lvl);
     const canClaim   = isUnlocked && !isClaimed;
 
-    let cls = 'pass-row';
-    if(pl.special) cls += ' special-row';
-    if(isClaimed)  cls += ' claimed';
-    else if(isUnlocked) cls += ' unlocked';
+    const bg     = pl.special ? (isClaimed?'rgba(251,191,36,.04)':'rgba(251,191,36,.09)')
+                              : isClaimed  ? 'rgba(74,222,128,.05)'
+                              : isUnlocked ? 'rgba(var(--accent-rgb),.07)'
+                              :              'rgba(255,255,255,.03)';
+    const border = pl.special ? (isClaimed?'rgba(251,191,36,.2)':'rgba(251,191,36,.45)')
+                              : isClaimed  ? 'rgba(74,222,128,.2)'
+                              : isUnlocked ? 'rgba(var(--accent-rgb),.35)'
+                              :              'rgba(255,255,255,.07)';
 
-    const xpLabel = pl.lvl === 1 ? 'Доступно одразу' : 'Потрібно '+pl.xpNeeded+' XP';
+    const xpLabel = pl.lvl === 1 ? 'Доступно одразу' : pl.xpNeeded+' XP від попереднього рівня';
 
-    let right = '';
-    if(isClaimed) right = '<span class="pass-done-icon">✅</span>';
-    else if(canClaim) right = '<button class="pass-btn" onclick="claimPass('+pl.lvl+')">Забрати</button>';
-    else right = '<button class="pass-btn locked" disabled>🔒</button>';
+    let btn = '';
+    if(isClaimed)    btn = '<div style="font-size:22px;flex-shrink:0">✅</div>';
+    else if(canClaim)btn = `<button onclick="claimPass(${pl.lvl})" style="padding:9px 14px;border-radius:10px;border:none;background:${pl.special?'linear-gradient(135deg,#fbbf24,#f59e0b)':'linear-gradient(135deg,var(--accent),var(--accent2))'};color:#000;font-weight:900;font-size:12px;font-family:inherit;cursor:pointer;flex-shrink:0;white-space:nowrap">ВЗЯТИ</button>`;
+    else             btn = '<div style="font-size:22px;flex-shrink:0;opacity:.25">🔒</div>';
 
-    html += `<div class="${cls}">
-      <div class="pass-num">${pl.lvl}</div>
-      <div class="pass-info">
-        <div class="pass-reward-nm">${pl.reward.label}</div>
-        <div class="pass-req-xp">${xpLabel}</div>
+    html += `<div style="background:${bg};border:1.5px solid ${border};border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden">
+      ${pl.special?`<div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#fbbf24,transparent)"></div>`:''}
+      ${canClaim&&!pl.special?`<div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:pass-glow 2s ease-in-out infinite"></div>`:''}
+      <div style="width:44px;height:44px;border-radius:12px;background:${pl.special?'rgba(251,191,36,.15)':'rgba(255,255,255,.07)'};display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;${isClaimed?'opacity:.5':''}">
+        ${pl.icon||'💰'}
       </div>
-      ${right}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;color:#6b7280;font-weight:700;margin-bottom:2px">РІВЕНЬ ${pl.lvl}${pl.special?' · ⭐ ОСОБЛИВИЙ':''}</div>
+        <div style="font-size:15px;font-weight:900;color:${isClaimed?'#6b7280':pl.special?'#fbbf24':'var(--accent2)'}">
+          ${pl.reward.label}
+        </div>
+        <div style="font-size:10px;color:#4b5563;margin-top:2px">${xpLabel}</div>
+      </div>
+      ${btn}
     </div>`;
   });
 
-  // Бонусні після 30
-  if(lvl >= 30){
+  // Bonus rewards after level 30
+  if(lvl >= maxLvl){
     const base  = PASS_LEVELS.slice(1).reduce((a,b)=>a+b.xpNeeded,0);
     const extra = Math.max(0, xp - base);
     const bonusAvail = Math.floor(extra / PASS_BONUS_XP);
     const claimed2   = s.passClaimedBonus || 0;
 
-    html += `<div class="pass-bonus-card">
-      <div class="pass-bonus-title">🌟 Бонусні нагороди</div>
-      <div class="pass-bonus-sub">Кожні ${PASS_BONUS_XP} XP = ${PASS_BONUS_BB} BB</div>`;
-
-    for(let b = 1; b <= Math.max(bonusAvail, claimed2); b++){
-      const done = b <= claimed2;
-      const avail = b <= bonusAvail && !done;
-      html += `<div class="pass-row ${done?'claimed':avail?'unlocked':''}" style="margin-bottom:6px">
-        <div class="pass-num" style="font-size:10px">#${b}</div>
-        <div class="pass-info"><div class="pass-reward-nm">💰 ${PASS_BONUS_BB} BB</div><div class="pass-req-xp">Бонус #${b}</div></div>
-        ${done?'<span class="pass-done-icon">✅</span>':avail?`<button class="pass-btn" onclick="claimPassBonus(${b})">Забрати</button>`:'<button class="pass-btn locked" disabled>🔒</button>'}
+    html += `<div style="background:rgba(139,92,246,.08);border:1.5px solid rgba(139,92,246,.3);border-radius:14px;padding:14px;margin-top:6px">
+      <div style="font-size:13px;font-weight:900;color:#a78bfa;margin-bottom:4px">🌟 Безкінечні нагороди</div>
+      <div style="font-size:11px;color:#6b7280;margin-bottom:10px">Кожні ${PASS_BONUS_XP} XP → ${PASS_BONUS_BB} BB (ти на макс. рівні!)</div>`;
+    for(let b=1;b<=Math.max(bonusAvail,claimed2);b++){
+      const done=b<=claimed2, avail=b<=bonusAvail&&!done;
+      html+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;background:${done?'rgba(74,222,128,.05)':avail?'rgba(139,92,246,.1)':'rgba(255,255,255,.03)'};border:1px solid ${done?'rgba(74,222,128,.2)':avail?'rgba(139,92,246,.35)':'rgba(255,255,255,.07)'};border-radius:10px;padding:10px">
+        <div style="font-size:11px;color:#6b7280;font-weight:700;flex-shrink:0">#${b}</div>
+        <div style="flex:1;font-weight:800;color:${done?'#6b7280':'#e2e8f0'}">💰 ${PASS_BONUS_BB} BB</div>
+        ${done?'<div style="font-size:18px">✅</div>':avail?`<button onclick="claimPassBonus(${b})" style="padding:7px 12px;border-radius:8px;border:none;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;font-weight:900;font-size:11px;font-family:inherit;cursor:pointer">ВЗЯТИ</button>`:'<div style="font-size:18px;opacity:.25">🔒</div>'}
       </div>`;
     }
-    html += '</div>';
+    if(bonusAvail===0&&claimed2===0){
+      html+=`<div style="text-align:center;color:#4b5563;font-size:12px;padding:10px">Грай щоб накопичити ${PASS_BONUS_XP} XP і отримати ${PASS_BONUS_BB} BB!</div>`;
+    }
+    html+='</div>';
   }
 
   container.innerHTML = html;
@@ -3474,7 +3639,7 @@ function claimPass(lvl){
   if(pl.reward.type==='bb'){s.b+=pl.reward.v;showToast('✅ +'+pl.reward.v+' BB!');}
   else if(pl.reward.type==='dbl'){s.dbl=(s.dbl||0)+pl.reward.v;showToast('✅ +'+pl.reward.v+' Дублон(ів) ⚓');}
   else if(pl.reward.type==='petxp'){s.x=(s.x||0)+pl.reward.v;checkPetLevelUp();showToast('✅ +'+pl.reward.v+' Pet XP!');}
-  else if(pl.reward.type==='case'){s.bpCases=(s.bpCases||0)+1;showToast('✅ BP CASE в інвентарі!');}
+  else if(pl.reward.type==='case'){const qty=pl.reward.v||1;s.bpCases=(s.bpCases||0)+qty;showToast('✅ '+qty+'x BP CASE в інвентарі! Відкрий у магазині.');}
   else if(pl.reward.type==='pet'){
     if(!s.inv)s.inv=[];
     s.inv.push({id:'golden_glyst',name:'Золотий Глист',emoji:'🐛',rarity:'mythic',color:'#ffd700'});
@@ -3500,6 +3665,107 @@ function addPassXP(amount){
 
 checkPassReset();
 renderPass();
+
+// ════ АРТЕФАКТИ — інвентар ════
+window.equipArtifact=function(idx){
+    if(!s.artifacts) s.artifacts=[];
+    const wasActive=s.artifacts[idx]&&s.artifacts[idx].active;
+    s.artifacts.forEach(a=>a.active=false);
+    if(!wasActive) s.artifacts[idx].active=true;
+    save(); renderInv(); ren();
+    showToast(wasActive?'🔓 Артефакт знятий':'💎 Артефакт активовано!');
+};
+
+function getArtifactBonus(){
+    const a=(s.artifacts||[]).find(a=>a.active);
+    return a ? 1+(a.bonus||0)/100 : 1;
+}
+
+// ════ ПАСИВНИЙ ДОХІД ПЕТІВ ════
+function getPetTotalBBph(){
+    return (s.inv||[]).reduce((sum,p)=>(p.bbph&&p.bbph>0?sum+p.bbph:sum),0);
+}
+function getPetPendingIncome(){
+    const now=Date.now();
+    const last=s.lastPetCollect||now;
+    const h=Math.min((now-last)/3600000,24);
+    const bbph=getPetTotalBBph();
+    return bbph>0&&h>=0.01?Math.floor(bbph*h):0;
+}
+window.collectPetIncome=function(){
+    const earned=getPetPendingIncome();
+    if(earned<=0) return showToast('🕐 Ще нічого не накопичилось');
+    s.b+=earned; s.lastPetCollect=Date.now();
+    save(); showToast('🐾 Зібрано +'+earned+' BB від петів!'); ren(); renderInv();
+};
+setTimeout(function(){
+    if(!_splashFired) return;
+    const bbph=getPetTotalBBph();
+    const earned=getPetPendingIncome();
+    if(bbph>0&&!s.lastPetCollect){ s.lastPetCollect=Date.now(); save(); return; }
+    if(bbph>0&&earned>0) setTimeout(()=>showToast('🐾 Накопичено '+earned+' BB від петів — зайди в Пети!'),2500);
+},3500);
+
+// ════ АДМІН: PREVIEW ФОТО ════
+window.previewPetPhoto=function(){
+    const url=(document.getElementById('cp-photo')?.value||'').trim();
+    const w=document.getElementById('cp-photo-preview');
+    const i=document.getElementById('cp-photo-img');
+    if(url&&w&&i){w.style.display='block';i.src=url;}else if(w)w.style.display='none';
+};
+window.previewArtPhoto=function(){
+    const url=(document.getElementById('art-photo')?.value||'').trim();
+    const w=document.getElementById('art-photo-preview');
+    const i=document.getElementById('art-photo-img');
+    if(url&&w&&i){w.style.display='block';i.src=url;}else if(w)w.style.display='none';
+};
+
+// ════ АДМІН: СТВОРИТИ ПЕТА ════
+window.adminCreateAndGivePet=async function(){
+    const photo=(document.getElementById('cp-photo')?.value||'').trim();
+    const emoji=(document.getElementById('cp-emoji')?.value||'').trim()||'🐾';
+    const name=(document.getElementById('cp-name')?.value||'').trim();
+    const rarity=document.getElementById('cp-rarity')?.value||'Епічний';
+    const mult=parseFloat(document.getElementById('cp-mult')?.value)||1.10;
+    const bbph=parseFloat(document.getElementById('cp-bbph')?.value)||0;
+    const uid=(document.getElementById('cp-uid')?.value||'').trim();
+    if(!name) return showToast('❌ Введи назву пета!');
+    if(!uid)  return showToast('❌ Введи ID гравця!');
+    const RC={'Звичайний':'#94a3b8','Незвичайний':'#3b82f6','Рідкісний':'#a855f7','Епічний':'#f59e0b','Легендарний':'#f43f5e','Міфічний':'#06b6d4'};
+    const pet={id:Date.now(),n:name,s:emoji,r:rarity,m:Math.round(mult*1000)/1000,c:RC[rarity]||'#94a3b8',lvl:1,bbph,adminCreated:true,...(photo?{photoUrl:photo}:{})};
+    const snap=await db.ref('players/'+uid).once('value');
+    if(!snap.exists()) return showToast('❌ Гравця не знайдено!');
+    const pd=snap.val();
+    const inv=pd.inv||[];
+    inv.push(pet);
+    const upd={inv};
+    if(!pd.lastPetCollect) upd.lastPetCollect=Date.now();
+    await db.ref('players/'+uid).update(upd);
+    showToast('✅ '+(photo?'📸':emoji)+' '+name+' видано! BB/год: '+bbph);
+};
+
+// ════ АДМІН: СТВОРИТИ АРТЕФАКТ ════
+window.adminCreateAndGiveArtifact=async function(){
+    const photo=(document.getElementById('art-photo')?.value||'').trim();
+    const emoji=(document.getElementById('art-emoji')?.value||'').trim()||'💎';
+    const name=(document.getElementById('art-name')?.value||'').trim();
+    const desc=(document.getElementById('art-desc')?.value||'').trim();
+    const bonus=parseFloat(document.getElementById('art-bonus')?.value)||5;
+    const uid=(document.getElementById('art-uid')?.value||'').trim();
+    if(!name) return showToast('❌ Введи назву артефакту!');
+    if(!uid)  return showToast('❌ Введи ID гравця!');
+    const art={id:Date.now(),name,emoji,desc,bonus:Math.round(bonus),active:false,...(photo?{photoUrl:photo}:{})};
+    const snap=await db.ref('players/'+uid).once('value');
+    if(!snap.exists()) return showToast('❌ Гравця не знайдено!');
+    const arts=(snap.val().artifacts||[]);
+    arts.push(art);
+    await db.ref('players/'+uid+'/artifacts').set(arts);
+    showToast('✅ '+(photo?'📸':emoji)+' '+name+' (+'+bonus+'%) видано!');
+};
+
+// ════ Pass XP з ставок ════
+window._origAddPassXP=addPassXP;
+window.addPassXPFromBet=function(bt){ addPassXP(Math.max(1,Math.floor(bt/10))); };
 </script>
 </body>
 </html>
