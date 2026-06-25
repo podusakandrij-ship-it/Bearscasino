@@ -613,9 +613,18 @@ nav{
     </div>
   </div>
 
-  <!-- ARTIFACT HUD -->
-  <div id="artifact-hud" style="display:none;align-items:center;gap:12px;background:rgba(0,0,0,.4);border:1.5px solid rgba(var(--accent-rgb),.25);border-radius:var(--radius);padding:11px 13px;margin-bottom:10px;position:relative;overflow:hidden">
-    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.7"></div>
+  <!-- ARTIFACT HUD + PICKER -->
+  <div id="artifact-hud-wrap" style="margin-bottom:10px;display:none">
+    <div id="artifact-hud" style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.35);border:1.5px solid rgba(var(--accent-rgb),.3);border-radius:var(--radius);padding:10px 13px;position:relative;overflow:hidden;cursor:pointer" onclick="toggleArtPicker()">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.7"></div>
+      <div id="art-hud-icon" style="font-size:22px;flex-shrink:0">💎</div>
+      <div style="flex:1;min-width:0">
+        <div id="art-hud-name" style="font-size:12px;font-weight:800;color:var(--accent2)">Немає артефакту</div>
+        <div id="art-hud-bonus" style="font-size:10px;color:var(--muted)">Натисни щоб обрати</div>
+      </div>
+      <div style="font-size:14px;color:var(--muted)">▾</div>
+    </div>
+    <div id="art-picker" style="display:none;background:rgba(10,10,15,.97);border:1.5px solid rgba(var(--accent-rgb),.3);border-radius:var(--radius);margin-top:4px;overflow:hidden;max-height:220px;overflow-y:auto"></div>
   </div>
 
   <!-- GAMES -->
@@ -1093,44 +1102,14 @@ function stopAllPetAnims() {
 // Дедлайн великоднього кейсу (14 квітня 2026, 00:00 UTC)
 const DEADLINE_EASTER_CASE = new Date('2026-04-14T00:00:00Z').getTime();
 
-const CASES = {
-    basic:    { n:"Common Case 🐾", p:285, drop:[
-        {n:'Собака',s:'🐶',r:'Звичайний',  m:1.05,w:40,c:'#94a3b8'},
-        {n:'Кіт',   s:'🐱',r:'Звичайний',  m:1.05,w:40,c:'#94a3b8'},
-        {n:'Кролик',s:'🐰',r:'Незвичайний',m:1.08,w:20,c:'#3b82f6'}]},
-    uncommon: { n:"Rare Case 🌟",   p:525, drop:[
-        {n:'Кролик',s:'🐰',r:'Незвичайний',m:1.08,w:46,c:'#3b82f6'},
-        {n:'Лисиця',s:'🦊',r:'Незвичайний',m:1.09,w:40,c:'#3b82f6'},
-        {n:'Вовк',  s:'🐺',r:'Рідкісний',  m:1.11,w:14,c:'#a855f7'}]},
-    rare:     { n:"Epic Case 💎",   p:875, drop:[
-        {n:'Вовк',  s:'🐺',r:'Рідкісний',  m:1.11,w:50,c:'#a855f7'},
-        {n:'Бджола',s:'🐝',r:'Рідкісний',  m:1.12,w:40,c:'#a855f7'},
-        {n:'Панда', s:'🐼',r:'Епічний',    m:1.14,w:10,c:'#f59e0b'}]},
-    legend:   { n:"Legendary Case 👑", p:1200, drop:[
-        {n:'Панда',    s:'🐼',r:'Епічний',    m:1.14,w:50,c:'#f59e0b'},
-        {n:'Лев',      s:'🦁',r:'Легендарний',m:1.16,w:30,c:'#f43f5e'},
-        {n:'Дракон',   s:'🐲',r:'Легендарний',m:1.17,w:20,c:'#f43f5e'}]},
-    easter:   { n:"Великодній Кейс 🥚", p:1450, limited:true, deadline:DEADLINE_EASTER_CASE, drop:[
-        {n:'Місячний заєць',   s:'🌙🐇',r:'Рідкісний',  m:1.165,w:33,c:'#a855f7',drawKey:'moonhare'},
-        {n:'Місячний баранчик',s:'🌙🐑',r:'Рідкісний',  m:1.165,w:33,c:'#a855f7',drawKey:'moonlamb'},
-        {n:'Пончик-хом\'як',   s:'🍩🐹',r:'Епічний',    m:1.22, w:20,c:'#f59e0b',drawKey:'donutham'},
-        {n:'Фенікс-писанка',   s:'🔥🥚',r:'Легендарний',m:1.26, w:10,c:'#f43f5e',drawKey:'phoenixegg'},
-        {n:'Привид пасхи',     s:'👻🐰',r:'Міфічний',   m:1.33, w:4, c:'#06b6d4',drawKey:'easterghost'}]},
-};
+// CASES завантажуються з Firebase casesDB (динамічно)
+let CASES = {};
+// Читаємо кейси при старті
+db.ref('casesDB').on('value', snap=>{ CASES = snap.val()||{}; if(document.getElementById('v-shop')?.style.display!=='none') renderShop(); });
 
-const ADMIN_ONLY_PETS = [
-    {n:'Клоун',              s:'🤡',r:'Смехуятина', m:1.67, c:'#ff6b35',drawKey:'clown2'},
-    {n:'Смітник',            s:'🗑️',r:'Легендарний',m:1.35, c:'#f43f5e'},
-    {n:'Медовий пасх. медвідь',s:'🍯🐻',r:'Епічний',m:1.25, c:'#f59e0b',drawKey:'honeybear'},
-    {n:'Унітаз',             s:'🚽',r:'Епічний',    m:1.20, c:'#f59e0b',drawKey:'toilet'},
-    {n:'Какашка',            s:'💩',r:'Легендарний', m:1.25, c:'#f43f5e',drawKey:'poop'},
-    {n:'Нокіа3310',          s:'📱',r:'Міфічний',   m:1.32, c:'#bf40bf',drawKey:'nokia'},
-    // 🌊 Океан кейс (видалений кейс, пети залишились в інвентарях)
-    {n:'Рибка',              s:'🐟',r:'Рідкісний',  m:1.160,c:'#3b82f6'},
-    {n:'Тропічна рибка',     s:'🐠',r:'Епічний',    m:1.195,c:'#f59e0b'},
-    {n:'Акула',              s:'🦈',r:'Епічний',    m:1.150,c:'#6366f1'},
-    {n:'Восьминіг',          s:'🐙',r:'Міфічний',   m:1.300,c:'#06b6d4'},
-];
+// ADMIN_ONLY_PETS залишаємо для сумісності зі старими інвентарями
+const ADMIN_ONLY_PETS = [];
+
 
 
 // ============================================================
@@ -1581,50 +1560,31 @@ function save(){
     db.ref('players/'+myId).set(s);
 }
 
-db.ref('players/'+myId).on('value',snap=>{
-    const d=snap.val();
+// Завантажуємо дані ОДИН РАЗ при старті (.once — не слухає зміни)
+db.ref('players/'+myId).once('value', snap=>{
+    const d = snap.val();
     if(d){
-        if(_saving){ ren(); if(!_splashFired){_splashFired=true;if(window._splashDone)window._splashDone();} return; }
-        // Захищаємо локальні дані від перезапису старими даними Firebase
-        const keep={
-            b:         s.b,
-            x:         s.x,
-            inv:       s.inv,
-            artifacts: s.artifacts,
-            daily:     s.daily,
-            passXP:    s.passXP,
-            passLevel: s.passLevel,
-            passClaimed:s.passClaimed,
-            passClaimedBonus:s.passClaimedBonus,
-            lastPetCollect:s.lastPetCollect,
-            adoptPurchases:s.adoptPurchases,
-        };
         s = d;
-        if(!s.inv) s.inv=[];
+        if(!s.inv)       s.inv=[];
         if(!s.artifacts) s.artifacts=[];
-        // Беремо максимальне значення — захист від відкату
-        if(_splashFired){
-            if((keep.b||0)         > (s.b||0))         s.b         = keep.b;
-            if((keep.x||0)         > (s.x||0))         s.x         = keep.x;
-            if((keep.passXP||0)    > (s.passXP||0))    s.passXP    = keep.passXP;
-            if((keep.passLevel||1) > (s.passLevel||1)) s.passLevel = keep.passLevel;
-            if((keep.inv||[]).length > s.inv.length)   s.inv       = keep.inv;
-            if((keep.artifacts||[]).length > s.artifacts.length) s.artifacts = keep.artifacts;
-            if((keep.passClaimed||[]).length > (s.passClaimed||[]).length) s.passClaimed = keep.passClaimed;
-            if((keep.passClaimedBonus||0) > (s.passClaimedBonus||0)) s.passClaimedBonus = keep.passClaimedBonus;
-            if(keep.lastPetCollect && (!s.lastPetCollect || keep.lastPetCollect > s.lastPetCollect)) s.lastPetCollect = keep.lastPetCollect;
-        }
-        // Daily — зберігаємо якщо той самий день
-        if(keep.daily && keep.daily.day === todayKey() && (!s.daily || s.daily.day !== todayKey())) s.daily = keep.daily;
-        // AdoptPurchases — merge max
-        if(keep.adoptPurchases){
-            if(!s.adoptPurchases) s.adoptPurchases={};
-            Object.entries(keep.adoptPurchases).forEach(([id,qty])=>{ if((s.adoptPurchases[id]||0)<qty) s.adoptPurchases[id]=qty; });
-        }
+    } else {
+        // Новий гравець — зберігаємо дефолтний стан
+        db.ref('players/'+myId).set(s);
     }
-    else{ db.ref('players/'+myId).set(s); }
     ren();
-    if(!_splashFired){ _splashFired=true; if(window._splashDone) window._splashDone(); }
+    _splashFired = true;
+    if(window._splashDone) window._splashDone();
+    checkPassReset();
+    renderPass();
+    // Перевіряємо пасивний дохід від петів
+    setTimeout(()=>{
+        const bbph = typeof getPetTotalBBph==='function'?getPetTotalBBph():0;
+        const earned = typeof getPetPendingIncome==='function'?getPetPendingIncome():0;
+        if(bbph>0 && !s.lastPetCollect){ s.lastPetCollect=Date.now(); save(); }
+        else if(bbph>0 && earned>0){
+            setTimeout(()=>showToast('🐾 Накопичено '+earned+' BB від петів — зайди в Пети!'), 2000);
+        }
+    }, 1000);
 });
 
 // ============================================================
@@ -1725,34 +1685,8 @@ function ren(){
     const petHudEl = document.querySelector('.pet-hud');
     if(petHudEl) petHudEl.style.display='none';
 
-    // Artifact + Pet income HUD
-    const artHudEl = document.getElementById('artifact-hud');
-    if(artHudEl){
-        const activeArt=(s.artifacts||[]).find(a=>a.active);
-        const pendBB=typeof getPetPendingIncome==='function'?getPetPendingIncome():0;
-        const bbphTotal=typeof getPetTotalBBph==='function'?getPetTotalBBph():0;
-        if(activeArt||bbphTotal>0){
-            artHudEl.style.display='flex';
-            artHudEl.style.flexWrap='wrap';
-            artHudEl.style.gap='8px';
-            let hudHTML='';
-            if(activeArt){
-                const artImg=activeArt.photoUrl
-                    ?`<img src="${activeArt.photoUrl}" style="width:34px;height:34px;object-fit:cover;border-radius:8px;flex-shrink:0">`
-                    :`<span style="font-size:22px;flex-shrink:0">${activeArt.emoji||'💎'}</span>`;
-                const bw=activeArt.bonusWin||activeArt.bonus||0;
-                const bp=activeArt.bonusPayout||0;
-                const bonusText=[bw>0?'+'+bw+'% перемог':'',bp>0?'+'+bp+'% виграш':''].filter(Boolean).join(' · ')||'Активний';
-                hudHTML+=`<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">${artImg}<div style="min-width:0"><div style="font-size:12px;font-weight:800;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${activeArt.name}</div><div style="font-size:10px;color:var(--muted)">${bonusText}</div></div></div>`;
-            }
-            if(bbphTotal>0){
-                hudHTML+=`<div style="display:flex;align-items:center;gap:6px;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);border-radius:10px;padding:5px 10px;cursor:pointer;flex-shrink:0" onclick="setInvTab('pets');tab('inv',document.querySelector('.nav-tab[onclick*=inv]'))"><span style="font-size:15px">🐾</span><div><div style="font-size:11px;font-weight:800;color:var(--success)">+${pendBB} BB</div><div style="font-size:9px;color:var(--muted)">${bbphTotal}/год</div></div></div>`;
-            }
-            artHudEl.innerHTML=hudHTML;
-        } else {
-            artHudEl.style.display='none';
-        }
-    }
+    // Artifact picker HUD
+    updateArtifactHUD();
 
     if (ADMINS.includes(Number(myId)))
         document.getElementById('admin-tab').style.display = 'flex';
@@ -1785,32 +1719,75 @@ window.setShopTab=t=>{currentShopTab=t;renderShop();};
 function renderShop(){
     const list=document.getElementById('shop-list');
     const tabs=`<div class="shop-tabs">
-        <div class="s-tab ${currentShopTab==='cases'?'active':''}" onclick="setShopTab('cases')">${L('tabCases')}</div>
-        <div class="s-tab ${currentShopTab==='adoptme'?'active':''}" onclick="setShopTab('adoptme')">🐾 Adopt Me <span style="background:#ef4444;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;margin-left:3px;vertical-align:middle">NEW</span></div>
+        <div class="s-tab ${currentShopTab==='cases'?'active':''}" onclick="setShopTab('cases')">📦 Кейси</div>
+        <div class="s-tab ${currentShopTab==='shop_items'?'active':''}" onclick="setShopTab('shop_items')">🛍️ Товари</div>
+        <div class="s-tab ${currentShopTab==='adoptme'?'active':''}" onclick="setShopTab('adoptme')">🐾 Adopt Me</div>
         <div class="s-tab ${currentShopTab==='market'?'active':''}" onclick="setShopTab('market')">${L('tabMarket')}</div>
     </div>`;
     if(currentShopTab==='cases'){
-        let h=tabs; const now=Date.now();
-        for(const k in CASES){
-            const c=CASES[k];
-            const dl=c.deadline||0;
-            if(c.limited&&now>dl) continue;
-            const badge=c.limited?'<span class="badge-ltd">Лімітовано</span>':'';
-            const chances = c.drop.map(p => {
-                const imgSrc = getPetImageSrc(p);
-                const petIcon = imgSrc.type === 'img'
-                    ? `<img src="${imgSrc.src}" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:2px">`
-                    : `<span style="font-size:14px;vertical-align:middle;margin-right:1px">${p.s}</span>`;
-                return `<span style="color:${p.c}">${petIcon}${p.w}%</span>`;
-            }).join(' · ');
-            let timer='';
-            if(c.limited){const diff=dl-now,d=Math.floor(diff/86400000),hr=Math.floor((diff/3600000)%24),mn=Math.floor((diff/60000)%60);timer=`<div class="case-timer">⏳ ${d}д ${hr}г ${mn}хв</div>`;}
-            h+=`<div class="shop-card"><div class="case-info">
-                <div class="case-name">${c.n} ${badge}</div>
-                <div style="font-size:10px;margin:4px 0;font-weight:600;opacity:.85">${chances}</div>${timer}
-            </div><button class="btn-buy" onclick="buyCase('${k}')">${c.p} BB</button></div>`;
+        // Кейси з Firebase
+        const now=Date.now();
+        let h=tabs;
+        const caseKeys=Object.keys(CASES);
+        if(!caseKeys.length){
+            h+=`<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:40px;margin-bottom:10px">📦</div><div style="font-weight:700">Кейсів поки немає</div></div>`;
+        } else {
+            caseKeys.forEach(k=>{
+                const c=CASES[k];
+                const dl=c.deadline||0;
+                if(c.limited&&now>dl) return;
+                const badge=c.limited?'<span class="badge-ltd">Лімітовано</span>':'';
+                const drop=c.drop||[];
+                const chances=drop.map(p=>{
+                    const icon=p.photoUrl?`<img src="${p.photoUrl}" style="width:16px;height:16px;object-fit:cover;border-radius:3px;vertical-align:middle;margin-right:2px">`:`<span style="font-size:13px;vertical-align:middle">${p.s||'🐾'}</span>`;
+                    return `<span style="color:${p.c||'#94a3b8'}">${icon}${p.w}%</span>`;
+                }).join(' · ')||'<span style="color:var(--muted)">Немає петів</span>';
+                let timer='';
+                if(c.limited&&dl>now){const diff=dl-now,d=Math.floor(diff/86400000),hr=Math.floor((diff/3600000)%24),mn=Math.floor((diff/60000)%60);timer=`<div class="case-timer">⏳ ${d}д ${hr}г ${mn}хв</div>`;}
+                h+=`<div class="shop-card"><div class="case-info">
+                    <div class="case-name">${c.n} ${badge}</div>
+                    <div style="font-size:10px;margin:4px 0;font-weight:600;opacity:.85">${chances}</div>${timer}
+                </div><button class="btn-buy" onclick="buyCase('${k}')">${c.p} BB</button></div>`;
+            });
         }
-        list.innerHTML=h;
+        // Товари-кейси з shopDB
+        db.ref('shopDB').once('value',snap=>{
+            const items=snap.val()||{};
+            Object.entries(items).filter(([,it])=>it.active&&it.type==='case').forEach(([key,it])=>{
+                h+=`<div class="shop-card"><div class="case-info">
+                    ${it.photo?`<img src="${it.photo}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;margin-right:8px;vertical-align:middle">`:''}
+                    <div class="case-name">${it.name}</div>
+                    ${it.desc?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${it.desc}</div>`:''}
+                </div><button class="btn-buy" onclick="buyShopItem('${key}')">${it.price} BB</button></div>`;
+            });
+            list.innerHTML=h;
+        });
+        return;
+    } else if(currentShopTab==='shop_items'){
+        // Окрема вкладка для товарів з shopDB
+        db.ref('shopDB').once('value',snap=>{
+            const items=snap.val()||{};
+            const active=Object.entries(items).filter(([,it])=>it.active&&it.type!=='case');
+            if(!active.length){
+                list.innerHTML=tabs+`<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:40px;margin-bottom:10px">🛍️</div><div style="font-weight:700">Товарів поки немає</div></div>`;
+                return;
+            }
+            let h=tabs;
+            active.forEach(([key,it])=>{
+                h+=`<div class="shop-card">
+                    ${it.photo?`<img src="${it.photo}" style="width:56px;height:56px;object-fit:cover;border-radius:12px;flex-shrink:0">`:
+                      `<div style="width:56px;height:56px;border-radius:12px;background:rgba(var(--accent-rgb),.1);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">🛍️</div>`}
+                    <div style="flex:1;min-width:0">
+                        <div class="case-name">${it.name}</div>
+                        ${it.desc?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${it.desc}</div>`:''}
+                        <div style="font-size:11px;color:var(--accent2);font-weight:700;margin-top:3px">${it.type==='bb'?'💰 +'+it.val+' BB':'⚡ '+it.val}</div>
+                    </div>
+                    <button class="btn-buy" onclick="buyShopItem('${key}')">${it.price} BB</button>
+                </div>`;
+            });
+            list.innerHTML=h;
+        });
+        return;
     } else if(currentShopTab==='adoptme'){
         list.innerHTML=tabs+`<div id="adoptme-list" class="card" style="text-align:center;color:var(--muted)">Завантаження...</div>`;
         renderAdoptMe();
@@ -2105,22 +2082,14 @@ function renderInv(){
             <div class="pet-info" style="overflow:hidden">
                 <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
                     <div class="pet-badge" style="background:${p.c}22;color:${p.c};border:1px solid ${p.c}44">${p.r}</div>
-                    ${eq?`<span class="pet-active-tag">✦ ${L('activePet')}</span>`:''}
+                    ${eq?`<span class="pet-active-tag">✦ Активний</span>`:''}
                 </div>
                 <div class="pet-name">${p.n}</div>
-                <div class="pet-stats"><span>${L('bonusWord')} <b style="color:${p.c}">x${p.m.toFixed(3)}</b> · LVL <b style="color:#fff">${pvl}</b></span></div>
-                ${p.bbph>0?`<div style="font-size:10px;color:var(--accent2);font-weight:700;margin-top:2px">💰 ${p.bbph} BB/год офлайн</div>`:''}
-                ${eq?`<div style="margin-top:5px">
-                    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:2px">
-                        <span>XP</span><span>${pxp}/${xpForLevel(pvl)}</span>
-                    </div>
-                    <div class="xp-bar" style="height:4px"><div class="xp-fill" style="width:${pct}%"></div></div>
-                </div>`:''}
+                ${p.bbph>0?`<div style="font-size:11px;color:var(--accent2);font-weight:700;margin-top:2px">💰 ${p.bbph} BB/год</div>`
+                          :`<div style="font-size:10px;color:var(--muted);margin-top:2px">Без пасивного доходу</div>`}
             </div>
             <div class="pet-btns">
-                <button class="pb-equip${eq?' pb-eq':''}" onclick="equip(${p.id})">${eq?L('equipped'):L('equip')}</button>
-                <button class="pb-sell" onclick="listOnMarket(${p.id})" title="На ринок">🏪</button>
-                <button class="pb-quick-sell" onclick="quickSell(${p.id},${qsPrice})" title="Продати за ${qsPrice} BB">💰${qsPrice}</button>
+                <button class="pb-equip${eq?' pb-eq':''}" onclick="equip(${p.id})">${eq?'Знято':'Одягти'}</button>
             </div>
         </div>`;
     });
@@ -2128,6 +2097,25 @@ function renderInv(){
     requestAnimationFrame(()=>{ s.inv.forEach((p,i)=>{ if(!p.photoUrl) startPetAnim(`pet-vis-${i}`,p); }); });
 }
 window.equip=id=>{s.p=s.inv.find(i=>i.id===id);save();renderInv();ren();};
+window.buyShopItem=async function(key){
+    const snap=await db.ref('shopDB/'+key).once('value');
+    if(!snap.exists()) return showToast('❌ Товар не знайдений!');
+    const it=snap.val();
+    if(s.b < it.price) return showToast('❌ Недостатньо BB! Потрібно '+it.price+' BB');
+    s.b -= it.price;
+    if(it.type==='bb'){
+        s.b += it.val;
+        showToast('✅ '+it.name+' — отримано +'+it.val+' BB!');
+    } else if(it.type==='case'){
+        if(!s.freeCases) s.freeCases={};
+        const ck=it.caseKey||key;
+        s.freeCases[ck]=(s.freeCases[ck]||0)+1;
+        showToast('✅ '+it.name+' — кейс додано!');
+    } else {
+        showToast('✅ '+it.name+' придбано!');
+    }
+    save(); ren(); renderShop();
+};
 window.quickSell=(petId,price)=>{
     const pet=s.inv.find(p=>p.id===petId);
     if(!pet) return;
@@ -2445,17 +2433,16 @@ window.play=()=>{
 
 function res(win,bt,m,msg){
     const ab=typeof getArtifactBonuses==='function'?getArtifactBonuses():{winBonus:0,payMult:1};
-    const petMult=s.p?s.p.m:1;
     dailyProgress('betted',bt);
     if(typeof addPassXP==='function') addPassXP(Math.max(1,Math.floor(bt/10)));
     // winBonus підвищує шанс: якщо програш — є шанс стати виграшем
     let actualWin = win;
     if(!win && ab.winBonus>0 && Math.random()<ab.winBonus) actualWin=true;
     if(actualWin){
-        const w=(bt*m-bt)*petMult*ab.payMult;
-        s.b+=w; s.x+=Math.floor(bt/2);
+        const w=(bt*m-bt)*ab.payMult; // пет більше не дає множник — тільки BB/год
+        s.b+=w;
         document.getElementById('g-stat').innerHTML=`<span style="color:var(--success)">+${w.toFixed(2)} BB</span><br><small>${msg}${ab.winBonus>0&&!win?' ✨':''}${ab.payMult>1?' 💎':''}</small>`;
-        checkPetLevelUp(); dailyProgress('win'); dailyProgress('play');
+        dailyProgress('win'); dailyProgress('play');
     } else {
         s.b-=bt;
         document.getElementById('g-stat').innerHTML=`<span style="color:var(--error)">-${bt.toFixed(2)} BB</span><br><small>${msg}</small>`;
@@ -2680,13 +2667,19 @@ function loadAdmin(){
                 <label class="field-label">Ціна (BB)</label>
                 <input type="number" id="shop-item-price" value="500" min="1" style="margin-bottom:8px">
                 <label class="field-label">Тип нагороди</label>
-                <select id="shop-item-type" style="margin-bottom:8px">
-                    <option value="bb">BB</option>
-                    <option value="case">Кейс</option>
-                    <option value="boost">Буст</option>
+                <select id="shop-item-type" style="margin-bottom:8px" onchange="toggleShopItemType()">
+                    <option value="bb">💰 BB</option>
+                    <option value="case">📦 Кейс</option>
+                    <option value="boost">⚡ Буст</option>
                 </select>
-                <label class="field-label">Значення (BB або кількість)</label>
-                <input type="number" id="shop-item-val" value="1000" min="1" style="margin-bottom:12px">
+                <div id="shop-type-bb">
+                    <label class="field-label">Кількість BB</label>
+                    <input type="number" id="shop-item-val" value="1000" min="1" style="margin-bottom:12px">
+                </div>
+                <div id="shop-type-case" style="display:none">
+                    <label class="field-label">Оберіть кейс</label>
+                    <select id="shop-item-case-key" style="margin-bottom:12px"><option value="">Завантаження...</option></select>
+                </div>
                 <button class="btn" onclick="adminSaveShopItem()">➕ Додати товар</button>
             </div>
             <div class="card-title" style="margin:12px 0 8px;font-size:13px">🛍️ Товари в магазині (${Object.keys(items).length})</div>
@@ -4170,6 +4163,122 @@ window.adminCreateAndGiveArtifact=async function(){
 // ════ Pass XP з ставок ════
 window._origAddPassXP=addPassXP;
 window.addPassXPFromBet=function(bt){ addPassXP(Math.max(1,Math.floor(bt/10))); };
+
+// ════ ARTIFACT PICKER ════
+function updateArtifactHUD(){
+    const arts=s.artifacts||[];
+    const wrap=document.getElementById('artifact-hud-wrap');
+    if(!wrap) return;
+    // Pet income indicator
+    const bbphTotal=typeof getPetTotalBBph==='function'?getPetTotalBBph():0;
+    const pendBB=typeof getPetPendingIncome==='function'?getPetPendingIncome():0;
+    if(!arts.length && !bbphTotal){ wrap.style.display='none'; return; }
+    wrap.style.display='block';
+    const activeArt=arts.find(a=>a.active);
+    const nameEl=document.getElementById('art-hud-name');
+    const bonusEl=document.getElementById('art-hud-bonus');
+    const iconEl=document.getElementById('art-hud-icon');
+    if(activeArt){
+        if(iconEl) iconEl.innerHTML=activeArt.photoUrl?`<img src="${activeArt.photoUrl}" style="width:28px;height:28px;object-fit:cover;border-radius:6px">`:(activeArt.emoji||'💎');
+        if(nameEl) nameEl.textContent=activeArt.name;
+        const bw=activeArt.bonusWin||0, bp=activeArt.bonusPayout||0;
+        if(bonusEl) bonusEl.textContent=[bw>0?'+'+bw+'% перемог':'',bp>0?'+'+bp+'% виграш':'',bbphTotal>0?'🐾 +'+pendBB+' BB':''].filter(Boolean).join(' · ')||'Активний';
+    } else {
+        if(iconEl) iconEl.innerHTML='💎';
+        if(nameEl) nameEl.textContent='Обери артефакт';
+        if(bonusEl) bonusEl.textContent=bbphTotal>0?'🐾 +'+pendBB+' BB накопичено':'Натисни щоб обрати';
+    }
+}
+window.toggleArtPicker=function(){
+    const picker=document.getElementById('art-picker');
+    if(!picker) return;
+    if(picker.style.display==='block'){ picker.style.display='none'; return; }
+    const arts=s.artifacts||[];
+    if(!arts.length){ picker.style.display='none'; showToast('Немає артефактів'); return; }
+    let html='<div style="padding:4px 0">';
+    // "Без артефакту" option
+    const noneActive=!arts.some(a=>a.active);
+    html+=`<div onclick="equipArtifact(-1)" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:${noneActive?'rgba(var(--accent-rgb),.1)':'transparent'};border-bottom:1px solid rgba(255,255,255,.05)">
+        <div style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:18px">❌</div>
+        <div><div style="font-size:12px;font-weight:700;color:${noneActive?'var(--accent2)':'#fff'}">Без артефакту</div></div>
+        ${noneActive?'<span style="margin-left:auto;color:var(--accent2);font-size:14px">✓</span>':''}
+    </div>`;
+    arts.forEach((art,i)=>{
+        const icon=art.photoUrl?`<img src="${art.photoUrl}" style="width:32px;height:32px;object-fit:cover;border-radius:8px">`:`<div style="width:32px;height:32px;border-radius:8px;background:rgba(var(--accent-rgb),.12);display:flex;align-items:center;justify-content:center;font-size:20px">${art.emoji||'💎'}</div>`;
+        const bw=art.bonusWin||0,bp=art.bonusPayout||0;
+        const bonus=[bw>0?'+'+bw+'% перемог':'',bp>0?'+'+bp+'% виграш':''].filter(Boolean).join(' · ')||'Активний';
+        html+=`<div onclick="equipArtifact(${i})" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:${art.active?'rgba(var(--accent-rgb),.1)':'transparent'};border-bottom:1px solid rgba(255,255,255,.05)">
+            ${icon}
+            <div style="flex:1;min-width:0">
+                <div style="font-size:12px;font-weight:700;color:${art.active?'var(--accent2)':'#fff'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${art.name}</div>
+                <div style="font-size:10px;color:var(--muted)">${bonus}</div>
+            </div>
+            ${art.active?'<span style="margin-left:auto;color:var(--accent2);font-size:14px;flex-shrink:0">✓</span>':''}
+        </div>`;
+    });
+    html+='</div>';
+    picker.innerHTML=html;
+    picker.style.display='block';
+};
+// Override equipArtifact to also close picker and update HUD
+const _origEquipArtifact = window.equipArtifact;
+window.equipArtifact=function(idx){
+    if(!s.artifacts) s.artifacts=[];
+    s.artifacts.forEach(a=>a.active=false);
+    if(idx>=0 && s.artifacts[idx]) s.artifacts[idx].active=true;
+    save();
+    const picker=document.getElementById('art-picker');
+    if(picker) picker.style.display='none';
+    updateArtifactHUD();
+    if(typeof renderInv==='function' && document.getElementById('v-inv')?.style.display!=='none') renderInv();
+    showToast(idx<0?'🔓 Артефакт знятий':'💎 Артефакт активовано!');
+};
+// Close picker on outside click
+document.addEventListener('click',e=>{
+    const wrap=document.getElementById('artifact-hud-wrap');
+    if(wrap && !wrap.contains(e.target)){
+        const picker=document.getElementById('art-picker');
+        if(picker) picker.style.display='none';
+    }
+});
+
+// ════ SHOP ITEM TYPE TOGGLE ════
+window.toggleShopItemType=function(){
+    const t=document.getElementById('shop-item-type')?.value;
+    document.getElementById('shop-type-bb').style.display=t==='bb'||t==='boost'?'block':'none';
+    document.getElementById('shop-type-case').style.display=t==='case'?'block':'none';
+    if(t==='case'){
+        // Завантажуємо список кейсів
+        const sel=document.getElementById('shop-item-case-key');
+        if(!sel) return;
+        db.ref('casesDB').once('value',snap=>{
+            const cases=snap.val()||{};
+            sel.innerHTML=Object.entries(cases).map(([k,c])=>`<option value="${k}">${c.n}</option>`).join('')||'<option value="">Немає кейсів</option>';
+        });
+    }
+};
+
+// ════ FIX adminSaveShopItem — підтримка case key ════
+window.adminSaveShopItem=async function(){
+    const name=(document.getElementById('shop-item-name')?.value||'').trim();
+    const desc=(document.getElementById('shop-item-desc')?.value||'').trim();
+    const price=parseFloat(document.getElementById('shop-item-price')?.value)||0;
+    const photo=(document.getElementById('shop-item-photo')?.value||'').trim();
+    const type=document.getElementById('shop-item-type')?.value||'bb';
+    if(!name||!price) return showToast('❌ Введи назву та ціну!');
+    let val=0, caseKey='';
+    if(type==='case'){
+        caseKey=document.getElementById('shop-item-case-key')?.value||'';
+        if(!caseKey) return showToast('❌ Обери кейс!');
+        val=1;
+    } else {
+        val=parseFloat(document.getElementById('shop-item-val')?.value)||0;
+    }
+    const key='item_'+Date.now();
+    await db.ref('shopDB/'+key).set({name,desc,price,photo,type,val,caseKey,active:true});
+    showToast('✅ "'+name+'" додано в магазин!');
+    setAdminTab('shop_admin');
+};
 </script>
 </body>
 </html>
