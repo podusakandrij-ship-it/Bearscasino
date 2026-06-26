@@ -1295,7 +1295,7 @@ function renderPokedex(){
             h+=`<div style="background:${have?p.c+'18':'rgba(255,255,255,.03)'};border:1px solid ${have?p.c+'44':'rgba(255,255,255,.06)'};border-radius:10px;padding:8px 4px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px">
                 ${img}
                 <div style="font-size:9px;font-weight:700;color:${have?p.c:'var(--muted)'};line-height:1.2">${p.n}</div>
-                ${have?`<div style="font-size:8px;color:var(--muted)">x${p.m.toFixed(2)}</div>`:''}
+                ${p.bbph>0?`<div style="font-size:8px;color:var(--accent2)">${p.bbph} BB/г</div>`:''}
             </div>`;
         });
         h+=`</div>`;
@@ -1551,63 +1551,47 @@ let adminInvUserId=null,adminInvUserName='';
 
 // FIREBASE SYNC
 let _splashFired = false;
-let _saving = false;
 let _saveTimer = null;
+
 function save(){
-    _saving = true;
+    // Зберігаємо ТІЛЬКИ якщо дані вже завантажились з Firebase
+    if(!_splashFired) return;
     clearTimeout(_saveTimer);
-    _saveTimer = setTimeout(()=>{ _saving = false; }, 2000);
-    db.ref('players/'+myId).set(s);
+    _saveTimer = setTimeout(()=>{
+        db.ref('players/'+myId).set(s);
+    }, 600);
 }
 
-// Завантажуємо дані ОДИН РАЗ при старті (.once — не слухає зміни)
+// Завантажуємо дані при старті
 db.ref('players/'+myId).once('value', snap=>{
     const d = snap.val();
     if(d){
         s = d;
         if(!s.inv)       s.inv=[];
         if(!s.artifacts) s.artifacts=[];
-    } else {
-        // Новий гравець — зберігаємо дефолтний стан
-        db.ref('players/'+myId).set(s);
     }
-    ren();
+    // Якщо новий гравець — s залишається дефолтним {b:0...} і збережеться після _splashFired
     _splashFired = true;
+    ren();
     if(window._splashDone) window._splashDone();
     checkPassReset();
     renderPass();
-    // Перевіряємо пасивний дохід від петів
+    // Перевіряємо пасивний дохід
     setTimeout(()=>{
         const bbph = typeof getPetTotalBBph==='function'?getPetTotalBBph():0;
         const earned = typeof getPetPendingIncome==='function'?getPetPendingIncome():0;
         if(bbph>0 && !s.lastPetCollect){ s.lastPetCollect=Date.now(); save(); }
         else if(bbph>0 && earned>0){
-            setTimeout(()=>showToast('🐾 Накопичено '+earned+' BB від петів — зайди в Пети!'), 2000);
+            setTimeout(()=>showToast('🐾 Накопичено '+earned+' BB від петів — зайди в Пети!'),2000);
         }
-    }, 1000);
+    }, 1500);
 });
 
 // ============================================================
 // XP / LEVELUP
 // ============================================================
 function checkPetLevelUp(){
-    if(!s.p) return;
-    let levelled = false;
-    // Цикл — пет може підняти кілька рівнів за раз
-    while(s.x >= xpForLevel(s.p.lvl||1)){
-        const needed = xpForLevel(s.p.lvl||1);
-        s.x  -= needed;
-        s.p.lvl = (s.p.lvl||1) + 1;
-        s.p.m   = Math.round((s.p.m + 0.005)*1000)/1000;
-        levelled = true;
-    }
-    if(levelled){
-        const idx = s.inv.findIndex(i=>i.id===s.p.id);
-        if(idx!==-1) s.inv[idx] = s.p;
-        save();
-        showToast(`${getPetEmoji(s.p)} <b>${s.p.n}</b> — LVL ${s.p.lvl}! <span style="color:var(--accent)">+0.005 бонус</span>`);
-        ren();
-    }
+    // Пет більше не дає XP/множник — функція залишена для сумісності
 }
 function showToast(html){
     const t=document.createElement('div');
@@ -1652,34 +1636,7 @@ function ren(){
 
     const hudWrap = document.getElementById('p-hud-wrap');
 
-    if (s.p) {
-        if (hudWrap) {
-            const imgSrc = getPetImageSrc(s.p);
-            if (imgSrc.type === 'img') {
-                hudWrap.innerHTML = `<img src="${imgSrc.src}" style="width:52px;height:52px;object-fit:contain;">`;
-            } else {
-                hudWrap.innerHTML = `<span style="font-size:34px;animation:pet-float 3s ease-in-out infinite">${imgSrc.src}</span>`;
-            }
-        }
-        document.getElementById('p-name').innerText  = s.p.n;
-        document.getElementById('p-m').innerText     = 'x' + s.p.m.toFixed(3);
-        document.getElementById('p-l').innerText     = s.p.lvl || 1;
-        const rb = document.getElementById('p-rarity');
-        rb.innerText = s.p.r;
-        rb.style.background = (s.p.c||'#94a3b8') + '22';
-        rb.style.color = s.p.c || '#94a3b8';
-        rb.style.border = `1px solid ${s.p.c||'#94a3b8'}44`;
-    } else {
-        if (hudWrap) hudWrap.innerHTML = `<span style="font-size:34px">🥚</span>`;
-        document.getElementById('p-name').innerText = L('noPet');
-        document.getElementById('p-m').innerText    = 'x1.000';
-        document.getElementById('p-l').innerText    = '1';
-        const rb = document.getElementById('p-rarity');
-        rb.innerText = L('noPetRarity');
-        rb.style.background = 'rgba(107,114,128,.2)';
-        rb.style.color = '#9ca3af';
-        rb.style.border = '1px solid rgba(107,114,128,.3)';
-    }
+    // Pet HUD hidden - skip pet display code
 
     // Pet HUD прихований — ховаємо
     const petHudEl = document.querySelector('.pet-hud');
@@ -1816,7 +1773,7 @@ function renderShop(){
                         ${icon}
                         <div style="flex:1">
                             <div style="font-weight:700;color:${lot.pet.c};font-size:13px">${lot.pet.n}</div>
-                            <div style="font-size:11px;color:var(--muted)">LVL ${lot.pet.lvl||1} · x${lot.pet.m.toFixed(3)} · ${lot.sellerName}</div>
+                            <div style="font-size:11px;color:var(--muted)">LVL ${lot.pet.lvl||1} · ${lot.sellerName}</div>
                         </div>
                         <button class="btn-buy" onclick="buyFromMarket('${child.key}')">${lot.price} BB</button>
                     </div>`;
@@ -2211,8 +2168,10 @@ window.minesReveal=idx=>{
 };
 window.minesCashout=()=>{
     if(!minesState||!minesState.alive||minesState.opened===0)return;
-    const bt=minesState.bet,mult=minesState.currentMult,win=(bt*mult-bt)*(s.p?s.p.m:1);
-    s.b+=win;s.x+=Math.floor(bt/2);addPassXP(win);save();ren();checkPetLevelUp();
+    const bt=minesState.bet,mult=minesState.currentMult;
+    const ab2=typeof getArtifactBonuses==='function'?getArtifactBonuses():{winBonus:0,payMult:1};
+    const win=(bt*mult-bt)*ab2.payMult;
+    s.b+=win;addPassXP(Math.max(1,Math.floor(bt/10)));save();ren();dailyProgress('win');dailyProgress('play');dailyProgress('betted',bt);
     document.getElementById('g-stat').innerHTML=`<span style="color:var(--success)">+${win.toFixed(2)} BB</span><br><small>Забрав x${mult.toFixed(2)} 💰</small>`;
     minesState.alive=false;minesState.cells.forEach(c=>c.revealed=true);buildMinesGrid();
     document.getElementById('mines-ctrl').style.display='none';minesState=null;
@@ -2330,7 +2289,7 @@ function openCaseAnimation(win, onComplete) {
             </div>
             <div id="reveal-info" style="opacity:0;transform:translateY(16px);transition:opacity .4s .3s,transform .4s .3s">
                 <div style="font-size:24px;font-weight:900;color:${glow};letter-spacing:.5px">${win.n}</div>
-                <div style="font-size:13px;color:#8d99ae;margin-top:4px">${win.r} · x${win.m.toFixed(3)}</div>
+                <div style="font-size:13px;color:#8d99ae;margin-top:4px">${win.r}${win.bbph>0?' · 💰'+win.bbph+' BB/год':''}</div>
                 <div style="font-size:12px;color:var(--accent2);margin-top:6px;font-weight:700">+${win.n} в інвентар!</div>
             </div>`;
 
@@ -2522,7 +2481,7 @@ function loadAdmin(){
                     ${p.photoUrl?`<img src="${p.photoUrl}" style="width:44px;height:44px;object-fit:cover;border-radius:10px;flex-shrink:0">`:`<div style="width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">${p.s||'🐾'}</div>`}
                     <div style="flex:1;min-width:0">
                         <div style="font-size:13px;font-weight:800;color:#fff">${p.n}</div>
-                        <div style="font-size:10px;color:var(--muted)">${p.r} · x${p.m}${p.bbph>0?' · 💰'+p.bbph+'/год':''}</div>
+                        <div style="font-size:10px;color:var(--muted)">${p.r}${p.bbph>0?' · 💰'+p.bbph+' BB/год':''}</div>
                         <div style="font-size:9px;color:var(--accent2);margin-top:2px">ключ: <b>${key}</b></div>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
@@ -3220,7 +3179,7 @@ function loadAdminUserInv(uid,name){
                         ${icon}
                         <div style="flex:1">
                             <div style="font-weight:700;font-size:13px">${pet.n}${eq?` <span style="font-size:10px;background:rgba(16,185,129,.2);color:var(--success);padding:1px 5px;border-radius:4px">Активний</span>`:''}</div>
-                            <div style="font-size:11px;color:${pet.c}">${pet.r} · x${pet.m.toFixed(3)} · LVL ${pet.lvl||1}</div>
+                            <div style="font-size:11px;color:${pet.c}">${pet.r} · LVL ${pet.lvl||1}${pet.bbph>0?' · 💰'+pet.bbph+' BB/год':''}</div>
                         </div>
                         <button class="btn-ctrl b-sub" style="padding:8px 10px;font-size:16px" onclick="adminRemovePet('${uid}',${idx},'${name.replace(/'/g,"\\'")}')">🗑</button>
                     </div>
@@ -3267,7 +3226,7 @@ window.adminSetPetLevel=(uid,idx,name)=>{
         db.ref('players/'+uid+'/x').set(0);
         db.ref('players/'+uid+'/inv').set(inv);
         if(p.p&&p.p.id===pet.id) db.ref('players/'+uid+'/p').set(pet);
-        showToast(`✅ ${pet.n}: LVL ${newLvl}, x${pet.m.toFixed(3)}`);
+        showToast(`✅ ${pet.n}: LVL ${newLvl}!`);
         setTimeout(()=>loadAdminUserInv(uid,name),400);
     });
 };
@@ -3292,17 +3251,29 @@ window.adminAddPetLevel=(uid,idx,delta)=>{
         setTimeout(()=>loadAdminUserInv(uid,p.name||name),300);
     });
 };
-window.mathB=(id,type,currency='bb')=>{
+window.mathB=async(id,type,currency='bb')=>{
     const label=currency==='dbl'?'⚓ Дублони':'BB';
     let v=prompt(`Сума (${label}):`);
     if(!v||isNaN(v))return;
     v=Number(v);
     const field=currency==='dbl'?'dbl':'b';
-    const ref=db.ref('players/'+id+'/'+field);
-    if(type==='add')ref.transaction(c=>(c||0)+v);
-    else if(type==='sub')ref.transaction(c=>Math.max(0,(c||0)-v));
-    else ref.set(Math.max(0,v));
-    setTimeout(loadAdmin,500);
+    // Читаємо поточне значення з Firebase
+    const snap = await db.ref('players/'+id+'/'+field).once('value');
+    const cur = snap.val()||0;
+    let newVal;
+    if(type==='add') newVal=cur+v;
+    else if(type==='sub') newVal=Math.max(0,cur-v);
+    else newVal=Math.max(0,v);
+    // Пишемо назад в Firebase
+    await db.ref('players/'+id+'/'+field).set(newVal);
+    // Якщо це поточний гравець — оновлюємо локальний s щоб save() не скинув
+    if(String(id)===String(myId)){
+        if(field==='b') s.b=newVal;
+        else if(field==='dbl') s.dbl=newVal;
+        ren();
+    }
+    showToast('✅ '+label+' оновлено: '+newVal);
+    setTimeout(loadAdmin,300);
 };
 // adminGivePet — alias для зворотньої сумісності
 window.adminGivePet=uid=>window.adminGivePetModal(uid,'');
@@ -3585,13 +3556,13 @@ function applyPetMults(overrides){
     if(s.p){
         const key=s.p.n.replace(/[^a-zA-ZА-Яа-яёЁіІїЇєЄ0-9]/g,'_');
         if(overrides[key]!==undefined){
-            s.p.m=overrides[key];
+            // pet mult override removed
             db.ref('players/'+myId+'/p').set(s.p);
         }
     }
     ren();
 }
-db.ref('petmults').on('value',snap=>applyPetMults(snap.val()));
+// petmults listener removed — пети більше не дають множник
 
 // ── Оголошення для гравців ──
 function initAnnounce(){
@@ -3695,18 +3666,16 @@ function getPassXPInfo(){
 function checkPassReset(){
   const now = new Date();
   const mk = now.getFullYear()+'-'+(now.getMonth()+1);
-  // Тільки скидаємо якщо місяць змінився І дані вже були збережені раніше
   if(s.passMonth && s.passMonth !== mk){
     s.passMonth = mk;
     s.passXP = 0;
     s.passClaimed = [];
     s.passClaimedBonus = 0;
-    s.bpCases = s.bpCases || 0;
-    showToast('🎫 BEARS PASS Season 2!');
+    showToast('🎫 Новий сезон Bears Pass!');
     save();
   } else if(!s.passMonth){
     s.passMonth = mk;
-    save();
+    // Не викликаємо save() тут — воно збережеться при наступній дії
   }
 }
 
@@ -3881,14 +3850,20 @@ window.adminGivePetFromDB=async function(petKey){
     if(!uid) return showToast('❌ Введи ID гравця!');
     const petSnap=await db.ref('petDB/'+petKey).once('value');
     if(!petSnap.exists()) return showToast('❌ Пет не знайдений в БД!');
-    const pet={...petSnap.val(), id:Date.now(), lvl:1, adminCreated:true};
+    const petId = Date.now();
+    const petData = petSnap.val();
+    const pet={n:petData.n, s:petData.s, r:petData.r, c:petData.c, bbph:petData.bbph||0,
+               id:petId, petKey, lvl:1, adminCreated:true,
+               ...(petData.photoUrl?{photoUrl:petData.photoUrl}:{})};
+    // без m (множника)
     const plSnap=await db.ref('players/'+uid).once('value');
     if(!plSnap.exists()) return showToast('❌ Гравця не знайдено!');
-    const inv=plSnap.val().inv||[];
-    inv.push(pet);
+    const plData=plSnap.val();
+    const inv=[...(plData.inv||[]), pet];
     const upd={inv};
-    if(!plSnap.val().lastPetCollect) upd.lastPetCollect=Date.now();
+    if(!plData.lastPetCollect) upd.lastPetCollect=Date.now();
     await db.ref('players/'+uid).update(upd);
+    if(String(uid)===String(myId)){ s.inv=inv; if(!s.lastPetCollect)s.lastPetCollect=Date.now(); ren(); renderInv(); }
     showToast('✅ '+pet.n+' видано гравцю '+uid+'!');
 };
 window.adminDeletePetFromDB=async function(petKey){
@@ -3918,13 +3893,18 @@ window.adminGiveArtFromDB=async function(artKey){
     if(!uid) return showToast('❌ Введи ID гравця!');
     const artSnap=await db.ref('artifactDB/'+artKey).once('value');
     if(!artSnap.exists()) return showToast('❌ Артефакт не знайдений!');
-    const art={...artSnap.val(), id:Date.now(), active:false};
+    const art={...artSnap.val(), id:Date.now(), artKey, active:false};
     const plSnap=await db.ref('players/'+uid).once('value');
     if(!plSnap.exists()) return showToast('❌ Гравця не знайдено!');
-    const arts=plSnap.val().artifacts||[];
-    arts.push(art);
+    const arts=[...(plSnap.val().artifacts||[]), art];
     await db.ref('players/'+uid+'/artifacts').set(arts);
-    showToast('✅ '+art.name+' видано гравцю!');
+    // Якщо наш акаунт — оновлюємо локально
+    if(String(uid)===String(myId)){
+        s.artifacts=arts;
+        updateArtifactHUD();
+        renderInv();
+    }
+    showToast('✅ '+art.name+' видано гравцю '+uid+'!');
 };
 window.adminDeleteArtFromDB=async function(artKey){
     if(!confirm('Видалити артефакт з бази?')) return;
