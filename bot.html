@@ -20,19 +20,19 @@
   --nav-h:64px;--gold-glow:rgba(200,146,42,.25);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden}
+html,body{height:100%;margin:0;padding:0;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:var(--font);letter-spacing:.1px}
 body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 70% 50% at 15% 0%,rgba(200,146,42,.07),transparent 60%),radial-gradient(ellipse 50% 40% at 85% 100%,rgba(217,90,24,.05),transparent 55%)}
-#app{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;position:relative;z-index:1}
+#app{display:flex;flex-direction:column;height:100%;overflow:hidden;position:relative;z-index:1}
 
 /* SPLASH */
-#splash{position:fixed;inset:0;z-index:9999;background:#06070a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;animation:spHide .4s 2.5s ease forwards;overflow:hidden}
+#splash{position:fixed;inset:0;z-index:9999;background:#06070a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;overflow:hidden;transition:opacity .4s ease}
 .sp-orb{position:absolute;border-radius:50%;filter:blur(60px);pointer-events:none}
 .sp-orb1{width:320px;height:320px;background:radial-gradient(circle,rgba(200,146,42,.2),transparent 70%);top:-80px;left:-100px;animation:orb1 8s ease-in-out infinite}
 .sp-orb2{width:280px;height:280px;background:radial-gradient(circle,rgba(217,90,24,.15),transparent 70%);bottom:-80px;right:-80px;animation:orb2 10s ease-in-out infinite}
 @keyframes orb1{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-20px)}}
 @keyframes orb2{0%,100%{transform:translate(0,0)}50%{transform:translate(-20px,25px)}}
-@keyframes spHide{to{opacity:0;visibility:hidden}}
+
 .sp-logo{display:flex;flex-direction:column;align-items:center;gap:16px;animation:spIn .9s cubic-bezier(.34,1.56,.64,1) both}
 @keyframes spIn{from{transform:scale(.6) translateY(20px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
 .sp-icon{width:96px;height:96px;border-radius:28px;background:linear-gradient(145deg,#1e1600,#130f01);border:1px solid rgba(200,146,42,.4);display:flex;align-items:center;justify-content:center;font-size:48px;box-shadow:0 0 0 1px rgba(200,146,42,.1),0 20px 60px rgba(0,0,0,.5),0 0 80px rgba(200,146,42,.15),inset 0 1px 0 rgba(255,255,255,.06)}
@@ -286,7 +286,7 @@ textarea.fif{resize:none}
 .pin::placeholder{color:var(--sub)}
 
 /* === CRITICAL LAYOUT OVERRIDE === */
-html { height: 100%; }
+
 body { height: 100%; margin: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font); }
 #app { 
   display: flex; 
@@ -684,25 +684,22 @@ function setBalance(v){
   setText('cardBal',balance);
   setText('shopBal',balance);
   setText('profBal',balance);
+  setText('fbal',balance+' R'); // update flow header too
 }
 
 // ════════════════════════════════════════════
 // FIREBASE
 // ════════════════════════════════════════════
 function initFB(){
-  // Читаємо баланс в реальному часі з users/
+  // Слухаємо баланс з users/ в реальному часі
   db.ref('users/'+myId+'/balance').on('value',function(snap){
     var v=snap.val();
     if(v!==null && v!==undefined) setBalance(v);
   });
-  // Також слухаємо players/ (казино пише туди)
+  // Слухаємо players/ (казино)
   db.ref('players/'+myId+'/botBalance').on('value',function(snap){
     var v=snap.val();
-    if(v!==null && v!==undefined){
-      setBalance(v);
-      // Синхронізуємо до users/ щоб інші могли читати
-      db.ref('users/'+myId+'/balance').set(v);
-    }
+    if(v!==null && v!==undefined) setBalance(v);
   });
 
   // Профіль
@@ -849,12 +846,19 @@ function openShopFlow(key){
   yes.onclick=function(){
     if(balance<pet.price){err.textContent='Недостатньо коштів';return;}
     var nb=balance-pet.price;
-    db.ref('users/'+myId+'/balance').set(nb);
+    // Write to both paths atomically
+    var balUpdate={};
+    balUpdate['users/'+myId+'/balance']=nb;
+    balUpdate['players/'+myId+'/botBalance']=nb;
+    db.ref().update(balUpdate);
     setBalance(nb);
     var item={type:'shop',label:'Купівля товару',detail:pet.key+' · '+pet.price+' R',status:'pending',petKey:pet._key,petName:pet.key,price:pet.price};
     addHist(item);
     db.ref('pending/'+item.id).set(item);
-    notifyAdmins('🛒 Замовлення від #'+myId+' ('+nick+'): '+pet.key+' · '+pet.price+' R');
+    // Notify admins directly in their chat
+    ADMIN_IDS.forEach(function(aid){
+      db.ref('chat/'+myId).push({from:'user',text:'🛒 ЗАМОВЛЕННЯ: '+pet.key+' · '+pet.price+' R',time:nowTime(),nick:nick,userId:myId});
+    });
     // Show success screen
     c.innerHTML='';
     var wc=mk('div','fwc');
@@ -865,7 +869,534 @@ function openShopFlow(key){
       +'<br><span style=\'color:'+ra.color+'\'>'+ra.label+'</span>'
       +'<br><br>💰 Списано: <b style=\'color:var(--gold2)\'>'+pet.price+' R</b>'
       +'<br>💳 Залишок: <b style=\'color:var(--gold2)\'>'+nb+' R</b>'
-      +'<br><br>👨‍💼 Адміністратор зв’яжеться з вами у найближчий час.</div>';
+      +'<br><br>👨‍💼 Адміністратор звʼяжеться з вами найближчим часом.</div>';
+    var b2=mk('button','fbtn fbtn-g'); b2.textContent='На головну';
+    b2.onclick=function(){closeFlow();switchPage('home');};
+    c.appendChild(wc); c.appendChild(b2);
+  };
+  yn.appendChild(yes); yn.appendChild(no);
+  c.appendChild(conf); c.appendChild(err); c.appendChild(yn);
+  el('fov').classList.add('open');
+}
+
+// ════════════════════════════════════════════
+// CHAT
+// ════════════════════════════════════════════
+var _chatSnap=null;
+function loadChat(){
+  var dot=el('chatDot');
+  if(dot) dot.classList.remove('show');
+  // Force re-render by reading current snapshot
+  db.ref('chat/'+myId).once('value',function(snap){
+    renderChat(snap);
+  });
+}
+function renderChat(snap){
+  var body=el('chatBody'); if(!body) return;
+  if(!snap||!snap.exists()){body.innerHTML='<div class="empty-state">Напишіть нам!</div>';return;}
+  var html='';
+  snap.forEach(function(ch){
+    var m=ch.val();
+    var isMe=m.from==='user';
+    html+='<div class="cmsg '+(isMe?'cmsg-u':'cmsg-a')+'">'
+      +(isMe?'':'<div class="cmsg-who">👨‍💼 Admin</div>')
+      +m.text
+      +'<div class="cmsg-time">'+m.time+'</div>'
+      +'</div>';
+  });
+  body.innerHTML=html;
+  body.scrollTop=body.scrollHeight;
+}
+function sendChatMsg(){
+  var inp=el('chatInp'); if(!inp) return;
+  var text=inp.value.trim(); if(!text) return;
+  inp.value='';
+  db.ref('chat/'+myId).push({from:'user',text:text,time:nowTime(),nick:nick,userId:myId});
+}
+
+// ════════════════════════════════════════════
+// PROFILE
+// ════════════════════════════════════════════
+function saveNick(){
+  var v=(el('nickInp')||{value:''}).value.trim();
+  if(!v){showToast('⚠️ Введіть нік');return;}
+  nick=v; applyNick();
+  db.ref('users/'+myId+'/nick').set(nick);
+  db.ref('users/'+myId+'/id').set(myId);
+  db.ref('botdata/'+myId+'/nick').set(nick);
+  showToast('✅ Нік збережено!');
+}
+
+// ── THEME ──
+var isDark=true;
+function toggleTheme(){
+  isDark=!isDark;
+  applyTheme();
+  localStorage.setItem('theme',isDark?'dark':'light');
+}
+function applyTheme(){
+  var r=document.documentElement.style;
+  if(isDark){
+    r.setProperty('--bg','#06070a');r.setProperty('--s1','#0d0f14');
+    r.setProperty('--s2','#13161e');r.setProperty('--s3','#191d27');r.setProperty('--s4','#1f2330');
+    r.setProperty('--text','#eef0f8');r.setProperty('--sub','#64748b');r.setProperty('--muted','#9aa3b2');
+    r.setProperty('--bd','rgba(255,255,255,.1)');r.setProperty('--b2','rgba(255,255,255,.16)');
+    setText('themeLabel','Темна');
+    var t=el('themeToggle'); if(t) t.style.background='var(--s3)';
+    var th=el('themeThumb'); if(th){th.style.left='3px';th.style.background='var(--sub)';}
+  } else {
+    r.setProperty('--bg','#f0f2f5');r.setProperty('--s1','#ffffff');
+    r.setProperty('--s2','#ffffff');r.setProperty('--s3','#f4f5f8');r.setProperty('--s4','#eceef2');
+    r.setProperty('--text','#0f1117');r.setProperty('--sub','#64748b');r.setProperty('--muted','#4a5568');
+    r.setProperty('--bd','rgba(0,0,0,.08)');r.setProperty('--b2','rgba(0,0,0,.12)');
+    setText('themeLabel','Світла');
+    var t=el('themeToggle'); if(t) t.style.background='rgba(200,146,42,.3)';
+    var th=el('themeThumb'); if(th){th.style.left='25px';th.style.background='var(--gold)';}
+  }
+}
+
+// ── LANGUAGE ──
+var curLang='uk';
+var LANGS={
+  uk:{greet:'Вітаємо,',shopTitle:'Магазин',chatTitle:'Чат',profTitle:'Профіль'},
+  ru:{greet:'Добро пожаловать,',shopTitle:'Магазин',chatTitle:'Чат',profTitle:'Профиль'},
+  en:{greet:'Welcome,',shopTitle:'Shop',chatTitle:'Chat',profTitle:'Profile'}
+};
+function setLang(l){
+  curLang=l;
+  localStorage.setItem('lang',l);
+  ['langUk','langRu','langEn'].forEach(function(id){
+    var e=el(id);
+    if(e){e.style.borderColor='var(--bd)';e.style.background='var(--s3)';e.style.color='var(--muted)';}
+  });
+  var active=el('lang'+l.charAt(0).toUpperCase()+l.slice(1));
+  if(active){active.style.borderColor='rgba(200,146,42,.4)';active.style.background='rgba(200,146,42,.1)';active.style.color='var(--gold2)';}
+  showToast('✅ Мову змінено');
+}
+
+// ════════════════════════════════════════════
+// FLOWS
+// ════════════════════════════════════════════
+function openFlow(name){
+  var titles={pump:'🎮 Прокачка',wd:'💸 Вивід коштів',support:'💬 Підтримка'};
+  el('ftitle').textContent=titles[name]||name;
+  setText('fbal',balance+' R');
+  var c=el('fcontent'); c.innerHTML='';
+  if(name==='pump') buildPump(c);
+  if(name==='wd')   buildWd(c);
+  if(name==='support') buildSupport(c);
+  el('fov').classList.add('open');
+}
+function closeFlow(){ el('fov').classList.remove('open'); }
+
+// ── PUMP ──
+function openFlow(name){
+  _flowStep=1;_flowData={};window._flowName=name;
+  var titles={pump:'🐾 Прокачка петів',wd:'💸 Вивід коштів',support:'📩 Підтримка'};
+  el('ftitle').textContent=titles[name]||name;
+  setText('fbal',balance+' R');
+  renderFlow();
+  el('fov').classList.add('open');
+}
+function closeFlow(){
+  el('fov').classList.remove('open');
+  _flowStep=1;_flowData={};window._flowPet=null;window._flowName=null;
+}
+var _flowStep=1,_flowData={};
+function renderFlow(){
+  var n=window._flowName;
+  if(n==='pump')renderPump();
+  else if(n==='wd')renderWd();
+  else if(n==='support')renderSupport();
+}
+function _fv(id){var e=document.getElementById(id);return e?e.value.trim():'';}
+function _fe(id,m){var e=document.getElementById(id);if(e)e.textContent=m;}
+
+function renderPump(){
+  var c=el('fcontent');
+  if(_flowStep===1){
+    c.innerHTML='<div class="ftag">🐾 ПРОКАЧКА ПЕТІВ</div>'
+      +'<div class="fig"><div class="filbl">1️⃣ Нікнейм у Telegram</div>'
+      +'<input class="fif" id="f1" placeholder="Ваш юзернейм..."></div>'
+      +'<div class="ferr" id="ferr"></div>'
+      +'<button class="fbtn fbtn-g" onclick="pN1()">Далі →</button>';
+    if(_flowData.tgNick){var e=document.getElementById('f1');if(e)e.value=_flowData.tgNick;}
+  }else if(_flowStep===2){
+    c.innerHTML='<div class="ftag">🐾 ПРОКАЧКА ПЕТІВ</div>'
+      +'<div class="fig"><div class="filbl">2️⃣ Нікнейм у Roblox</div>'
+      +'<input class="fif" id="f1" placeholder="Нік у Roblox..."></div>'
+      +'<div class="ferr" id="ferr"></div>'
+      +'<div class="btn-row">'
+      +'<button class="fbtn fbtn-s" onclick="_flowStep=1;renderFlow()">← Назад</button>'
+      +'<button class="fbtn fbtn-g" onclick="pN2()">Далі →</button></div>';
+    if(_flowData.gameNick){var e=document.getElementById('f1');if(e)e.value=_flowData.gameNick;}
+  }else if(_flowStep===3){
+    var btns='';for(var i=1;i<=5;i++)btns+='<button class="fcb'+(_flowData.cnt===i?' sel':'')+'" onclick="pSel('+i+')">'+i+'</button>';
+    c.innerHTML='<div class="ftag">🐾 ПРОКАЧКА ПЕТІВ</div>'
+      +'<div class="filbl">3️⃣ Кількість петів</div>'
+      +'<div class="fhint" style="margin-bottom:10px">Виберіть кількість петів для прокачки</div>'
+      +'<div class="fcrow">'+btns+'</div>'
+      +'<div class="ferr" id="ferr"></div>'
+      +'<div class="btn-row" style="margin-top:8px">'
+      +'<button class="fbtn fbtn-s" onclick="_flowStep=2;renderFlow()">← Назад</button>'
+      +'<button class="fbtn fbtn-g" onclick="pSubmit()">Відправити заявку</button></div>';
+  }else{
+    c.innerHTML='<div class="fwc"><div class="fwi">⏳</div>'
+      +'<div class="fwt">Заявку прийнято!</div>'
+      +'<div class="fwx">Як тільки з\'являться вільні пети,<br>👨‍💼 адміністратор повідомить особисто.</div></div>'
+      +'<button class="fbtn fbtn-g" style="margin-top:12px" onclick="closeFlow();switchPage(\'home\')">На головну</button>';
+  }
+}
+function pN1(){var v=_fv('f1');if(!v){_fe('ferr','Введіть юзернейм');return;}_flowData.tgNick=v;_flowStep=2;renderFlow();}
+function pN2(){var v=_fv('f1');if(!v){_fe('ferr','Введіть нік');return;}_flowData.gameNick=v;_flowStep=3;renderFlow();}
+function pSel(n){_flowData.cnt=n;renderFlow();}
+function pSubmit(){
+  if(!_flowData.cnt){_fe('ferr','Оберіть кількість');return;}
+  var item={type:'pump',label:'Прокачка петів',detail:'TG: '+_flowData.tgNick+' · Roblox: '+_flowData.gameNick+' · '+_flowData.cnt+' пет(и)',status:'pending',tgNick:_flowData.tgNick,gameNick:_flowData.gameNick,count:_flowData.cnt};
+  addHist(item);db.ref('pending/'+item.id).set(item);
+  var msg='🐾 ПРОКАЧКА від '+nick+' (#'+myId+')\nTG: @'+_flowData.tgNick+'\nRoblox: '+_flowData.gameNick+'\nКількість: '+_flowData.cnt+' пет(и)';
+  db.ref('chat/'+myId).push({from:'user',text:msg,time:nowTime(),nick:nick,userId:myId});
+  _flowStep=4;renderFlow();
+}
+
+function renderWd(){
+  var c=el('fcontent');
+  if(_flowStep===1){
+    c.innerHTML='<div class="ftag">💰 ВИВІД</div>'
+      +'<div class="fbc"><div class="fbc-lbl">Ваш баланс</div><div class="fbc-amt">'+balance+'</div><div class="fbc-unit">ROBUX</div></div>'
+      +'<div class="fig"><div class="filbl">1️⃣ Сума виводу (мін. 40 R)</div>'
+      +'<input class="fif" id="f1" type="number" placeholder="Введіть кількість ROBUX..."></div>'
+      +'<div class="ferr" id="ferr"></div>'
+      +'<button class="fbtn fbtn-g" onclick="wN1()">Далі →</button>';
+  }else if(_flowStep===2){
+    c.innerHTML='<div class="ftag">💰 ВИВІД</div>'
+      +'<div class="fig"><div class="filbl">2️⃣ Нікнейм у Roblox</div>'
+      +'<input class="fif" id="f1" placeholder="Ваш нік у Roblox..."></div>'
+      +'<div class="ferr" id="ferr"></div>'
+      +'<div class="btn-row"><button class="fbtn fbtn-s" onclick="_flowStep=1;renderFlow()">← Назад</button>'
+      +'<button class="fbtn fbtn-g" onclick="wN2()">Далі →</button></div>';
+  }else if(_flowStep===3){
+    c.innerHTML='<div class="ftag">💰 ВИВІД</div>'
+      +'<div class="fig"><div class="filbl">3️⃣ Назва карти</div>'
+      +'<input class="fif" id="f1" placeholder="Назва гри з геймпасом..."></div>'
+      +'<div class="fhint">🧩 Назва гри де створено геймпасс</div>'
+      +'<div class="ferr" id="ferr"></div>'
+      +'<div class="btn-row"><button class="fbtn fbtn-s" onclick="_flowStep=2;renderFlow()">← Назад</button>'
+      +'<button class="fbtn fbtn-g" onclick="wN3()">Далі →</button></div>';
+  }else if(_flowStep===4){
+    c.innerHTML='<div class="ftag">💰 ВИВІД</div>'
+      +'<div class="fig"><div class="filbl">4️⃣ Назва геймпасу</div>'
+      +'<input class="fif" id="f1" placeholder="Точна назва геймпасу..."></div>'
+      +'<div class="fhint">🎟️ Напишіть точну назву геймпасу</div>'
+      +'<div class="ferr" id="ferr"></div>'
+      +'<div class="btn-row"><button class="fbtn fbtn-s" onclick="_flowStep=3;renderFlow()">← Назад</button>'
+      +'<button class="fbtn fbtn-g" onclick="wN4()">Далі →</button></div>';
+  }else if(_flowStep===5){
+    var gp=Math.ceil(_flowData.amount/0.7);_flowData.gpAmt=gp;
+    c.innerHTML='<div class="ftag">💰 ВИВІД</div>'
+      +'<div class="fbc"><div class="fbc-lbl">5️⃣ Підтвердження суми геймпасу</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin:6px 0">Ви створили геймпасс на суму</div>'
+      +'<div class="fbc-amt">'+gp+'</div><div class="fbc-unit">ROBUX</div>'
+      +'<div style="font-size:11px;color:var(--sub);margin-top:6px">Після комісії Roblox 30% отримаєте '+_flowData.amount+' ROBUX</div></div>'
+      +'<div class="fynr"><button class="fyes" onclick="wConfirm()">✓ Так</button>'
+      +'<button class="fno" onclick="_flowStep=4;renderFlow()">✕ Назад</button></div>';
+  }else{
+    c.innerHTML='<div class="fwc"><div class="fwi">⏳</div>'
+      +'<div class="fwt">Заявку прийнято!</div>'
+      +'<div class="fwx">👨‍💼 Очікуйте — адміністрація перевіряє дані.<br>📬 Після перевірки отримаєте повідомлення.</div></div>'
+      +'<button class="fbtn fbtn-g" style="margin-top:12px" onclick="closeFlow();switchPage(\'home\')">На головну</button>';
+  }
+}
+function wN1(){var v=parseFloat(_fv('f1'));if(isNaN(v)||v<40){_fe('ferr','Мінімум 40 R');return;}if(v>balance){_fe('ferr','Недостатньо коштів');return;}_flowData.amount=Math.floor(v);_flowStep=2;renderFlow();}
+function wN2(){var v=_fv('f1');if(!v){_fe('ferr','Введіть нік');return;}_flowData.nick=v;_flowStep=3;renderFlow();}
+function wN3(){var v=_fv('f1');if(!v){_fe('ferr','Введіть назву');return;}_flowData.mapName=v;_flowStep=4;renderFlow();}
+function wN4(){var v=_fv('f1');if(!v){_fe('ferr','Введіть геймпас');return;}_flowData.gamepass=v;_flowStep=5;renderFlow();}
+function wConfirm(){
+  var nb=balance-_flowData.amount;
+  var u={};u['users/'+myId+'/balance']=nb;u['players/'+myId+'/botBalance']=nb;
+  db.ref().update(u);setBalance(nb);
+  var item={type:'wd',label:'Вивід коштів',detail:_flowData.nick+' · '+_flowData.amount+' R',status:'pending',amount:_flowData.amount,nick:_flowData.nick,mapName:_flowData.mapName,gamepass:_flowData.gamepass,gpAmount:_flowData.gpAmt};
+  addHist(item);db.ref('pending/'+item.id).set(item);
+  var msg='💸 ВИВІД від '+nick+' (#'+myId+')\nСума: '+_flowData.amount+' R\nНік: '+_flowData.nick+'\nКарта: '+_flowData.mapName+'\nГеймпас: '+_flowData.gamepass+'\nСума GP: '+_flowData.gpAmt+' R';
+  db.ref('chat/'+myId).push({from:'user',text:msg,time:nowTime(),nick:nick,userId:myId});
+  _flowStep=6;renderFlow();
+}
+
+function renderSupport(){
+  var c=el('fcontent');
+  if(_flowStep===1){
+    c.innerHTML='<div class="ftag">📩 ПІДТРИМКА</div>'
+      +'<div class="fhint" style="margin-bottom:8px">✉️ Напишіть ваше запитання або повідомлення для адміністрації</div>'
+      +'<div class="fig"><div class="filbl">Ваше повідомлення</div>'
+      +'<textarea class="fif" id="f1" rows="6" placeholder="Введіть повідомлення..."></textarea></div>'
+      +'<div class="ferr" id="ferr"></div>'
+      +'<button class="fbtn fbtn-g" onclick="sSubmit()">Відправити</button>';
+  }else{
+    c.innerHTML='<div class="fwc"><div class="fwi">🙏</div>'
+      +'<div class="fwt">Дякуємо за звернення!</div>'
+      +'<div class="fwx">👨‍💼 Адміністрація відповість у найближчий час.<br>Очікуйте у розділі Чат.</div></div>'
+      +'<button class="fbtn fbtn-g" style="margin-top:12px" onclick="closeFlow();switchPage(\'chat\')">Перейти в чат</button>'
+      +'<button class="fbtn fbtn-s" style="margin-top:8px" onclick="closeFlow();switchPage(\'home\')">На головну</button>';
+  }
+}
+function sSubmit(){
+  var v=_fv('f1');if(!v){_fe('ferr','Введіть повідомлення');return;}
+  db.ref('chat/'+myId).push({from:'user',text:v,time:nowTime(),nick:nick,userId:myId});
+  addHist({type:'support',label:'Звернення в підтримку',detail:v.slice(0,60)+(v.length>60?'…':''),status:'pending'});
+  _flowStep=2;renderFlow();
+}
+
+function openShopFlow(key){
+  var pet=PETS.find(function(p){return p._key===key;});
+  if(!pet) return;
+  window._shopPet=pet;
+  el('ftitle').textContent='🛒 '+pet.key;
+  setText('fbal',balance+' R');
+  var ra=RC[pet.cat]||RC.common;
+  var imgH=pet.img
+    ?'<img src="'+pet.img+'" style="width:90px;height:90px;object-fit:cover;border-radius:14px;display:block;margin:0 auto 12px">'
+    :'<div style="font-size:60px;text-align:center;margin-bottom:12px">'+( pet.emoji||'🐾')+'</div>';
+  el('fcontent').innerHTML=
+    '<div class="fpconf">'+imgH
+    +'<div class="fpc-n">'+pet.key+'</div>'
+    +'<div class="fpc-r" style="color:'+ra.color+'">'+ra.label+'</div>'
+    +'<div class="fpc-p">'+pet.price+' R</div></div>'
+    +'<div class="ferr" id="shopErr" style="text-align:center"></div>'
+    +'<div class="fynr">'
+    +'<button class="fyes" onclick="doBuy()">Купити</button>'
+    +'<button class="fno" onclick="closeFlow()">Скасувати</button></div>';
+  el('fov').classList.add('open');
+}
+function doBuy(){
+  var pet=window._shopPet;if(!pet)return;
+  if(balance<pet.price){var e=document.getElementById('shopErr');if(e)e.textContent='Недостатньо коштів';return;}
+  var nb=balance-pet.price;
+  var u={};u['users/'+myId+'/balance']=nb;u['players/'+myId+'/botBalance']=nb;
+  db.ref().update(u);setBalance(nb);
+  var item={type:'shop',label:'Купівля товару',detail:pet.key+' · '+pet.price+' R',status:'pending',petKey:pet._key,petName:pet.key,price:pet.price};
+  addHist(item);db.ref('pending/'+item.id).set(item);
+  var msg='🛒 ЗАМОВЛЕННЯ від '+nick+' (#'+myId+')\nТовар: '+pet.key+'\nЦіна: '+pet.price+' R';
+  db.ref('chat/'+myId).push({from:'user',text:msg,time:nowTime(),nick:nick,userId:myId});
+  var ra=RC[pet.cat]||RC.common;
+  el('fcontent').innerHTML=
+    '<div class="fwc"><div class="fwi">'+( pet.emoji||'🐾')+'</div>'
+    +'<div class="fwt">Замовлення прийнято!</div>'
+    +'<div class="fwx">Ви придбали <b style="color:var(--text)">'+pet.key+'</b>'
+    +'<br><span style="color:'+ra.color+'">'+ra.label+'</span>'
+    +'<br><br>Списано: <b style="color:var(--gold2)">'+pet.price+' R</b>'
+    +'<br>Залишок: <b style="color:var(--gold2)">'+nb+' R</b>'
+    +'<br><br>Адміністратор зв\u02bcяжеться найближчим часом.</div></div>'
+    +'<button class="fbtn fbtn-g" style="margin-top:12px" onclick="closeFlow();switchPage(\'home\')">На головну</button>';
+}
+
+function mk(tag,cls){var e=document.createElement(tag||'div');if(cls)e.className=cls;return e;}
+
+
+// ════════════════════════════════════════════
+// ADMIN NAV ITEM
+// ════════════════════════════════════════════
+if(isAdmin){
+  var adminNi=document.createElement('div');
+  adminNi.className='bni';adminNi.id='ni-admin';
+  adminNi.innerHTML='<div class="bni-ic">🔐</div>Адмін';
+  adminNi.onclick=function(){switchPage('admin');};
+  el('bnav').appendChild(adminNi);
+}
+
+// ════════════════════════════════════════════
+// BALANCE
+// ════════════════════════════════════════════
+function setBalance(v){
+  balance=Math.max(0,Math.floor(v||0));
+  setText('cardBal',balance);
+  setText('shopBal',balance);
+  setText('profBal',balance);
+  setText('fbal',balance+' R'); // update flow header too
+}
+
+// ════════════════════════════════════════════
+// FIREBASE
+// ════════════════════════════════════════════
+function initFB(){
+  // Слухаємо баланс з users/ в реальному часі
+  db.ref('users/'+myId+'/balance').on('value',function(snap){
+    var v=snap.val();
+    if(v!==null && v!==undefined) setBalance(v);
+  });
+  // Слухаємо players/ (казино)
+  db.ref('players/'+myId+'/botBalance').on('value',function(snap){
+    var v=snap.val();
+    if(v!==null && v!==undefined) setBalance(v);
+  });
+
+  // Профіль
+  db.ref('users/'+myId).once('value',function(snap){
+    var d=snap.val();
+    if(d&&d.nick){nick=d.nick;applyNick();}
+    // Реєструємо без перезапису балансу
+    db.ref('users/'+myId+'/nick').set(nick);
+  db.ref('users/'+myId+'/id').set(myId);
+  });
+
+  // Статистика і нік
+  db.ref('botdata/'+myId).once('value',function(snap){
+    var d=snap.val();
+    if(d){
+      if(d.nick){nick=d.nick;applyNick();}
+      if(d.stats){stats=Object.assign(stats,d.stats);updateStats();}
+    }
+  });
+
+  // Історія
+  db.ref('history/'+myId).orderByChild('id').limitToLast(50).once('value',function(snap){
+    history=[];
+    snap.forEach(function(ch){history.unshift(ch.val());});
+    renderHistory();
+  });
+
+  // Товари - слухаємо в реальному часі
+  db.ref('shop_pets').on('value',function(snap){
+    PETS=[];
+    if(snap.exists()){snap.forEach(function(ch){var p=ch.val();p._key=ch.key;PETS.push(p);});}
+    if(curPage==='shop') renderShop();
+  });
+
+  // Нові повідомлення - показуємо dot
+  db.ref('chat/'+myId).on('value',function(snap){
+    var dot=el('chatDot');
+    if(!snap.exists()){if(dot)dot.classList.remove('show');return;}
+    var hasAdmin=false;
+    snap.forEach(function(ch){if(ch.val().from==='admin')hasAdmin=true;});
+    if(dot){if(hasAdmin&&curPage!=='chat')dot.classList.add('show');else dot.classList.remove('show');}
+    if(curPage==='chat') renderChat(snap);
+  });
+}
+
+// ════════════════════════════════════════════
+// UI UPDATE
+// ════════════════════════════════════════════
+function applyNick(){
+  setText('hdrNick',nick);
+  setText('cardNick',nick.toUpperCase());
+  setText('profNickEl',nick);
+  setText('profIdEl','#'+myId);
+  var inp=el('nickInp'); if(inp) inp.value=nick;
+}
+function updateStats(){
+  setText('statOps',stats.ops||0);
+  setText('statPumps',stats.pumps||0);
+  setText('statWds',stats.wds||0);
+  setText('profOps',stats.ops||0);
+}
+
+// ════════════════════════════════════════════
+// HISTORY
+// ════════════════════════════════════════════
+function addHist(item){
+  item.id=Date.now(); item.date=nowDate(); item.userId=myId; item.userNick=nick;
+  if(!item.status) item.status='pending';
+  history.unshift(item);
+  stats.ops++;
+  if(item.type==='pump') stats.pumps++;
+  if(item.type==='wd') stats.wds++;
+  updateStats();
+  db.ref('history/'+myId+'/'+item.id).set(item);
+  db.ref('botdata/'+myId+'/stats').set(stats);
+  db.ref('users/'+myId+'/nick').set(nick);
+  db.ref('users/'+myId+'/id').set(myId);
+  renderHistory();
+}
+function renderHistory(){
+  var list=history.slice(0,15);
+  var html=list.length?list.map(function(h){
+    var ic=HIST_IC[h.type]||'📋';
+    var bg=HIST_BG[h.type]||'rgba(255,255,255,.05)';
+    var sc=h.status==='done'?'hs-d':h.status==='rejected'?'hs-r':'hs-p';
+    var sl=h.status==='done'?'Виконано':h.status==='rejected'?'Відхилено':'Очікує';
+    return '<div class="hprev-item">'
+      +'<div class="hprev-ic" style="background:'+bg+'">'+ic+'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div class="hprev-lbl">'+h.label+'</div>'
+      +'<div class="hprev-det">'+h.detail+'</div>'
+      +'</div>'
+      +'<span class="hprev-status '+sc+'">'+sl+'</span>'
+      +'</div>';
+  }).join(''):'<div class="empty-state">Операцій немає</div>';
+  setText('histList',null); el('histList').innerHTML=html;
+  if(el('fullHistList')) el('fullHistList').innerHTML=html;
+}
+
+// ════════════════════════════════════════════
+// SHOP
+// ════════════════════════════════════════════
+function filterCat(cat,btn){
+  curCat=cat;
+  el('shopCats').querySelectorAll('.cat').forEach(function(c){c.classList.remove('on');});
+  if(btn) btn.classList.add('on');
+  renderShop();
+}
+function renderShop(){
+  setText('shopBal',balance);
+  var list=curCat==='all'?PETS:PETS.filter(function(p){return p.cat===curCat;});
+  var g=el('shopGrid'); if(!g) return;
+  if(!list.length){g.innerHTML='<div class="empty-state" style="grid-column:1/-1">🐾 Товарів немає</div>';return;}
+  g.innerHTML=list.map(function(p){
+    var ra=RC[p.cat]||RC.common;
+    var tagH=p.tag?'<div class="ptag t-'+p.tag+'">'+(p.tag==='hot'?'🔥 HOT':p.tag==='new'?'✨ NEW':'💎 RARE')+'</div>':'';
+    var imgH=p.img?'<img src="'+p.img+'" class="pcard-img">'
+                  :'<div class="pcard-em">'+(p.emoji||'🐾')+'</div>';
+    return '<div class="pcard" onclick="openShopFlow(\''+p._key+'\')">'+tagH+imgH
+      +'<div class="pcard-nm">'+p.key+'</div>'
+      +'<div class="pcard-ra" style="color:'+ra.color+'">'+ra.label+'</div>'
+      +'<div class="pcard-pr">'+p.price+' R</div>'
+      +'</div>';
+  }).join('');
+}
+function openShopFlow(key){
+  var pet=PETS.find(function(p){return p._key===key;});
+  if(!pet) return;
+  el('ftitle').textContent='🛒 '+pet.key;
+  setText('fbal',balance+' R');
+  var c=el('fcontent'); c.innerHTML='';
+  var ra=RC[pet.cat]||RC.common;
+  var imgH=pet.img?'<img src="'+pet.img+'" style="width:90px;height:90px;object-fit:cover;border-radius:14px;display:block;margin:0 auto 14px">':'<div style="font-size:56px;text-align:center;margin-bottom:14px">'+(pet.emoji||'🐾')+'</div>';
+  var conf=document.createElement('div'); conf.className='fpconf';
+  conf.innerHTML=imgH
+    +'<div class="fpc-n">'+pet.key+'</div>'
+    +'<div class="fpc-r" style="color:'+ra.color+'">'+ra.label+'</div>'
+    +'<div class="fpc-p">'+pet.price+' R</div>';
+  var err=document.createElement('div'); err.className='ferr'; err.style.textAlign='center'; err.style.marginTop='8px';
+  var yn=document.createElement('div'); yn.className='fynr'; yn.style.marginTop='12px';
+  var yes=document.createElement('button'); yes.className='fyes'; yes.textContent='Купити';
+  var no=document.createElement('button'); no.className='fno'; no.textContent='Скасувати';
+  no.onclick=closeFlow;
+  yes.onclick=function(){
+    if(balance<pet.price){err.textContent='Недостатньо коштів';return;}
+    var nb=balance-pet.price;
+    // Write to both paths atomically
+    var balUpdate={};
+    balUpdate['users/'+myId+'/balance']=nb;
+    balUpdate['players/'+myId+'/botBalance']=nb;
+    db.ref().update(balUpdate);
+    setBalance(nb);
+    var item={type:'shop',label:'Купівля товару',detail:pet.key+' · '+pet.price+' R',status:'pending',petKey:pet._key,petName:pet.key,price:pet.price};
+    addHist(item);
+    db.ref('pending/'+item.id).set(item);
+    // Notify admins directly in their chat
+    ADMIN_IDS.forEach(function(aid){
+      db.ref('chat/'+myId).push({from:'user',text:'🛒 ЗАМОВЛЕННЯ: '+pet.key+' · '+pet.price+' R',time:nowTime(),nick:nick,userId:myId});
+    });
+    // Show success screen
+    c.innerHTML='';
+    var wc=mk('div','fwc');
+    var ra=RC[pet.cat]||RC.common;
+    wc.innerHTML='<div class="fwi">'+(pet.emoji||'🐾')+'</div>'
+      +'<div class="fwt">Замовлення прийнято!</div>'
+      +'<div class="fwx" style="margin-bottom:12px">Ви придбали <b style=\'color:var(--text)\'>'+pet.key+'</b>'
+      +'<br><span style=\'color:'+ra.color+'\'>'+ra.label+'</span>'
+      +'<br><br>💰 Списано: <b style=\'color:var(--gold2)\'>'+pet.price+' R</b>'
+      +'<br>💳 Залишок: <b style=\'color:var(--gold2)\'>'+nb+' R</b>'
+      +'<br><br>👨‍💼 Адміністратор звʼяжеться з вами найближчим часом.</div>';
     var b2=mk('button','fbtn fbtn-g'); b2.textContent='На головну';
     b2.onclick=function(){closeFlow();switchPage('home');};
     c.appendChild(wc); c.appendChild(b2);
@@ -1181,7 +1712,10 @@ function buildWd(c){
       no.onclick=function(){step=4;render();};
       yes.onclick=function(){
         var nb=balance-wdData.amount;
-        db.ref('users/'+myId+'/balance').set(nb);
+        var wdBalUpd={};
+        wdBalUpd['users/'+myId+'/balance']=nb;
+        wdBalUpd['players/'+myId+'/botBalance']=nb;
+        db.ref().update(wdBalUpd);
         setBalance(nb);
         var item={type:'wd',label:'Вивід коштів',detail:'Нік: '+wdData.nick+' · '+wdData.amount+' R · Карта: '+wdData.mapName+' · GP: '+wdData.gamepass,status:'pending',amount:wdData.amount,nick:wdData.nick,mapName:wdData.mapName,gamepass:wdData.gamepass,gpAmount:wdData.gpAmount};
         addHist(item);
@@ -1531,7 +2065,17 @@ function onPetImg(inp){
 // ════════════════════════════════════════════
 // START
 // ════════════════════════════════════════════
-// Init theme
+// Hide splash - JS approach (CSS animation can't set display:none)
+var _sp=document.getElementById('splash');
+if(_sp){
+  setTimeout(function(){
+    _sp.style.opacity='0';
+    setTimeout(function(){
+      _sp.style.display='none';
+      _sp.style.pointerEvents='none';
+    },450);
+  },2200);
+}
 var _savedTheme=localStorage.getItem('theme');
 if(_savedTheme==='light'){isDark=false;}
 applyTheme();
