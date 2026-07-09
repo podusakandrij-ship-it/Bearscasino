@@ -838,16 +838,20 @@ const tg  = window.Telegram.WebApp;
     };
 
     // Safety fallback — max 4.5s
-    setTimeout(()=>{ if(splash && !splash.classList.contains('hidden')) window._splashDone(); }, 4500);
+    setTimeout(()=>{
+        if(!_splashFired){
+            // Firebase didn't respond — mark as loaded with empty state
+            _splashFired = true;
+        }
+        if(splash && !splash.classList.contains('hidden')) window._splashDone();
+    }, 4500);
 })();
 
 // Global error catch - prevent silent failures
 window.onerror = function(msg, src, line, col, err) {
-    console.error('CASINO ERROR:', msg, 'at', src, line, col, err);
     return false;
 };
 window.onunhandledrejection = function(e) {
-    console.error('CASINO PROMISE ERROR:', e.reason);
 };
 
 
@@ -1546,7 +1550,7 @@ function applyLang(lang){
 // СТАН
 // ============================================================
 let s={b:0,x:0,r:1,name:myName,p:null,inv:[],dbl:0,v:6.0};
-let currentShopTab='cases',currentAdminTab='balance';
+let currentShopTab='shop',currentAdminTab='stats';
 let adminInvUserId=null,adminInvUserName='';
 
 // FIREBASE SYNC
@@ -1554,8 +1558,7 @@ let _splashFired = false;
 let _saveTimer = null;
 
 function save(){
-    // Зберігаємо ТІЛЬКИ якщо дані вже завантажились з Firebase
-    if(!_splashFired) return;
+    if(!_splashFired) return; // не зберігаємо до завантаження
     clearTimeout(_saveTimer);
     _saveTimer = setTimeout(()=>{
         db.ref('players/'+myId).set(s);
@@ -1569,8 +1572,13 @@ db.ref('players/'+myId).once('value', snap=>{
         s = d;
         if(!s.inv)       s.inv=[];
         if(!s.artifacts) s.artifacts=[];
+        if(typeof s.b === 'undefined') s.b = 0;
+    } else {
+        // Новий гравець — зберігаємо базовий стан одразу
+        s.b = 100; // стартовий бонус
+        s.inv = []; s.artifacts = [];
+        db.ref('players/'+myId).set(s);
     }
-    // Якщо новий гравець — s залишається дефолтним {b:0...} і збережеться після _splashFired
     _splashFired = true;
     ren();
     if(window._splashDone) window._splashDone();
@@ -1612,7 +1620,7 @@ const RARITY_GLOW={
 function ren(){
     try {
     // Баланс BB
-    document.getElementById('bal-val').innerText = Number.isInteger(s.b) ? s.b : s.b.toFixed(2);
+    document.getElementById('bal-val').innerText = Number.isInteger(s.b||0) ? (s.b||0) : (s.b||0).toFixed(2);
 
     // Дублони
     const dblEl = document.getElementById('dbl-val');
@@ -1650,7 +1658,7 @@ function ren(){
 
     // Daily quests
     renderDailyQuests();
-    } catch(e) { console.error('ren() error:', e); }
+    } catch(e) { /* ren error silenced */ }
 }
 
 // ============================================================
@@ -1676,72 +1684,71 @@ window.setShopTab=t=>{currentShopTab=t;renderShop();};
 function renderShop(){
     const list=document.getElementById('shop-list');
     const tabs=`<div class="shop-tabs">
-        <div class="s-tab ${currentShopTab==='cases'?'active':''}" onclick="setShopTab('cases')">📦 Кейси</div>
-        <div class="s-tab ${currentShopTab==='shop_items'?'active':''}" onclick="setShopTab('shop_items')">🛍️ Товари</div>
+        <div class="s-tab ${currentShopTab==='shop'?'active':''}" onclick="setShopTab('shop')">🛍️ Магазин</div>
         <div class="s-tab ${currentShopTab==='adoptme'?'active':''}" onclick="setShopTab('adoptme')">🐾 Adopt Me</div>
         <div class="s-tab ${currentShopTab==='market'?'active':''}" onclick="setShopTab('market')">${L('tabMarket')}</div>
     </div>`;
-    if(currentShopTab==='cases'){
-        // Кейси з Firebase
+    if(currentShopTab==='shop'){
+        // Єдиний розділ Магазин — кейси + товари разом
         const now=Date.now();
-        let h=tabs;
-        const caseKeys=Object.keys(CASES);
-        if(!caseKeys.length){
-            h+=`<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:40px;margin-bottom:10px">📦</div><div style="font-weight:700">Кейсів поки немає</div></div>`;
-        } else {
-            caseKeys.forEach(k=>{
-                const c=CASES[k];
-                const dl=c.deadline||0;
-                if(c.limited&&now>dl) return;
-                const badge=c.limited?'<span class="badge-ltd">Лімітовано</span>':'';
-                const drop=c.drop||[];
-                const chances=drop.map(p=>{
-                    const icon=p.photoUrl?`<img src="${p.photoUrl}" style="width:16px;height:16px;object-fit:cover;border-radius:3px;vertical-align:middle;margin-right:2px">`:`<span style="font-size:13px;vertical-align:middle">${p.s||'🐾'}</span>`;
-                    return `<span style="color:${p.c||'#94a3b8'}">${icon}${p.w}%</span>`;
-                }).join(' · ')||'<span style="color:var(--muted)">Немає петів</span>';
-                let timer='';
-                if(c.limited&&dl>now){const diff=dl-now,d=Math.floor(diff/86400000),hr=Math.floor((diff/3600000)%24),mn=Math.floor((diff/60000)%60);timer=`<div class="case-timer">⏳ ${d}д ${hr}г ${mn}хв</div>`;}
-                h+=`<div class="shop-card"><div class="case-info">
-                    <div class="case-name">${c.n} ${badge}</div>
-                    <div style="font-size:10px;margin:4px 0;font-weight:600;opacity:.85">${chances}</div>${timer}
-                </div><button class="btn-buy" onclick="buyCase('${k}')">${c.p} BB</button></div>`;
-            });
-        }
-        // Товари-кейси з shopDB
-        db.ref('shopDB').once('value',snap=>{
-            const items=snap.val()||{};
-            Object.entries(items).filter(([,it])=>it.active&&it.type==='case').forEach(([key,it])=>{
-                h+=`<div class="shop-card"><div class="case-info">
-                    ${it.photo?`<img src="${it.photo}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;margin-right:8px;vertical-align:middle">`:''}
-                    <div class="case-name">${it.name}</div>
-                    ${it.desc?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${it.desc}</div>`:''}
-                </div><button class="btn-buy" onclick="buyShopItem('${key}')">${it.price} BB</button></div>`;
-            });
-            list.innerHTML=h;
-        });
-        return;
-    } else if(currentShopTab==='shop_items'){
-        // Окрема вкладка для товарів з shopDB
-        db.ref('shopDB').once('value',snap=>{
-            const items=snap.val()||{};
-            const active=Object.entries(items).filter(([,it])=>it.active&&it.type!=='case');
-            if(!active.length){
-                list.innerHTML=tabs+`<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:40px;margin-bottom:10px">🛍️</div><div style="font-weight:700">Товарів поки немає</div></div>`;
+        db.ref('shopDB').once('value', shopSnap=>{
+            const shopItems=shopSnap.val()||{};
+            const activeItems=Object.entries(shopItems).filter(([,it])=>it.active);
+            let h=tabs;
+
+            // ── КЕЙСИ ──
+            const caseKeys=Object.keys(CASES);
+            const hasItems=activeItems.length>0||caseKeys.length>0;
+            if(!hasItems){
+                h+=`<div style="text-align:center;padding:40px;color:var(--muted)">
+                    <div style="font-size:48px;margin-bottom:12px">🛍️</div>
+                    <div style="font-weight:700;font-size:15px">Магазин порожній</div>
+                    <div style="font-size:12px;margin-top:4px">Адмін ще не додав товарів</div>
+                </div>`;
+                list.innerHTML=h;
                 return;
             }
-            let h=tabs;
-            active.forEach(([key,it])=>{
-                h+=`<div class="shop-card">
-                    ${it.photo?`<img src="${it.photo}" style="width:56px;height:56px;object-fit:cover;border-radius:12px;flex-shrink:0">`:
-                      `<div style="width:56px;height:56px;border-radius:12px;background:rgba(var(--accent-rgb),.1);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">🛍️</div>`}
-                    <div style="flex:1;min-width:0">
-                        <div class="case-name">${it.name}</div>
-                        ${it.desc?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${it.desc}</div>`:''}
-                        <div style="font-size:11px;color:var(--accent2);font-weight:700;margin-top:3px">${it.type==='bb'?'💰 +'+it.val+' BB':'⚡ '+it.val}</div>
-                    </div>
-                    <button class="btn-buy" onclick="buyShopItem('${key}')">${it.price} BB</button>
-                </div>`;
-            });
+
+            // Кейси з Firebase
+            if(caseKeys.length){
+                h+=`<div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.5px;margin:8px 0 6px">📦 КЕЙСИ</div>`;
+                caseKeys.forEach(k=>{
+                    const c=CASES[k];
+                    const dl=c.deadline||0;
+                    if(c.limited&&now>dl) return;
+                    const badge=c.limited?'<span class="badge-ltd">Лімітовано</span>':'';
+                    const drop=c.drop||[];
+                    const chances=drop.map(p=>{
+                        const icon=p.photoUrl?`<img src="${p.photoUrl}" style="width:16px;height:16px;object-fit:cover;border-radius:3px;vertical-align:middle;margin-right:2px">`:`<span style="font-size:13px;vertical-align:middle">${p.s||'🐾'}</span>`;
+                        return `<span style="color:${p.c||'#94a3b8'}">${icon}${p.w}%</span>`;
+                    }).join(' · ')||'<span style="color:var(--muted)">Немає петів</span>';
+                    let timer='';
+                    if(c.limited&&dl>now){const diff=dl-now,d=Math.floor(diff/86400000),hr=Math.floor((diff/3600000)%24),mn=Math.floor((diff/60000)%60);timer=`<div class="case-timer">⏳ ${d}д ${hr}г ${mn}хв</div>`;}
+                    h+=`<div class="shop-card"><div class="case-info">
+                        <div class="case-name">${c.n} ${badge}</div>
+                        <div style="font-size:10px;margin:4px 0;font-weight:600;opacity:.85">${chances}</div>${timer}
+                    </div><button class="btn-buy" onclick="buyCase('${k}')">${c.p} BB</button></div>`;
+                });
+            }
+
+            // Товари з shopDB
+            if(activeItems.length){
+                h+=`<div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.5px;margin:12px 0 6px">🛍️ ТОВАРИ</div>`;
+                activeItems.forEach(([key,it])=>{
+                    const isCase=it.type==='case';
+                    h+=`<div class="shop-card">
+                        ${it.photo?`<img src="${it.photo}" style="width:52px;height:52px;object-fit:cover;border-radius:12px;flex-shrink:0">`:
+                          `<div style="width:52px;height:52px;border-radius:12px;background:rgba(var(--accent-rgb),.1);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">${isCase?'📦':'🛍️'}</div>`}
+                        <div style="flex:1;min-width:0">
+                            <div class="case-name">${it.name}</div>
+                            ${it.desc?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${it.desc}</div>`:''}
+                            <div style="font-size:11px;color:var(--accent2);font-weight:700;margin-top:3px">${it.type==='bb'?'💰 +'+it.val+' BB':isCase?'📦 Кейс':'⚡ '+it.val}</div>
+                        </div>
+                        <button class="btn-buy" onclick="buyShopItem('${key}')">${it.price} BB</button>
+                    </div>`;
+                });
+            }
+
             list.innerHTML=h;
         });
         return;
@@ -2029,7 +2036,7 @@ function renderInv(){
         const cid=`pet-vis-${i}`;
         const pvl=p.lvl||1, pxp=s.p&&s.p.id===p.id?s.x:0;
         const pct=eq?Math.min((pxp/xpForLevel(pvl))*100,100):0;
-        const qsPrice = Math.floor(p.m * 50);
+        const qsPrice = Math.floor((p.bbph||0) * 2 + 10); // ціна продажу = 2x bbph + 10
         const petImg=p.photoUrl
             ?`<div style="width:68px;height:68px;flex-shrink:0;border-radius:12px;overflow:hidden;border:2px solid ${p.c}44"><img src="${p.photoUrl}" style="width:100%;height:100%;object-fit:cover"></div>`
             :`<div id="${cid}" data-size="68" style="flex-shrink:0"></div>`;
@@ -2361,8 +2368,10 @@ window.updUI=()=>{
 };
 
 window.play=()=>{
+    if(!_splashFired) return showToast('⏳ Дані завантажуються...');
     const bt=parseFloat(document.getElementById('bet-a').value);
-    if(isNaN(bt)||bt<=0||bt>s.b)return alert('Мало BB!');
+    if(isNaN(bt)||bt<=0) return showToast('❌ Введи ставку!');
+    if(bt>(s.b||0)) return showToast('❌ Недостатньо BB! У тебе '+(s.b||0).toFixed(2)+' BB');
     const g=document.getElementById('g-sel').value;
     const now=Date.now();
     if(g==='mines'&&minesState&&minesState.alive)return alert('Спочатку завершуй гру!');
@@ -2507,8 +2516,6 @@ function loadAdmin(){
                     <option>Звичайний</option><option>Незвичайний</option><option>Рідкісний</option>
                     <option selected>Епічний</option><option>Легендарний</option><option>Міфічний</option>
                 </select>
-                <label class="field-label">Бонус-множник (напр. 1.15)</label>
-                <input type="number" id="cp-mult" value="1.10" step="0.005" min="1" max="5" style="margin-bottom:8px">
                 <label class="field-label">BB/год (пасивний офлайн дохід)</label>
                 <input type="number" id="cp-bbph" value="0" min="0" style="margin-bottom:12px">
                 <button class="btn" onclick="adminSavePetToDB()">💾 Зберегти в базу</button>
@@ -3077,17 +3084,27 @@ window.adminDeletePromo=code=>{
     if(!confirm(`Видалити промокод ${code}?`)) return;
     db.ref('promo/'+code).remove().then(()=>{showToast('🗑 Видалено');loadAdmin();});
 };
-window.adminGivePetModal=(uid,name)=>{
-    const pets=getAllPets();
-    const list=pets.map((p,i)=>`${i}: ${p.s||''} ${p.n} (${p.r})`).join('\n');
-    const ch=prompt(list);
-    if(ch===null||!pets[ch]) return;
-    const p={...pets[ch],id:Date.now(),lvl:1};
-    db.ref('players/'+uid+'/inv').once('value',sn=>{
-        const inv=sn.val()||[]; inv.push(p);
-        db.ref('players/'+uid+'/inv').set(inv);
-        showToast(`✅ ${p.s||''} ${p.n} → ${name}`);
-    });
+window.adminGivePetModal=async(uid,playerName)=>{
+    // Тепер видаємо через petDB — показуємо список з бази
+    const snap = await db.ref('petDB').once('value');
+    const petsDB = snap.val()||{};
+    const keys = Object.keys(petsDB);
+    if(!keys.length) return showToast('❌ База петів порожня! Спочатку додай петів в ➕🐾');
+    const list = keys.map((k,i)=>`${i}: ${petsDB[k].s||''} ${petsDB[k].n} (${petsDB[k].r}) bbph:${petsDB[k].bbph||0}`).join('\n');
+    const ch = prompt('Оберіть пета:\n'+list);
+    if(ch===null||ch==='') return;
+    const idx = parseInt(ch);
+    const petKey = keys[idx];
+    if(!petKey||!petsDB[petKey]) return showToast('❌ Невірний номер');
+    const petData = petsDB[petKey];
+    const pet = {n:petData.n, s:petData.s, r:petData.r, c:petData.c, bbph:petData.bbph||0,
+                 id:Date.now(), petKey, lvl:1, adminCreated:true,
+                 ...(petData.photoUrl?{photoUrl:petData.photoUrl}:{})};
+    const plSnap = await db.ref('players/'+uid+'/inv').once('value');
+    const inv = [...(plSnap.val()||[]), pet];
+    await db.ref('players/'+uid+'/inv').set(inv);
+    if(String(uid)===String(myId)){ s.inv=inv; ren(); renderInv(); }
+    showToast('✅ '+pet.n+' → '+(playerName||uid)+'!');
 };
 
 // ── Застосувати промокод (гравець) ──
@@ -3553,16 +3570,8 @@ function applyPetMults(overrides){
         db.ref('players/'+myId+'/inv').set(s.inv);
     }
     // Оновлюємо активного пета і зберігаємо
-    if(s.p){
-        const key=s.p.n.replace(/[^a-zA-ZА-Яа-яёЁіІїЇєЄ0-9]/g,'_');
-        if(overrides[key]!==undefined){
-            // pet mult override removed
-            db.ref('players/'+myId+'/p').set(s.p);
-        }
-    }
-    ren();
-}
-// petmults listener removed — пети більше не дають множник
+    // applyPetMults removed — пети більше не дають множник
+// petmults listener removed
 
 // ── Оголошення для гравців ──
 function initAnnounce(){
@@ -3835,27 +3844,27 @@ window.adminSavePetToDB=async function(){
     const emoji=(document.getElementById('cp-emoji')?.value||'').trim()||'🐾';
     const name=(document.getElementById('cp-name')?.value||'').trim();
     const rarity=document.getElementById('cp-rarity')?.value||'Епічний';
-    const mult=parseFloat(document.getElementById('cp-mult')?.value)||1.10;
     const bbph=parseFloat(document.getElementById('cp-bbph')?.value)||0;
     if(!name) return showToast('❌ Введи назву пета!');
     const RC={'Звичайний':'#94a3b8','Незвичайний':'#3b82f6','Рідкісний':'#a855f7','Епічний':'#f59e0b','Легендарний':'#f43f5e','Міфічний':'#06b6d4'};
-    const key=name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-zа-яёіїєa-z0-9_]/gi,'');
-    const pet={n:name,s:emoji,r:rarity,m:Math.round(mult*1000)/1000,c:RC[rarity]||'#94a3b8',w:10,bbph,
+    const key='pet_'+Date.now();
+    const pet={id:key, n:name, s:emoji, r:rarity, c:RC[rarity]||'#94a3b8', w:10, bbph,
                ...(photo?{photoUrl:photo}:{})};
     await db.ref('petDB/'+key).set(pet);
-    showToast('✅ Пета збережено в базі: '+name);
+    showToast('✅ Пета збережено: '+name);
+    setAdminTab('createpet');
 };
 window.adminGivePetFromDB=async function(petKey){
     const uid=(document.getElementById('give-uid-'+petKey)?.value||'').trim();
     if(!uid) return showToast('❌ Введи ID гравця!');
     const petSnap=await db.ref('petDB/'+petKey).once('value');
     if(!petSnap.exists()) return showToast('❌ Пет не знайдений в БД!');
-    const petId = Date.now();
     const petData = petSnap.val();
+    // Унікальний instanceId для цього видачі
+    const instanceId = petKey+'_'+Date.now();
     const pet={n:petData.n, s:petData.s, r:petData.r, c:petData.c, bbph:petData.bbph||0,
-               id:petId, petKey, lvl:1, adminCreated:true,
+               id:instanceId, petKey, lvl:1, adminCreated:true,
                ...(petData.photoUrl?{photoUrl:petData.photoUrl}:{})};
-    // без m (множника)
     const plSnap=await db.ref('players/'+uid).once('value');
     if(!plSnap.exists()) return showToast('❌ Гравця не знайдено!');
     const plData=plSnap.val();
@@ -4097,29 +4106,7 @@ window.previewArtPhoto=function(){
     if(url&&w&&i){w.style.display='block';i.src=url;}else if(w)w.style.display='none';
 };
 
-// ════ АДМІН: СТВОРИТИ ПЕТА ════
-window.adminCreateAndGivePet=async function(){
-    const photo=(document.getElementById('cp-photo')?.value||'').trim();
-    const emoji=(document.getElementById('cp-emoji')?.value||'').trim()||'🐾';
-    const name=(document.getElementById('cp-name')?.value||'').trim();
-    const rarity=document.getElementById('cp-rarity')?.value||'Епічний';
-    const mult=parseFloat(document.getElementById('cp-mult')?.value)||1.10;
-    const bbph=parseFloat(document.getElementById('cp-bbph')?.value)||0;
-    const uid=(document.getElementById('cp-uid')?.value||'').trim();
-    if(!name) return showToast('❌ Введи назву пета!');
-    if(!uid)  return showToast('❌ Введи ID гравця!');
-    const RC={'Звичайний':'#94a3b8','Незвичайний':'#3b82f6','Рідкісний':'#a855f7','Епічний':'#f59e0b','Легендарний':'#f43f5e','Міфічний':'#06b6d4'};
-    const pet={id:Date.now(),n:name,s:emoji,r:rarity,m:Math.round(mult*1000)/1000,c:RC[rarity]||'#94a3b8',lvl:1,bbph,adminCreated:true,...(photo?{photoUrl:photo}:{})};
-    const snap=await db.ref('players/'+uid).once('value');
-    if(!snap.exists()) return showToast('❌ Гравця не знайдено!');
-    const pd=snap.val();
-    const inv=pd.inv||[];
-    inv.push(pet);
-    const upd={inv};
-    if(!pd.lastPetCollect) upd.lastPetCollect=Date.now();
-    await db.ref('players/'+uid).update(upd);
-    showToast('✅ '+(photo?'📸':emoji)+' '+name+' видано! BB/год: '+bbph);
-};
+// adminCreateAndGivePet removed — use adminSavePetToDB + adminGivePetFromDB
 
 // ════ АДМІН: СТВОРИТИ АРТЕФАКТ ════
 window.adminCreateAndGiveArtifact=async function(){
