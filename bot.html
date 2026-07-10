@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>BEARS SHOP</title>
+<title>BEARS BOT</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Inter:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
+
 
 :root{
   --bg:#06070a;--s1:#0d0f14;--s2:#13161e;--s3:#191d27;--s4:#1f2330;
@@ -20,10 +21,7 @@
   --nav-h:64px;--gold-glow:rgba(200,146,42,.25);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;margin:0;padding:0;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:var(--font);letter-spacing:.1px}
 body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 70% 50% at 15% 0%,rgba(200,146,42,.07),transparent 60%),radial-gradient(ellipse 50% 40% at 85% 100%,rgba(217,90,24,.05),transparent 55%)}
-#app{display:flex;flex-direction:column;height:100%;overflow:hidden;position:relative;z-index:1}
 
 /* SPLASH */
 #splash{position:fixed;inset:0;z-index:9999;background:#06070a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;overflow:hidden;transition:opacity .4s ease}
@@ -53,9 +51,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .bni-dot.show{display:block}
 
 /* PAGES */
-.page{display:none;flex-direction:column;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;width:100%}
-.page.active{display:flex!important}
-.page::-webkit-scrollbar{display:none}
 @keyframes pageIn{from{opacity:0}to{opacity:1}}
 
 /* HEADER */
@@ -288,25 +283,31 @@ textarea.fif{resize:none}
 /* === CRITICAL LAYOUT OVERRIDE === */
 
 body { height: 100%; margin: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font); }
-#app { 
   display: flex; 
-  flex-direction: column; 
   height: 100vh; 
   height: 100dvh;
   overflow: hidden;
-}
 .page { 
   display: none; 
   flex: 1; 
   min-height: 0; 
   overflow-y: auto; 
   overflow-x: hidden;
-  flex-direction: column;
   -webkit-overflow-scrolling: touch;
-}
-.page.active { display: flex !important; }
 nav.bnav { flex-shrink: 0; }
-</style>
+
+
+
+/* === LAYOUT === */
+html,body{height:100%;margin:0;padding:0;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--font);letter-spacing:.1px}
+#app{display:flex;flex-direction:column;height:100%;overflow:hidden;position:relative;z-index:1}
+.page{display:none;flex-direction:column;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.page.active{display:flex!important}
+.page::-webkit-scrollbar{display:none}
+nav.bnav{flex-shrink:0}</style>
+</head>
+<body>
 </head>
 <body>
 
@@ -564,12 +565,13 @@ nav.bnav { flex-shrink: 0; }
   <div class="fcontent" id="fcontent"></div>
 </div>
 
+
 <script>
 
 // ════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════
-const FB = {
+firebase.initializeApp({
   apiKey:"AIzaSyD7F2lrec5XWyMWG7J0uW6IhEKD-LJ4jRY",
   authDomain:"bearscasino-bcded.firebaseapp.com",
   projectId:"bearscasino-bcded",
@@ -577,51 +579,30 @@ const FB = {
   messagingSenderId:"1098394379752",
   appId:"1:1098394379752:web:37e28e98dddcd78abb81c5",
   databaseURL:"https://bearscasino-bcded-default-rtdb.europe-west1.firebasedatabase.app"
-};
-const ADMIN_IDS = [8216362223, 2067230442];
-const RC = {
+});
+var db=firebase.database();
+var tg=window.Telegram&&window.Telegram.WebApp;
+if(tg){tg.expand();tg.ready();}
+
+const ADMIN_IDS=[8216362223,2067230442];
+const RC={
   legendary:{label:'Legendary',color:'#c8922a'},
   'ultra-rare':{label:'Ultra-Rare',color:'#e05cff'},
   rare:{label:'Rare',color:'#a855f7'},
   uncommon:{label:'Uncommon',color:'#3bdfb4'},
   common:{label:'Common',color:'#6b7280'}
 };
-const HIST_IC = {pump:'🎮',wd:'💸',support:'📩',shop:'🛒',admin_add:'💰',admin_rem:'💸'};
-const HIST_BG = {pump:'rgba(224,90,24,.15)',wd:'rgba(239,68,68,.15)',support:'rgba(56,189,248,.15)',shop:'rgba(34,197,94,.15)',admin_add:'rgba(34,197,94,.2)',admin_rem:'rgba(239,68,68,.15)'};
 
 // ════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════
-firebase.initializeApp(FB);
-var db = firebase.database();
-var tg = window.Telegram && window.Telegram.WebApp;
-if(tg){
-  tg.expand();
-  tg.ready();
-  if(tg.disableVerticalSwipes) tg.disableVerticalSwipes();
-  if(tg.setHeaderColor) try{tg.setHeaderColor('#070809');}catch(e){}
-  if(tg.setBackgroundColor) try{tg.setBackgroundColor('#070809');}catch(e){}
-}
-// Fix viewport height for mobile browsers (address bar collapse)
-function setVH(){ document.documentElement.style.setProperty('--vh', window.innerHeight+'px'); }
-setVH(); window.addEventListener('resize',setVH);
-
-var tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-var myId, myName;
-if(tgUser){ myId=String(tgUser.id); myName=tgUser.first_name||'Гравець'; }
-else{
-  myId=localStorage.getItem('bid');
-  if(!myId){myId='u'+Math.floor(Math.random()*900000+100000);localStorage.setItem('bid',myId);}
-  myName='Гравець';
-}
-var isAdmin = ADMIN_IDS.indexOf(Number(myId))!==-1;
-var nick    = myName;
-var balance = 0;
-var history = [];
-var PETS    = [];
-var curCat  = 'all';
-var _petImg = null;
-var stats   = {ops:0,pumps:0,wds:0};
+var tgUser=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user;
+var myId,myName;
+if(tgUser){myId=String(tgUser.id);myName=tgUser.first_name||'Гравець';}
+else{myId=localStorage.getItem('bid')||'u'+Math.floor(Math.random()*900000+100000);localStorage.setItem('bid',myId);myName='Гравець';}
+var isAdmin=ADMIN_IDS.indexOf(Number(myId))!==-1;
+var nick=myName,balance=0,history=[],PETS=[],curCat='all',stats={ops:0,pumps:0,wds:0};
+var _flowStep=1,_flowData={};
 
 // ════════════════════════════════════════════
 // HELPERS
@@ -630,50 +611,24 @@ function el(id){return document.getElementById(id);}
 function setText(id,v){var e=el(id);if(e)e.textContent=v;}
 function nowTime(){return new Date().toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});}
 function nowDate(){return new Date().toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}
-
 var _toastT;
-function showToast(msg){
-  var t=el('toast');t.textContent=msg;t.classList.add('show');
-  clearTimeout(_toastT);_toastT=setTimeout(function(){t.classList.remove('show');},2500);
-}
-function notifyAdmins(text){
-  // Write notification to each admin's special notifications + to user's chat for context
-  ADMIN_IDS.forEach(function(aid){
-    db.ref('notifications/'+aid).push({from:'system',text:text,time:nowTime(),nick:nick,userId:myId,isNotify:true});
-  });
-  // Also write to user's own chat thread so admins see it when opening that user
-  db.ref('chat/'+myId).push({from:'user',text:'📋 ЗАЯВКА: '+text,time:nowTime(),nick:nick,userId:myId,isNotify:true});
-}
+function showToast(msg){var t=el('toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(_toastT);_toastT=setTimeout(function(){t.classList.remove('show');},2500);}
 
 // ════════════════════════════════════════════
 // NAVIGATION
 // ════════════════════════════════════════════
 var curPage='home';
 function switchPage(name){
-  ['home','shop','chat','prof','casino','admin'].forEach(function(p){
-    var pg=el('pg-'+p);
-    if(pg) pg.classList.remove('active');
-    var ni=el('ni-'+p); if(ni) ni.classList.remove('on');
+  ['home','shop','chat','prof','admin'].forEach(function(p){
+    var pg=el('pg-'+p);if(pg)pg.classList.remove('active');
+    var ni=el('ni-'+p);if(ni)ni.classList.remove('on');
   });
-  var pg=el('pg-'+name);
-  if(pg) pg.classList.add('active');
-  var ni=el('ni-'+name); if(ni) ni.classList.add('on');
+  var pg=el('pg-'+name);if(pg)pg.classList.add('active');
+  var ni=el('ni-'+name);if(ni)ni.classList.add('on');
   curPage=name;
-  if(name==='chat') loadChat();
-  if(name==='admin') loadAdmin();
-  if(name==='shop'){ setText('shopBal',balance); renderShop(); }
-}
-// Home is active by default via HTML class="page active"
-
-// ════════════════════════════════════════════
-// ADMIN NAV ITEM
-// ════════════════════════════════════════════
-if(isAdmin){
-  var adminNi=document.createElement('div');
-  adminNi.className='bni';adminNi.id='ni-admin';
-  adminNi.innerHTML='<div class="bni-ic">🔐</div>Адмін';
-  adminNi.onclick=function(){switchPage('admin');};
-  el('bnav').appendChild(adminNi);
+  if(name==='chat')loadChat();
+  if(name==='admin')loadAdmin();
+  if(name==='shop'){setText('shopBal',balance);renderShop();}
 }
 
 // ════════════════════════════════════════════
@@ -681,122 +636,93 @@ if(isAdmin){
 // ════════════════════════════════════════════
 function setBalance(v){
   balance=Math.max(0,Math.floor(v||0));
-  setText('cardBal',balance);
-  setText('shopBal',balance);
-  setText('profBal',balance);
-  setText('fbal',balance+' R'); // update flow header too
+  setText('cardBal',balance);setText('shopBal',balance);setText('profBal',balance);setText('fbal',balance+' R');
 }
 
 // ════════════════════════════════════════════
-// FIREBASE
+// FIREBASE INIT
 // ════════════════════════════════════════════
 function initFB(){
-  // Слухаємо баланс з users/ в реальному часі
-  db.ref('users/'+myId+'/balance').on('value',function(snap){
-    var v=snap.val();
-    if(v!==null && v!==undefined) setBalance(v);
-  });
-  // Слухаємо players/ (казино)
-  db.ref('players/'+myId+'/botBalance').on('value',function(snap){
-    var v=snap.val();
-    if(v!==null && v!==undefined) setBalance(v);
-  });
-
-  // Профіль
+  db.ref('users/'+myId+'/balance').on('value',function(snap){if(snap.val()!=null)setBalance(snap.val());});
+  db.ref('players/'+myId+'/botBalance').on('value',function(snap){if(snap.val()!=null)setBalance(snap.val());});
   db.ref('users/'+myId).once('value',function(snap){
     var d=snap.val();
     if(d&&d.nick){nick=d.nick;applyNick();}
-    // Реєструємо без перезапису балансу
-    db.ref('users/'+myId+'/nick').set(nick);
-  db.ref('users/'+myId+'/id').set(myId);
+    db.ref('users/'+myId).update({nick:nick,id:myId});
   });
-
-  // Статистика і нік
   db.ref('botdata/'+myId).once('value',function(snap){
     var d=snap.val();
     if(d){
       if(d.nick){nick=d.nick;applyNick();}
-      if(d.stats){stats=Object.assign(stats,d.stats);updateStats();}
+      if(d.stats)Object.assign(stats,d.stats);
     }
   });
-
-  // Історія
-  db.ref('history/'+myId).orderByChild('id').limitToLast(50).once('value',function(snap){
-    history=[];
-    snap.forEach(function(ch){history.unshift(ch.val());});
-    renderHistory();
+  db.ref('history/'+myId).orderByChild('id').limitToLast(30).once('value',function(snap){
+    history=[];snap.forEach(function(ch){history.unshift(ch.val());});renderHistory();
   });
-
-  // Товари - слухаємо в реальному часі
   db.ref('shop_pets').on('value',function(snap){
-    PETS=[];
-    if(snap.exists()){snap.forEach(function(ch){var p=ch.val();p._key=ch.key;PETS.push(p);});}
-    if(curPage==='shop') renderShop();
+    PETS=[];if(snap.exists()){snap.forEach(function(ch){var p=ch.val();p._key=ch.key;PETS.push(p);});}
+    if(curPage==='shop')renderShop();
   });
-
-  // Нові повідомлення - показуємо dot
   db.ref('chat/'+myId).on('value',function(snap){
     var dot=el('chatDot');
-    if(!snap.exists()){if(dot)dot.classList.remove('show');return;}
-    var hasAdmin=false;
-    snap.forEach(function(ch){if(ch.val().from==='admin')hasAdmin=true;});
-    if(dot){if(hasAdmin&&curPage!=='chat')dot.classList.add('show');else dot.classList.remove('show');}
-    if(curPage==='chat') renderChat(snap);
+    if(snap&&snap.exists()){
+      var hasAdmin=false;
+      snap.forEach(function(ch){if(ch.val().from==='admin')hasAdmin=true;});
+      if(dot){if(hasAdmin&&curPage!=='chat')dot.classList.add('show');else dot.classList.remove('show');}
+      if(curPage==='chat')renderChat(snap);
+    }
   });
+  if(isAdmin){
+    var ni=document.createElement('div');
+    ni.className='bni';ni.id='ni-admin';
+    ni.innerHTML='<div class="bni-ic">🔐</div>Адмін';
+    ni.onclick=function(){switchPage('admin');};
+    el('bnav').appendChild(ni);
+  }
 }
 
 // ════════════════════════════════════════════
-// UI UPDATE
+// UI
 // ════════════════════════════════════════════
 function applyNick(){
-  setText('hdrNick',nick);
-  setText('cardNick',nick.toUpperCase());
-  setText('profNickEl',nick);
-  setText('profIdEl','#'+myId);
-  var inp=el('nickInp'); if(inp) inp.value=nick;
+  setText('hdrNick',nick);setText('cardNick',nick.toUpperCase());
+  setText('profNickEl',nick);setText('profIdEl','#'+myId);
+  var inp=el('nickInp');if(inp)inp.value=nick;
 }
 function updateStats(){
-  setText('statOps',stats.ops||0);
-  setText('statPumps',stats.pumps||0);
-  setText('statWds',stats.wds||0);
+  setText('statOps',stats.ops||0);setText('statPumps',stats.pumps||0);setText('statWds',stats.wds||0);
   setText('profOps',stats.ops||0);
 }
 
 // ════════════════════════════════════════════
 // HISTORY
 // ════════════════════════════════════════════
+var HIST_IC={pump:'🐾',wd:'💸',support:'📩',shop:'🛒',admin_add:'💰',admin_rem:'💸'};
+var HIST_BG={pump:'rgba(224,90,24,.15)',wd:'rgba(239,68,68,.15)',support:'rgba(56,189,248,.15)',shop:'rgba(34,197,94,.15)',admin_add:'rgba(34,197,94,.2)',admin_rem:'rgba(239,68,68,.15)'};
 function addHist(item){
-  item.id=Date.now(); item.date=nowDate(); item.userId=myId; item.userNick=nick;
-  if(!item.status) item.status='pending';
+  item.id=Date.now();item.date=nowDate();item.userId=myId;item.userNick=nick;
+  if(!item.status)item.status='pending';
   history.unshift(item);
-  stats.ops++;
-  if(item.type==='pump') stats.pumps++;
-  if(item.type==='wd') stats.wds++;
+  stats.ops++;if(item.type==='pump')stats.pumps++;if(item.type==='wd')stats.wds++;
   updateStats();
   db.ref('history/'+myId+'/'+item.id).set(item);
   db.ref('botdata/'+myId+'/stats').set(stats);
-  db.ref('users/'+myId+'/nick').set(nick);
-  db.ref('users/'+myId+'/id').set(myId);
+  db.ref('users/'+myId).update({nick:nick,id:myId});
   renderHistory();
 }
 function renderHistory(){
   var list=history.slice(0,15);
   var html=list.length?list.map(function(h){
-    var ic=HIST_IC[h.type]||'📋';
-    var bg=HIST_BG[h.type]||'rgba(255,255,255,.05)';
     var sc=h.status==='done'?'hs-d':h.status==='rejected'?'hs-r':'hs-p';
     var sl=h.status==='done'?'Виконано':h.status==='rejected'?'Відхилено':'Очікує';
     return '<div class="hprev-item">'
-      +'<div class="hprev-ic" style="background:'+bg+'">'+ic+'</div>'
-      +'<div style="flex:1;min-width:0">'
-      +'<div class="hprev-lbl">'+h.label+'</div>'
-      +'<div class="hprev-det">'+h.detail+'</div>'
-      +'</div>'
-      +'<span class="hprev-status '+sc+'">'+sl+'</span>'
-      +'</div>';
+      +'<div class="hprev-ic" style="background:'+(HIST_BG[h.type]||'rgba(255,255,255,.05)')+'">'+( HIST_IC[h.type]||'📋')+'</div>'
+      +'<div style="flex:1;min-width:0"><div class="hprev-lbl">'+h.label+'</div><div class="hprev-det">'+h.detail+'</div></div>'
+      +'<span class="hprev-status '+sc+'">'+sl+'</span></div>';
   }).join(''):'<div class="empty-state">Операцій немає</div>';
-  setText('histList',null); el('histList').innerHTML=html;
-  if(el('fullHistList')) el('fullHistList').innerHTML=html;
+  var e=el('histList');if(e)e.innerHTML=html;
+  var e2=el('fullHistList');if(e2)e2.innerHTML=html;
 }
 
 // ════════════════════════════════════════════
@@ -805,111 +731,48 @@ function renderHistory(){
 function filterCat(cat,btn){
   curCat=cat;
   el('shopCats').querySelectorAll('.cat').forEach(function(c){c.classList.remove('on');});
-  if(btn) btn.classList.add('on');
+  if(btn)btn.classList.add('on');
   renderShop();
 }
 function renderShop(){
   setText('shopBal',balance);
   var list=curCat==='all'?PETS:PETS.filter(function(p){return p.cat===curCat;});
-  var g=el('shopGrid'); if(!g) return;
+  var g=el('shopGrid');if(!g)return;
   if(!list.length){g.innerHTML='<div class="empty-state" style="grid-column:1/-1">🐾 Товарів немає</div>';return;}
   g.innerHTML=list.map(function(p){
     var ra=RC[p.cat]||RC.common;
     var tagH=p.tag?'<div class="ptag t-'+p.tag+'">'+(p.tag==='hot'?'🔥 HOT':p.tag==='new'?'✨ NEW':'💎 RARE')+'</div>':'';
     var imgH=p.img?'<img src="'+p.img+'" class="pcard-img">'
-                  :'<div class="pcard-em">'+(p.emoji||'🐾')+'</div>';
+      :'<div class="pcard-em">'+(p.emoji||'🐾')+'</div>';
     return '<div class="pcard" onclick="openShopFlow(\''+p._key+'\')">'+tagH+imgH
       +'<div class="pcard-nm">'+p.key+'</div>'
       +'<div class="pcard-ra" style="color:'+ra.color+'">'+ra.label+'</div>'
-      +'<div class="pcard-pr">'+p.price+' R</div>'
-      +'</div>';
+      +'<div class="pcard-pr">'+p.price+' R</div></div>';
   }).join('');
-}
-function openShopFlow(key){
-  var pet=PETS.find(function(p){return p._key===key;});
-  if(!pet) return;
-  el('ftitle').textContent='🛒 '+pet.key;
-  setText('fbal',balance+' R');
-  var c=el('fcontent'); c.innerHTML='';
-  var ra=RC[pet.cat]||RC.common;
-  var imgH=pet.img?'<img src="'+pet.img+'" style="width:90px;height:90px;object-fit:cover;border-radius:14px;display:block;margin:0 auto 14px">':'<div style="font-size:56px;text-align:center;margin-bottom:14px">'+(pet.emoji||'🐾')+'</div>';
-  var conf=document.createElement('div'); conf.className='fpconf';
-  conf.innerHTML=imgH
-    +'<div class="fpc-n">'+pet.key+'</div>'
-    +'<div class="fpc-r" style="color:'+ra.color+'">'+ra.label+'</div>'
-    +'<div class="fpc-p">'+pet.price+' R</div>';
-  var err=document.createElement('div'); err.className='ferr'; err.style.textAlign='center'; err.style.marginTop='8px';
-  var yn=document.createElement('div'); yn.className='fynr'; yn.style.marginTop='12px';
-  var yes=document.createElement('button'); yes.className='fyes'; yes.textContent='Купити';
-  var no=document.createElement('button'); no.className='fno'; no.textContent='Скасувати';
-  no.onclick=closeFlow;
-  yes.onclick=function(){
-    if(balance<pet.price){err.textContent='Недостатньо коштів';return;}
-    var nb=balance-pet.price;
-    // Write to both paths atomically
-    var balUpdate={};
-    balUpdate['users/'+myId+'/balance']=nb;
-    balUpdate['players/'+myId+'/botBalance']=nb;
-    db.ref().update(balUpdate);
-    setBalance(nb);
-    var item={type:'shop',label:'Купівля товару',detail:pet.key+' · '+pet.price+' R',status:'pending',petKey:pet._key,petName:pet.key,price:pet.price};
-    addHist(item);
-    db.ref('pending/'+item.id).set(item);
-    // Notify admins directly in their chat
-    ADMIN_IDS.forEach(function(aid){
-      db.ref('chat/'+myId).push({from:'user',text:'🛒 ЗАМОВЛЕННЯ: '+pet.key+' · '+pet.price+' R',time:nowTime(),nick:nick,userId:myId});
-    });
-    // Show success screen
-    c.innerHTML='';
-    var wc=mk('div','fwc');
-    var ra=RC[pet.cat]||RC.common;
-    wc.innerHTML='<div class="fwi">'+(pet.emoji||'🐾')+'</div>'
-      +'<div class="fwt">Замовлення прийнято!</div>'
-      +'<div class="fwx" style="margin-bottom:12px">Ви придбали <b style=\'color:var(--text)\'>'+pet.key+'</b>'
-      +'<br><span style=\'color:'+ra.color+'\'>'+ra.label+'</span>'
-      +'<br><br>💰 Списано: <b style=\'color:var(--gold2)\'>'+pet.price+' R</b>'
-      +'<br>💳 Залишок: <b style=\'color:var(--gold2)\'>'+nb+' R</b>'
-      +'<br><br>👨‍💼 Адміністратор звʼяжеться з вами найближчим часом.</div>';
-    var b2=mk('button','fbtn fbtn-g'); b2.textContent='На головну';
-    b2.onclick=function(){closeFlow();switchPage('home');};
-    c.appendChild(wc); c.appendChild(b2);
-  };
-  yn.appendChild(yes); yn.appendChild(no);
-  c.appendChild(conf); c.appendChild(err); c.appendChild(yn);
-  el('fov').classList.add('open');
 }
 
 // ════════════════════════════════════════════
 // CHAT
 // ════════════════════════════════════════════
-var _chatSnap=null;
 function loadChat(){
-  var dot=el('chatDot');
-  if(dot) dot.classList.remove('show');
-  // Force re-render by reading current snapshot
-  db.ref('chat/'+myId).once('value',function(snap){
-    renderChat(snap);
-  });
+  var dot=el('chatDot');if(dot)dot.classList.remove('show');
+  db.ref('chat/'+myId).once('value',function(snap){renderChat(snap);});
 }
 function renderChat(snap){
-  var body=el('chatBody'); if(!body) return;
+  var body=el('chatBody');if(!body)return;
   if(!snap||!snap.exists()){body.innerHTML='<div class="empty-state">Напишіть нам!</div>';return;}
   var html='';
   snap.forEach(function(ch){
-    var m=ch.val();
-    var isMe=m.from==='user';
+    var m=ch.val(),isMe=m.from==='user';
     html+='<div class="cmsg '+(isMe?'cmsg-u':'cmsg-a')+'">'
-      +(isMe?'':'<div class="cmsg-who">👨‍💼 Admin</div>')
-      +m.text
-      +'<div class="cmsg-time">'+m.time+'</div>'
-      +'</div>';
+      +(isMe?'':'<div class="cmsg-who">👨\u200d💼 Admin</div>')
+      +m.text+'<div class="cmsg-time">'+m.time+'</div></div>';
   });
-  body.innerHTML=html;
-  body.scrollTop=body.scrollHeight;
+  body.innerHTML=html;body.scrollTop=body.scrollHeight;
 }
 function sendChatMsg(){
-  var inp=el('chatInp'); if(!inp) return;
-  var text=inp.value.trim(); if(!text) return;
+  var inp=el('chatInp');if(!inp)return;
+  var text=inp.value.trim();if(!text)return;
   inp.value='';
   db.ref('chat/'+myId).push({from:'user',text:text,time:nowTime(),nick:nick,userId:myId});
 }
@@ -920,76 +783,48 @@ function sendChatMsg(){
 function saveNick(){
   var v=(el('nickInp')||{value:''}).value.trim();
   if(!v){showToast('⚠️ Введіть нік');return;}
-  nick=v; applyNick();
-  db.ref('users/'+myId+'/nick').set(nick);
-  db.ref('users/'+myId+'/id').set(myId);
+  nick=v;applyNick();
+  db.ref('users/'+myId).update({nick:nick,id:myId});
   db.ref('botdata/'+myId+'/nick').set(nick);
   showToast('✅ Нік збережено!');
 }
 
-// ── THEME ──
+// Theme
 var isDark=true;
 function toggleTheme(){
-  isDark=!isDark;
-  applyTheme();
-  localStorage.setItem('theme',isDark?'dark':'light');
+  isDark=!isDark;applyTheme();localStorage.setItem('theme',isDark?'dark':'light');
 }
 function applyTheme(){
   var r=document.documentElement.style;
   if(isDark){
-    r.setProperty('--bg','#06070a');r.setProperty('--s1','#0d0f14');
-    r.setProperty('--s2','#13161e');r.setProperty('--s3','#191d27');r.setProperty('--s4','#1f2330');
-    r.setProperty('--text','#eef0f8');r.setProperty('--sub','#64748b');r.setProperty('--muted','#9aa3b2');
+    r.setProperty('--bg','#06070a');r.setProperty('--s1','#0d0f14');r.setProperty('--s2','#13161e');
+    r.setProperty('--s3','#191d27');r.setProperty('--text','#eef0f8');r.setProperty('--sub','#64748b');
     r.setProperty('--bd','rgba(255,255,255,.1)');r.setProperty('--b2','rgba(255,255,255,.16)');
     setText('themeLabel','Темна');
-    var t=el('themeToggle'); if(t) t.style.background='var(--s3)';
-    var th=el('themeThumb'); if(th){th.style.left='3px';th.style.background='var(--sub)';}
-  } else {
-    r.setProperty('--bg','#f0f2f5');r.setProperty('--s1','#ffffff');
-    r.setProperty('--s2','#ffffff');r.setProperty('--s3','#f4f5f8');r.setProperty('--s4','#eceef2');
-    r.setProperty('--text','#0f1117');r.setProperty('--sub','#64748b');r.setProperty('--muted','#4a5568');
+    var th=el('themeThumb');if(th){th.style.left='3px';th.style.background='var(--sub)';}
+    var tt=el('themeToggle');if(tt)tt.style.background='var(--s3)';
+  }else{
+    r.setProperty('--bg','#f0f2f5');r.setProperty('--s1','#ffffff');r.setProperty('--s2','#ffffff');
+    r.setProperty('--s3','#f4f5f8');r.setProperty('--text','#0f1117');r.setProperty('--sub','#64748b');
     r.setProperty('--bd','rgba(0,0,0,.08)');r.setProperty('--b2','rgba(0,0,0,.12)');
     setText('themeLabel','Світла');
-    var t=el('themeToggle'); if(t) t.style.background='rgba(200,146,42,.3)';
-    var th=el('themeThumb'); if(th){th.style.left='25px';th.style.background='var(--gold)';}
+    var th=el('themeThumb');if(th){th.style.left='25px';th.style.background='var(--gold)';}
+    var tt=el('themeToggle');if(tt)tt.style.background='rgba(200,146,42,.3)';
   }
 }
-
-// ── LANGUAGE ──
-var curLang='uk';
-var LANGS={
-  uk:{greet:'Вітаємо,',shopTitle:'Магазин',chatTitle:'Чат',profTitle:'Профіль'},
-  ru:{greet:'Добро пожаловать,',shopTitle:'Магазин',chatTitle:'Чат',profTitle:'Профиль'},
-  en:{greet:'Welcome,',shopTitle:'Shop',chatTitle:'Chat',profTitle:'Profile'}
-};
 function setLang(l){
-  curLang=l;
   localStorage.setItem('lang',l);
-  ['langUk','langRu','langEn'].forEach(function(id){
-    var e=el(id);
-    if(e){e.style.borderColor='var(--bd)';e.style.background='var(--s3)';e.style.color='var(--muted)';}
+  ['Uk','Ru','En'].forEach(function(x){
+    var e=el('lang'+x);if(e){e.style.borderColor='var(--bd)';e.style.background='var(--s3)';e.style.color='var(--muted)';}
   });
-  var active=el('lang'+l.charAt(0).toUpperCase()+l.slice(1));
-  if(active){active.style.borderColor='rgba(200,146,42,.4)';active.style.background='rgba(200,146,42,.1)';active.style.color='var(--gold2)';}
+  var key={'uk':'Uk','ru':'Ru','en':'En'}[l];
+  var a=el('lang'+key);if(a){a.style.borderColor='rgba(200,146,42,.4)';a.style.background='rgba(200,146,42,.1)';a.style.color='var(--gold2)';}
   showToast('✅ Мову змінено');
 }
 
 // ════════════════════════════════════════════
-// FLOWS
+// FLOWS - простий підхід через innerHTML + глобальні функції
 // ════════════════════════════════════════════
-function openFlow(name){
-  var titles={pump:'🎮 Прокачка',wd:'💸 Вивід коштів',support:'💬 Підтримка'};
-  el('ftitle').textContent=titles[name]||name;
-  setText('fbal',balance+' R');
-  var c=el('fcontent'); c.innerHTML='';
-  if(name==='pump') buildPump(c);
-  if(name==='wd')   buildWd(c);
-  if(name==='support') buildSupport(c);
-  el('fov').classList.add('open');
-}
-function closeFlow(){ el('fov').classList.remove('open'); }
-
-// ── PUMP ──
 function openFlow(name){
   _flowStep=1;_flowData={};window._flowName=name;
   var titles={pump:'🐾 Прокачка петів',wd:'💸 Вивід коштів',support:'📩 Підтримка'};
@@ -1002,16 +837,16 @@ function closeFlow(){
   el('fov').classList.remove('open');
   _flowStep=1;_flowData={};window._flowPet=null;window._flowName=null;
 }
-var _flowStep=1,_flowData={};
 function renderFlow(){
   var n=window._flowName;
   if(n==='pump')renderPump();
   else if(n==='wd')renderWd();
   else if(n==='support')renderSupport();
 }
-function _fv(id){var e=document.getElementById(id);return e?e.value.trim():'';}
-function _fe(id,m){var e=document.getElementById(id);if(e)e.textContent=m;}
+function _fv(id){var e=el(id);return e?e.value.trim():'';}
+function _fe(id,m){var e=el(id);if(e)e.textContent=m;}
 
+// PUMP
 function renderPump(){
   var c=el('fcontent');
   if(_flowStep===1){
@@ -1020,16 +855,15 @@ function renderPump(){
       +'<input class="fif" id="f1" placeholder="Ваш юзернейм..."></div>'
       +'<div class="ferr" id="ferr"></div>'
       +'<button class="fbtn fbtn-g" onclick="pN1()">Далі →</button>';
-    if(_flowData.tgNick){var e=document.getElementById('f1');if(e)e.value=_flowData.tgNick;}
+    if(_flowData.tgNick){var e=el('f1');if(e)e.value=_flowData.tgNick;}
   }else if(_flowStep===2){
     c.innerHTML='<div class="ftag">🐾 ПРОКАЧКА ПЕТІВ</div>'
       +'<div class="fig"><div class="filbl">2️⃣ Нікнейм у Roblox</div>'
       +'<input class="fif" id="f1" placeholder="Нік у Roblox..."></div>'
       +'<div class="ferr" id="ferr"></div>'
-      +'<div class="btn-row">'
-      +'<button class="fbtn fbtn-s" onclick="_flowStep=1;renderFlow()">← Назад</button>'
+      +'<div class="btn-row"><button class="fbtn fbtn-s" onclick="_flowStep=1;renderFlow()">← Назад</button>'
       +'<button class="fbtn fbtn-g" onclick="pN2()">Далі →</button></div>';
-    if(_flowData.gameNick){var e=document.getElementById('f1');if(e)e.value=_flowData.gameNick;}
+    if(_flowData.gameNick){var e=el('f1');if(e)e.value=_flowData.gameNick;}
   }else if(_flowStep===3){
     var btns='';for(var i=1;i<=5;i++)btns+='<button class="fcb'+(_flowData.cnt===i?' sel':'')+'" onclick="pSel('+i+')">'+i+'</button>';
     c.innerHTML='<div class="ftag">🐾 ПРОКАЧКА ПЕТІВ</div>'
@@ -1052,13 +886,13 @@ function pN2(){var v=_fv('f1');if(!v){_fe('ferr','Введіть нік');return
 function pSel(n){_flowData.cnt=n;renderFlow();}
 function pSubmit(){
   if(!_flowData.cnt){_fe('ferr','Оберіть кількість');return;}
-  var item={type:'pump',label:'Прокачка петів',detail:'TG: '+_flowData.tgNick+' · Roblox: '+_flowData.gameNick+' · '+_flowData.cnt+' пет(и)',status:'pending',tgNick:_flowData.tgNick,gameNick:_flowData.gameNick,count:_flowData.cnt};
+  var item={type:'pump',label:'Прокачка петів',detail:'TG: '+_flowData.tgNick+' \u00b7 Roblox: '+_flowData.gameNick+' \u00b7 '+_flowData.cnt+' пет(и)',status:'pending',tgNick:_flowData.tgNick,gameNick:_flowData.gameNick,count:_flowData.cnt};
   addHist(item);db.ref('pending/'+item.id).set(item);
-  var msg='🐾 ПРОКАЧКА від '+nick+' (#'+myId+')\nTG: @'+_flowData.tgNick+'\nRoblox: '+_flowData.gameNick+'\nКількість: '+_flowData.cnt+' пет(и)';
-  db.ref('chat/'+myId).push({from:'user',text:msg,time:nowTime(),nick:nick,userId:myId});
+  db.ref('chat/'+myId).push({from:'user',text:'🐾 ПРОКАЧКА\nTG: @'+_flowData.tgNick+'\nRoblox: '+_flowData.gameNick+'\nКількість: '+_flowData.cnt+' пет(и)',time:nowTime(),nick:nick,userId:myId});
   _flowStep=4;renderFlow();
 }
 
+// WITHDRAW
 function renderWd(){
   var c=el('fcontent');
   if(_flowStep===1){
@@ -1094,11 +928,11 @@ function renderWd(){
   }else if(_flowStep===5){
     var gp=Math.ceil(_flowData.amount/0.7);_flowData.gpAmt=gp;
     c.innerHTML='<div class="ftag">💰 ВИВІД</div>'
-      +'<div class="fbc"><div class="fbc-lbl">5️⃣ Підтвердження суми геймпасу</div>'
+      +'<div class="fbc"><div class="fbc-lbl">5️⃣ Підтвердження геймпасу</div>'
       +'<div style="font-size:12px;color:var(--muted);margin:6px 0">Ви створили геймпасс на суму</div>'
       +'<div class="fbc-amt">'+gp+'</div><div class="fbc-unit">ROBUX</div>'
       +'<div style="font-size:11px;color:var(--sub);margin-top:6px">Після комісії Roblox 30% отримаєте '+_flowData.amount+' ROBUX</div></div>'
-      +'<div class="fynr"><button class="fyes" onclick="wConfirm()">✓ Так</button>'
+      +'<div class="fynr"><button class="fyes" onclick="wConfirm()">✓ Так, вірно</button>'
       +'<button class="fno" onclick="_flowStep=4;renderFlow()">✕ Назад</button></div>';
   }else{
     c.innerHTML='<div class="fwc"><div class="fwi">⏳</div>'
@@ -1115,18 +949,18 @@ function wConfirm(){
   var nb=balance-_flowData.amount;
   var u={};u['users/'+myId+'/balance']=nb;u['players/'+myId+'/botBalance']=nb;
   db.ref().update(u);setBalance(nb);
-  var item={type:'wd',label:'Вивід коштів',detail:_flowData.nick+' · '+_flowData.amount+' R',status:'pending',amount:_flowData.amount,nick:_flowData.nick,mapName:_flowData.mapName,gamepass:_flowData.gamepass,gpAmount:_flowData.gpAmt};
+  var item={type:'wd',label:'Вивід коштів',detail:_flowData.nick+' \u00b7 '+_flowData.amount+' R',status:'pending',amount:_flowData.amount,nick:_flowData.nick,mapName:_flowData.mapName,gamepass:_flowData.gamepass,gpAmount:_flowData.gpAmt};
   addHist(item);db.ref('pending/'+item.id).set(item);
-  var msg='💸 ВИВІД від '+nick+' (#'+myId+')\nСума: '+_flowData.amount+' R\nНік: '+_flowData.nick+'\nКарта: '+_flowData.mapName+'\nГеймпас: '+_flowData.gamepass+'\nСума GP: '+_flowData.gpAmt+' R';
-  db.ref('chat/'+myId).push({from:'user',text:msg,time:nowTime(),nick:nick,userId:myId});
+  db.ref('chat/'+myId).push({from:'user',text:'💸 ВИВІД\nСума: '+_flowData.amount+' R\nНік: '+_flowData.nick+'\nКарта: '+_flowData.mapName+'\nГеймпас: '+_flowData.gamepass+'\nСума GP: '+_flowData.gpAmt+' R',time:nowTime(),nick:nick,userId:myId});
   _flowStep=6;renderFlow();
 }
 
+// SUPPORT
 function renderSupport(){
   var c=el('fcontent');
   if(_flowStep===1){
     c.innerHTML='<div class="ftag">📩 ПІДТРИМКА</div>'
-      +'<div class="fhint" style="margin-bottom:8px">✉️ Напишіть ваше запитання або повідомлення для адміністрації</div>'
+      +'<div class="fhint" style="margin-bottom:8px">✉️ Напишіть запитання для адміністрації</div>'
       +'<div class="fig"><div class="filbl">Ваше повідомлення</div>'
       +'<textarea class="fif" id="f1" rows="6" placeholder="Введіть повідомлення..."></textarea></div>'
       +'<div class="ferr" id="ferr"></div>'
@@ -1146,40 +980,35 @@ function sSubmit(){
   _flowStep=2;renderFlow();
 }
 
+// SHOP FLOW
 function openShopFlow(key){
   var pet=PETS.find(function(p){return p._key===key;});
-  if(!pet) return;
+  if(!pet)return;
   window._shopPet=pet;
   el('ftitle').textContent='🛒 '+pet.key;
   setText('fbal',balance+' R');
   var ra=RC[pet.cat]||RC.common;
-  var imgH=pet.img
-    ?'<img src="'+pet.img+'" style="width:90px;height:90px;object-fit:cover;border-radius:14px;display:block;margin:0 auto 12px">'
-    :'<div style="font-size:60px;text-align:center;margin-bottom:12px">'+( pet.emoji||'🐾')+'</div>';
-  el('fcontent').innerHTML=
-    '<div class="fpconf">'+imgH
+  var imgH=pet.img?'<img src="'+pet.img+'" style="width:90px;height:90px;object-fit:cover;border-radius:14px;display:block;margin:0 auto 12px">':'<div style="font-size:60px;text-align:center;margin-bottom:12px">'+(pet.emoji||'🐾')+'</div>';
+  el('fcontent').innerHTML='<div class="fpconf">'+imgH
     +'<div class="fpc-n">'+pet.key+'</div>'
     +'<div class="fpc-r" style="color:'+ra.color+'">'+ra.label+'</div>'
     +'<div class="fpc-p">'+pet.price+' R</div></div>'
     +'<div class="ferr" id="shopErr" style="text-align:center"></div>'
-    +'<div class="fynr">'
-    +'<button class="fyes" onclick="doBuy()">Купити</button>'
+    +'<div class="fynr"><button class="fyes" onclick="doBuy()">Купити</button>'
     +'<button class="fno" onclick="closeFlow()">Скасувати</button></div>';
   el('fov').classList.add('open');
 }
 function doBuy(){
   var pet=window._shopPet;if(!pet)return;
-  if(balance<pet.price){var e=document.getElementById('shopErr');if(e)e.textContent='Недостатньо коштів';return;}
+  if(balance<pet.price){var e=el('shopErr');if(e)e.textContent='Недостатньо коштів';return;}
   var nb=balance-pet.price;
   var u={};u['users/'+myId+'/balance']=nb;u['players/'+myId+'/botBalance']=nb;
   db.ref().update(u);setBalance(nb);
-  var item={type:'shop',label:'Купівля товару',detail:pet.key+' · '+pet.price+' R',status:'pending',petKey:pet._key,petName:pet.key,price:pet.price};
+  var item={type:'shop',label:'Купівля товару',detail:pet.key+' \u00b7 '+pet.price+' R',status:'pending',petKey:pet._key,petName:pet.key,price:pet.price};
   addHist(item);db.ref('pending/'+item.id).set(item);
-  var msg='🛒 ЗАМОВЛЕННЯ від '+nick+' (#'+myId+')\nТовар: '+pet.key+'\nЦіна: '+pet.price+' R';
-  db.ref('chat/'+myId).push({from:'user',text:msg,time:nowTime(),nick:nick,userId:myId});
+  db.ref('chat/'+myId).push({from:'user',text:'🛒 ЗАМОВЛЕННЯ\nТовар: '+pet.key+'\nЦіна: '+pet.price+' R',time:nowTime(),nick:nick,userId:myId});
   var ra=RC[pet.cat]||RC.common;
-  el('fcontent').innerHTML=
-    '<div class="fwc"><div class="fwi">'+( pet.emoji||'🐾')+'</div>'
+  el('fcontent').innerHTML='<div class="fwc"><div class="fwi">'+(pet.emoji||'🐾')+'</div>'
     +'<div class="fwt">Замовлення прийнято!</div>'
     +'<div class="fwx">Ви придбали <b style="color:var(--text)">'+pet.key+'</b>'
     +'<br><span style="color:'+ra.color+'">'+ra.label+'</span>'
@@ -1189,756 +1018,127 @@ function doBuy(){
     +'<button class="fbtn fbtn-g" style="margin-top:12px" onclick="closeFlow();switchPage(\'home\')">На головну</button>';
 }
 
-function mk(tag,cls){var e=document.createElement(tag||'div');if(cls)e.className=cls;return e;}
-
-
-// ════════════════════════════════════════════
-// ADMIN NAV ITEM
-// ════════════════════════════════════════════
-if(isAdmin){
-  var adminNi=document.createElement('div');
-  adminNi.className='bni';adminNi.id='ni-admin';
-  adminNi.innerHTML='<div class="bni-ic">🔐</div>Адмін';
-  adminNi.onclick=function(){switchPage('admin');};
-  el('bnav').appendChild(adminNi);
-}
-
-// ════════════════════════════════════════════
-// BALANCE
-// ════════════════════════════════════════════
-function setBalance(v){
-  balance=Math.max(0,Math.floor(v||0));
-  setText('cardBal',balance);
-  setText('shopBal',balance);
-  setText('profBal',balance);
-  setText('fbal',balance+' R'); // update flow header too
-}
-
-// ════════════════════════════════════════════
-// FIREBASE
-// ════════════════════════════════════════════
-function initFB(){
-  // Слухаємо баланс з users/ в реальному часі
-  db.ref('users/'+myId+'/balance').on('value',function(snap){
-    var v=snap.val();
-    if(v!==null && v!==undefined) setBalance(v);
-  });
-  // Слухаємо players/ (казино)
-  db.ref('players/'+myId+'/botBalance').on('value',function(snap){
-    var v=snap.val();
-    if(v!==null && v!==undefined) setBalance(v);
-  });
-
-  // Профіль
-  db.ref('users/'+myId).once('value',function(snap){
-    var d=snap.val();
-    if(d&&d.nick){nick=d.nick;applyNick();}
-    // Реєструємо без перезапису балансу
-    db.ref('users/'+myId+'/nick').set(nick);
-  db.ref('users/'+myId+'/id').set(myId);
-  });
-
-  // Статистика і нік
-  db.ref('botdata/'+myId).once('value',function(snap){
-    var d=snap.val();
-    if(d){
-      if(d.nick){nick=d.nick;applyNick();}
-      if(d.stats){stats=Object.assign(stats,d.stats);updateStats();}
-    }
-  });
-
-  // Історія
-  db.ref('history/'+myId).orderByChild('id').limitToLast(50).once('value',function(snap){
-    history=[];
-    snap.forEach(function(ch){history.unshift(ch.val());});
-    renderHistory();
-  });
-
-  // Товари - слухаємо в реальному часі
-  db.ref('shop_pets').on('value',function(snap){
-    PETS=[];
-    if(snap.exists()){snap.forEach(function(ch){var p=ch.val();p._key=ch.key;PETS.push(p);});}
-    if(curPage==='shop') renderShop();
-  });
-
-  // Нові повідомлення - показуємо dot
-  db.ref('chat/'+myId).on('value',function(snap){
-    var dot=el('chatDot');
-    if(!snap.exists()){if(dot)dot.classList.remove('show');return;}
-    var hasAdmin=false;
-    snap.forEach(function(ch){if(ch.val().from==='admin')hasAdmin=true;});
-    if(dot){if(hasAdmin&&curPage!=='chat')dot.classList.add('show');else dot.classList.remove('show');}
-    if(curPage==='chat') renderChat(snap);
-  });
-}
-
-// ════════════════════════════════════════════
-// UI UPDATE
-// ════════════════════════════════════════════
-function applyNick(){
-  setText('hdrNick',nick);
-  setText('cardNick',nick.toUpperCase());
-  setText('profNickEl',nick);
-  setText('profIdEl','#'+myId);
-  var inp=el('nickInp'); if(inp) inp.value=nick;
-}
-function updateStats(){
-  setText('statOps',stats.ops||0);
-  setText('statPumps',stats.pumps||0);
-  setText('statWds',stats.wds||0);
-  setText('profOps',stats.ops||0);
-}
-
-// ════════════════════════════════════════════
-// HISTORY
-// ════════════════════════════════════════════
-function addHist(item){
-  item.id=Date.now(); item.date=nowDate(); item.userId=myId; item.userNick=nick;
-  if(!item.status) item.status='pending';
-  history.unshift(item);
-  stats.ops++;
-  if(item.type==='pump') stats.pumps++;
-  if(item.type==='wd') stats.wds++;
-  updateStats();
-  db.ref('history/'+myId+'/'+item.id).set(item);
-  db.ref('botdata/'+myId+'/stats').set(stats);
-  db.ref('users/'+myId+'/nick').set(nick);
-  db.ref('users/'+myId+'/id').set(myId);
-  renderHistory();
-}
-function renderHistory(){
-  var list=history.slice(0,15);
-  var html=list.length?list.map(function(h){
-    var ic=HIST_IC[h.type]||'📋';
-    var bg=HIST_BG[h.type]||'rgba(255,255,255,.05)';
-    var sc=h.status==='done'?'hs-d':h.status==='rejected'?'hs-r':'hs-p';
-    var sl=h.status==='done'?'Виконано':h.status==='rejected'?'Відхилено':'Очікує';
-    return '<div class="hprev-item">'
-      +'<div class="hprev-ic" style="background:'+bg+'">'+ic+'</div>'
-      +'<div style="flex:1;min-width:0">'
-      +'<div class="hprev-lbl">'+h.label+'</div>'
-      +'<div class="hprev-det">'+h.detail+'</div>'
-      +'</div>'
-      +'<span class="hprev-status '+sc+'">'+sl+'</span>'
-      +'</div>';
-  }).join(''):'<div class="empty-state">Операцій немає</div>';
-  setText('histList',null); el('histList').innerHTML=html;
-  if(el('fullHistList')) el('fullHistList').innerHTML=html;
-}
-
-// ════════════════════════════════════════════
-// SHOP
-// ════════════════════════════════════════════
-function filterCat(cat,btn){
-  curCat=cat;
-  el('shopCats').querySelectorAll('.cat').forEach(function(c){c.classList.remove('on');});
-  if(btn) btn.classList.add('on');
-  renderShop();
-}
-function renderShop(){
-  setText('shopBal',balance);
-  var list=curCat==='all'?PETS:PETS.filter(function(p){return p.cat===curCat;});
-  var g=el('shopGrid'); if(!g) return;
-  if(!list.length){g.innerHTML='<div class="empty-state" style="grid-column:1/-1">🐾 Товарів немає</div>';return;}
-  g.innerHTML=list.map(function(p){
-    var ra=RC[p.cat]||RC.common;
-    var tagH=p.tag?'<div class="ptag t-'+p.tag+'">'+(p.tag==='hot'?'🔥 HOT':p.tag==='new'?'✨ NEW':'💎 RARE')+'</div>':'';
-    var imgH=p.img?'<img src="'+p.img+'" class="pcard-img">'
-                  :'<div class="pcard-em">'+(p.emoji||'🐾')+'</div>';
-    return '<div class="pcard" onclick="openShopFlow(\''+p._key+'\')">'+tagH+imgH
-      +'<div class="pcard-nm">'+p.key+'</div>'
-      +'<div class="pcard-ra" style="color:'+ra.color+'">'+ra.label+'</div>'
-      +'<div class="pcard-pr">'+p.price+' R</div>'
-      +'</div>';
-  }).join('');
-}
-function openShopFlow(key){
-  var pet=PETS.find(function(p){return p._key===key;});
-  if(!pet) return;
-  el('ftitle').textContent='🛒 '+pet.key;
-  setText('fbal',balance+' R');
-  var c=el('fcontent'); c.innerHTML='';
-  var ra=RC[pet.cat]||RC.common;
-  var imgH=pet.img?'<img src="'+pet.img+'" style="width:90px;height:90px;object-fit:cover;border-radius:14px;display:block;margin:0 auto 14px">':'<div style="font-size:56px;text-align:center;margin-bottom:14px">'+(pet.emoji||'🐾')+'</div>';
-  var conf=document.createElement('div'); conf.className='fpconf';
-  conf.innerHTML=imgH
-    +'<div class="fpc-n">'+pet.key+'</div>'
-    +'<div class="fpc-r" style="color:'+ra.color+'">'+ra.label+'</div>'
-    +'<div class="fpc-p">'+pet.price+' R</div>';
-  var err=document.createElement('div'); err.className='ferr'; err.style.textAlign='center'; err.style.marginTop='8px';
-  var yn=document.createElement('div'); yn.className='fynr'; yn.style.marginTop='12px';
-  var yes=document.createElement('button'); yes.className='fyes'; yes.textContent='Купити';
-  var no=document.createElement('button'); no.className='fno'; no.textContent='Скасувати';
-  no.onclick=closeFlow;
-  yes.onclick=function(){
-    if(balance<pet.price){err.textContent='Недостатньо коштів';return;}
-    var nb=balance-pet.price;
-    // Write to both paths atomically
-    var balUpdate={};
-    balUpdate['users/'+myId+'/balance']=nb;
-    balUpdate['players/'+myId+'/botBalance']=nb;
-    db.ref().update(balUpdate);
-    setBalance(nb);
-    var item={type:'shop',label:'Купівля товару',detail:pet.key+' · '+pet.price+' R',status:'pending',petKey:pet._key,petName:pet.key,price:pet.price};
-    addHist(item);
-    db.ref('pending/'+item.id).set(item);
-    // Notify admins directly in their chat
-    ADMIN_IDS.forEach(function(aid){
-      db.ref('chat/'+myId).push({from:'user',text:'🛒 ЗАМОВЛЕННЯ: '+pet.key+' · '+pet.price+' R',time:nowTime(),nick:nick,userId:myId});
-    });
-    // Show success screen
-    c.innerHTML='';
-    var wc=mk('div','fwc');
-    var ra=RC[pet.cat]||RC.common;
-    wc.innerHTML='<div class="fwi">'+(pet.emoji||'🐾')+'</div>'
-      +'<div class="fwt">Замовлення прийнято!</div>'
-      +'<div class="fwx" style="margin-bottom:12px">Ви придбали <b style=\'color:var(--text)\'>'+pet.key+'</b>'
-      +'<br><span style=\'color:'+ra.color+'\'>'+ra.label+'</span>'
-      +'<br><br>💰 Списано: <b style=\'color:var(--gold2)\'>'+pet.price+' R</b>'
-      +'<br>💳 Залишок: <b style=\'color:var(--gold2)\'>'+nb+' R</b>'
-      +'<br><br>👨‍💼 Адміністратор звʼяжеться з вами найближчим часом.</div>';
-    var b2=mk('button','fbtn fbtn-g'); b2.textContent='На головну';
-    b2.onclick=function(){closeFlow();switchPage('home');};
-    c.appendChild(wc); c.appendChild(b2);
-  };
-  yn.appendChild(yes); yn.appendChild(no);
-  c.appendChild(conf); c.appendChild(err); c.appendChild(yn);
-  el('fov').classList.add('open');
-}
-
-// ════════════════════════════════════════════
-// CHAT
-// ════════════════════════════════════════════
-var _chatSnap=null;
-function loadChat(){
-  var dot=el('chatDot');
-  if(dot) dot.classList.remove('show');
-  // Force re-render by reading current snapshot
-  db.ref('chat/'+myId).once('value',function(snap){
-    renderChat(snap);
-  });
-}
-function renderChat(snap){
-  var body=el('chatBody'); if(!body) return;
-  if(!snap||!snap.exists()){body.innerHTML='<div class="empty-state">Напишіть нам!</div>';return;}
-  var html='';
-  snap.forEach(function(ch){
-    var m=ch.val();
-    var isMe=m.from==='user';
-    html+='<div class="cmsg '+(isMe?'cmsg-u':'cmsg-a')+'">'
-      +(isMe?'':'<div class="cmsg-who">👨‍💼 Admin</div>')
-      +m.text
-      +'<div class="cmsg-time">'+m.time+'</div>'
-      +'</div>';
-  });
-  body.innerHTML=html;
-  body.scrollTop=body.scrollHeight;
-}
-function sendChatMsg(){
-  var inp=el('chatInp'); if(!inp) return;
-  var text=inp.value.trim(); if(!text) return;
-  inp.value='';
-  db.ref('chat/'+myId).push({from:'user',text:text,time:nowTime(),nick:nick,userId:myId});
-}
-
-// ════════════════════════════════════════════
-// PROFILE
-// ════════════════════════════════════════════
-function saveNick(){
-  var v=(el('nickInp')||{value:''}).value.trim();
-  if(!v){showToast('⚠️ Введіть нік');return;}
-  nick=v; applyNick();
-  db.ref('users/'+myId+'/nick').set(nick);
-  db.ref('users/'+myId+'/id').set(myId);
-  db.ref('botdata/'+myId+'/nick').set(nick);
-  showToast('✅ Нік збережено!');
-}
-
-// ── THEME ──
-var isDark=true;
-function toggleTheme(){
-  isDark=!isDark;
-  applyTheme();
-  localStorage.setItem('theme',isDark?'dark':'light');
-}
-function applyTheme(){
-  var r=document.documentElement.style;
-  if(isDark){
-    r.setProperty('--bg','#06070a');r.setProperty('--s1','#0d0f14');
-    r.setProperty('--s2','#13161e');r.setProperty('--s3','#191d27');r.setProperty('--s4','#1f2330');
-    r.setProperty('--text','#eef0f8');r.setProperty('--sub','#64748b');r.setProperty('--muted','#9aa3b2');
-    r.setProperty('--bd','rgba(255,255,255,.1)');r.setProperty('--b2','rgba(255,255,255,.16)');
-    setText('themeLabel','Темна');
-    var t=el('themeToggle'); if(t) t.style.background='var(--s3)';
-    var th=el('themeThumb'); if(th){th.style.left='3px';th.style.background='var(--sub)';}
-  } else {
-    r.setProperty('--bg','#f0f2f5');r.setProperty('--s1','#ffffff');
-    r.setProperty('--s2','#ffffff');r.setProperty('--s3','#f4f5f8');r.setProperty('--s4','#eceef2');
-    r.setProperty('--text','#0f1117');r.setProperty('--sub','#64748b');r.setProperty('--muted','#4a5568');
-    r.setProperty('--bd','rgba(0,0,0,.08)');r.setProperty('--b2','rgba(0,0,0,.12)');
-    setText('themeLabel','Світла');
-    var t=el('themeToggle'); if(t) t.style.background='rgba(200,146,42,.3)';
-    var th=el('themeThumb'); if(th){th.style.left='25px';th.style.background='var(--gold)';}
-  }
-}
-
-// ── LANGUAGE ──
-var curLang='uk';
-var LANGS={
-  uk:{greet:'Вітаємо,',shopTitle:'Магазин',chatTitle:'Чат',profTitle:'Профіль'},
-  ru:{greet:'Добро пожаловать,',shopTitle:'Магазин',chatTitle:'Чат',profTitle:'Профиль'},
-  en:{greet:'Welcome,',shopTitle:'Shop',chatTitle:'Chat',profTitle:'Profile'}
-};
-function setLang(l){
-  curLang=l;
-  localStorage.setItem('lang',l);
-  ['langUk','langRu','langEn'].forEach(function(id){
-    var e=el(id);
-    if(e){e.style.borderColor='var(--bd)';e.style.background='var(--s3)';e.style.color='var(--muted)';}
-  });
-  var active=el('lang'+l.charAt(0).toUpperCase()+l.slice(1));
-  if(active){active.style.borderColor='rgba(200,146,42,.4)';active.style.background='rgba(200,146,42,.1)';active.style.color='var(--gold2)';}
-  showToast('✅ Мову змінено');
-}
-
-// ════════════════════════════════════════════
-// FLOWS
-// ════════════════════════════════════════════
-function openFlow(name){
-  var titles={pump:'🎮 Прокачка',wd:'💸 Вивід коштів',support:'💬 Підтримка'};
-  el('ftitle').textContent=titles[name]||name;
-  setText('fbal',balance+' R');
-  var c=el('fcontent'); c.innerHTML='';
-  if(name==='pump') buildPump(c);
-  if(name==='wd')   buildWd(c);
-  if(name==='support') buildSupport(c);
-  el('fov').classList.add('open');
-}
-function closeFlow(){ el('fov').classList.remove('open'); }
-
-// ── PUMP ──
-function buildPump(c){
-  var step=1, tgNick='', gameNick='', petCount=0;
-
-  function render(){
-    c.innerHTML='';
-    if(step===1){
-      var tag=mk('div','ftag'); tag.textContent='🐾 ПРОКАЧКА ПЕТІВ';
-      var lbl=mk('div','fig');
-      lbl.innerHTML='<div class="filbl">1️⃣ Нікнейм у Telegram</div>';
-      var inp=mk('input','fif'); inp.placeholder='Введіть ваш юз у Telegram...'; inp.type='text'; inp.value=tgNick;
-      lbl.appendChild(inp);
-      var hint=mk('div',''); hint.style.cssText='font-size:11px;color:var(--sub);margin-top:5px;line-height:1.5';
-      hint.textContent='Введіть ваш юзернейм у Telegram';
-      var err=mk('div','ferr');
-      var btn=mk('button','fbtn fbtn-g'); btn.textContent='Далі →';
-      btn.onclick=function(){
-        var v=inp.value.trim();
-        if(!v){err.textContent='Введіть юзернейм';return;}
-        tgNick=v; step=2; render();
-      };
-      c.appendChild(tag); c.appendChild(lbl); c.appendChild(hint); c.appendChild(err); c.appendChild(btn);
-
-    } else if(step===2){
-      var tag=mk('div','ftag'); tag.textContent='🐾 ПРОКАЧКА ПЕТІВ';
-      var lbl=mk('div','fig');
-      lbl.innerHTML='<div class="filbl">2️⃣ Нікнейм у грі</div>';
-      var inp=mk('input','fif'); inp.placeholder='Введіть ваш нік у Roblox...'; inp.type='text'; inp.value=gameNick;
-      lbl.appendChild(inp);
-      var hint=mk('div',''); hint.style.cssText='font-size:11px;color:var(--sub);margin-top:5px;line-height:1.5';
-      hint.textContent='🎮 Введіть ваш нік у грі (Roblox). Введення всіх символів.';
-      var err=mk('div','ferr');
-      var row=mk('div','btn-row'); row.style.marginTop='0';
-      var back=mk('button','fbtn fbtn-s'); back.textContent='← Назад'; back.onclick=function(){step=1;render();};
-      var next=mk('button','fbtn fbtn-g'); next.textContent='Далі →';
-      next.onclick=function(){
-        var v=inp.value.trim();
-        if(!v){err.textContent='Введіть нік';return;}
-        gameNick=v; step=3; render();
-      };
-      row.appendChild(back); row.appendChild(next);
-      c.appendChild(tag); c.appendChild(lbl); c.appendChild(hint); c.appendChild(err); c.appendChild(row);
-
-    } else if(step===3){
-      var tag=mk('div','ftag'); tag.textContent='🐾 ПРОКАЧКА ПЕТІВ';
-      var lbl=mk('div','fig');
-      lbl.innerHTML='<div class="filbl">3️⃣ Кількість петів</div>';
-      var hint=mk('div',''); hint.style.cssText='font-size:12px;color:var(--sub);margin-bottom:10px;line-height:1.6';
-      hint.textContent='🐾 Виберіть кількість петів, яких ви хочете взяти на прокачку';
-      var row=mk('div','fcrow');
-      for(var i=1;i<=5;i++){(function(n){
-        var b=mk('button','fcb'); b.textContent=n;
-        if(petCount===n) b.classList.add('sel');
-        b.onclick=function(){row.querySelectorAll('.fcb').forEach(function(x){x.classList.remove('sel');});b.classList.add('sel');petCount=n;};
-        row.appendChild(b);
-      })(i);}
-      var err=mk('div','ferr');
-      var brow=mk('div','btn-row'); brow.style.marginTop='8px';
-      var back=mk('button','fbtn fbtn-s'); back.textContent='← Назад'; back.onclick=function(){step=2;render();};
-      var next=mk('button','fbtn fbtn-g'); next.textContent='Відправити заявку';
-      next.onclick=function(){
-        if(!petCount){err.textContent='Оберіть кількість';return;}
-        var item={type:'pump',label:'Прокачка петів',detail:'TG: '+tgNick+' · Roblox: '+gameNick+' · '+petCount+' пет(и)',status:'pending',tgNick:tgNick,gameNick:gameNick,count:petCount};
-        addHist(item);
-        db.ref('pending/'+item.id).set(item);
-        notifyAdmins('🐾 Заявка на прокачку від #'+myId+' (@'+tgNick+'): Roblox нік «'+gameNick+'», '+petCount+' пет(и)');
-        step=4; render();
-      };
-      brow.appendChild(back); brow.appendChild(next);
-      c.appendChild(tag); c.appendChild(lbl); c.appendChild(hint); c.appendChild(row); c.appendChild(err); c.appendChild(brow);
-
-    } else if(step===4){
-      var wc=mk('div','fwc');
-      wc.innerHTML='<div class="fwi">⏳</div>'
-        +'<div class="fwt">Заявку прийнято!</div>'
-        +'<div class="fwx">Як тільки з\'являться вільні пети для прокачки,<br>👨‍💼 адміністратор повідомить вас особисто.</div>';
-      var b2=mk('button','fbtn fbtn-g'); b2.style.marginTop='14px'; b2.textContent='На головну';
-      b2.onclick=function(){closeFlow();switchPage('home');};
-      c.appendChild(wc); c.appendChild(b2);
-    }
-  }
-  render();
-}
-function mk(tag,cls){ var e=document.createElement(tag||'div'); if(cls) e.className=cls; return e; }
-
-// ── WITHDRAW ──
-var wdData={};
-// ── WITHDRAW ──
-var wdData={};
-function buildWd(c){
-  var step=1;
-  function render(){
-    c.innerHTML='';
-    if(step===1){
-      // Step 1: Balance info + amount
-      var tag=mk('div','ftag'); tag.textContent='💰 ВИВІД';
-      var bc=mk('div','fbc');
-      bc.innerHTML='<div class="fbc-lbl">1️⃣ Інформація про баланс</div>'
-        +'<div style="font-size:13px;color:var(--sub);margin:6px 0 4px">💳 Ваш поточний баланс:</div>'
-        +'<div class="fbc-amt">'+balance+'</div><div class="fbc-unit">ROBUX</div>';
-      var ig=mk('div','fig');
-      ig.innerHTML='<div class="filbl">✏️ Сума виводу</div>';
-      var inp=mk('input','fif'); inp.type='number'; inp.placeholder='Введіть кількість ROBUX...';
-      ig.appendChild(inp);
-      var hint=mk('div',''); hint.style.cssText='font-size:11px;color:var(--sub);margin-top:5px';
-      hint.textContent='📌 Мінімальна сума — 40 ROBUX';
-      var err=mk('div','ferr');
-      var btn=mk('button','fbtn fbtn-g'); btn.textContent='Далі →';
-      btn.onclick=function(){
-        var amt=parseInt(inp.value);
-        if(!inp.value||isNaN(amt)){err.textContent='Введіть суму';return;}
-        if(amt<40){err.textContent='Мінімальна сума — 40 ROBUX';return;}
-        if(amt>balance){err.textContent='Недостатньо коштів на балансі';return;}
-        wdData.amount=amt; step=2; render();
-      };
-      c.appendChild(tag); c.appendChild(bc); c.appendChild(ig); c.appendChild(hint); c.appendChild(err); c.appendChild(btn);
-
-    } else if(step===2){
-      // Step 2: Roblox nickname
-      var tag=mk('div','ftag'); tag.textContent='💰 ВИВІД';
-      var ig=mk('div','fig');
-      ig.innerHTML='<div class="filbl">2️⃣ Нікнейм у грі</div>';
-      var inp=mk('input','fif'); inp.placeholder='Ваш нікнейм у Roblox...'; inp.value=wdData.nick||'';
-      ig.appendChild(inp);
-      var hint=mk('div',''); hint.style.cssText='font-size:11px;color:var(--sub);margin-top:5px';
-      hint.textContent='🎮 Напишіть ваш нікнейм у Roblox';
-      var err=mk('div','ferr');
-      var row=mk('div','btn-row');
-      var back=mk('button','fbtn fbtn-s'); back.textContent='← Назад'; back.onclick=function(){step=1;render();};
-      var next=mk('button','fbtn fbtn-g'); next.textContent='Далі →';
-      next.onclick=function(){
-        var v=inp.value.trim(); if(!v){err.textContent='Введіть нікнейм';return;}
-        wdData.nick=v; step=3; render();
-      };
-      row.appendChild(back); row.appendChild(next);
-      c.appendChild(tag); c.appendChild(ig); c.appendChild(hint); c.appendChild(err); c.appendChild(row);
-
-    } else if(step===3){
-      // Step 3: Map name
-      var tag=mk('div','ftag'); tag.textContent='💰 ВИВІД';
-      var ig=mk('div','fig');
-      ig.innerHTML='<div class="filbl">3️⃣ Назва карти</div>';
-      var inp=mk('input','fif'); inp.placeholder='Назва гри (карти) з геймпасом...'; inp.value=wdData.mapName||'';
-      ig.appendChild(inp);
-      var hint=mk('div',''); hint.style.cssText='font-size:11px;color:var(--sub);margin-top:5px';
-      hint.textContent='🧩 Напишіть назву гри (карти), у якій створено геймпасс';
-      var err=mk('div','ferr');
-      var row=mk('div','btn-row');
-      var back=mk('button','fbtn fbtn-s'); back.textContent='← Назад'; back.onclick=function(){step=2;render();};
-      var next=mk('button','fbtn fbtn-g'); next.textContent='Далі →';
-      next.onclick=function(){
-        var v=inp.value.trim(); if(!v){err.textContent='Введіть назву карти';return;}
-        wdData.mapName=v; step=4; render();
-      };
-      row.appendChild(back); row.appendChild(next);
-      c.appendChild(tag); c.appendChild(ig); c.appendChild(hint); c.appendChild(err); c.appendChild(row);
-
-    } else if(step===4){
-      // Step 4: Gamepass name
-      var tag=mk('div','ftag'); tag.textContent='💰 ВИВІД';
-      var ig=mk('div','fig');
-      ig.innerHTML='<div class="filbl">4️⃣ Назва геймпасу</div>';
-      var inp=mk('input','fif'); inp.placeholder='Точна назва геймпасу...'; inp.value=wdData.gamepass||'';
-      ig.appendChild(inp);
-      var hint=mk('div',''); hint.style.cssText='font-size:11px;color:var(--sub);margin-top:5px';
-      hint.textContent='🎟️ Напишіть точну назву геймпасу';
-      var err=mk('div','ferr');
-      var row=mk('div','btn-row');
-      var back=mk('button','fbtn fbtn-s'); back.textContent='← Назад'; back.onclick=function(){step=3;render();};
-      var next=mk('button','fbtn fbtn-g'); next.textContent='Далі →';
-      next.onclick=function(){
-        var v=inp.value.trim(); if(!v){err.textContent='Введіть назву геймпасу';return;}
-        wdData.gamepass=v;
-        // Calculate gamepass amount (user withdraws X, gamepass must be X/0.7 to get X after 30% Roblox cut)
-        wdData.gpAmount=Math.ceil(wdData.amount/0.7);
-        step=5; render();
-      };
-      row.appendChild(back); row.appendChild(next);
-      c.appendChild(tag); c.appendChild(ig); c.appendChild(hint); c.appendChild(err); c.appendChild(row);
-
-    } else if(step===5){
-      // Step 5: Confirm gamepass amount
-      var tag=mk('div','ftag'); tag.textContent='💰 ВИВІД';
-      var bc=mk('div','fbc');
-      bc.innerHTML='<div class="fbc-lbl">5️⃣ Підтвердження суми геймпасу</div>'
-        +'<div style="font-size:12px;color:var(--sub);margin:8px 0 4px;line-height:1.6">Ви створили геймпасс на суму</div>'
-        +'<div class="fbc-amt">'+wdData.gpAmount+'</div>'
-        +'<div class="fbc-unit">ROBUX</div>'
-        +'<div style="font-size:11px;color:var(--sub);margin-top:8px;line-height:1.5">'
-        +'Після комісії Roblox 30% ви отримаєте '+wdData.amount+' ROBUX</div>';
-      var yn=mk('div','fynr'); yn.style.marginTop='14px';
-      var yes=mk('button','fyes'); yes.textContent='✓ Так, все вірно';
-      var no=mk('button','fno'); no.textContent='✕ Назад';
-      no.onclick=function(){step=4;render();};
-      yes.onclick=function(){
-        var nb=balance-wdData.amount;
-        var wdBalUpd={};
-        wdBalUpd['users/'+myId+'/balance']=nb;
-        wdBalUpd['players/'+myId+'/botBalance']=nb;
-        db.ref().update(wdBalUpd);
-        setBalance(nb);
-        var item={type:'wd',label:'Вивід коштів',detail:'Нік: '+wdData.nick+' · '+wdData.amount+' R · Карта: '+wdData.mapName+' · GP: '+wdData.gamepass,status:'pending',amount:wdData.amount,nick:wdData.nick,mapName:wdData.mapName,gamepass:wdData.gamepass,gpAmount:wdData.gpAmount};
-        addHist(item);
-        db.ref('pending/'+item.id).set(item);
-        notifyAdmins('💸 Заявка на вивід від #'+myId+' ('+nick+'): '+wdData.amount+' R\nНік: '+wdData.nick+'\nКарта: '+wdData.mapName+'\nGP: '+wdData.gamepass+'\nСума GP: '+wdData.gpAmount+' R');
-        step=6; render();
-      };
-      yn.appendChild(yes); yn.appendChild(no);
-      c.appendChild(tag); c.appendChild(bc); c.appendChild(yn);
-
-    } else if(step===6){
-      // Step 6: Done
-      var wc=mk('div','fwc');
-      wc.innerHTML='<div class="fwi">⏳</div>'
-        +'<div class="fwt">Заявку прийнято!</div>'
-        +'<div class="fwx">'
-        +'👨‍💼 Очікуйте — адміністрація перевіряє дані.<br><br>'
-        +'📬 Після перевірки ви отримаєте повідомлення у розділі Чат.'
-        +'</div>';
-      var b2=mk('button','fbtn fbtn-g'); b2.style.marginTop='14px'; b2.textContent='На головну';
-      b2.onclick=function(){closeFlow();switchPage('home');};
-      c.appendChild(wc); c.appendChild(b2);
-    }
-  }
-  render();
-}
-
-// ── SUPPORT ──
-function buildSupport(c){
-  var step=1;
-  function render(){
-    c.innerHTML='';
-    if(step===1){
-      var tag=mk('div','ftag'); tag.textContent='📩 ПІДТРИМКА';
-      var ig=mk('div','fig');
-      ig.innerHTML='<div class="filbl">✉️ Ваше повідомлення</div>';
-      var hint=mk('div',''); hint.style.cssText='font-size:12px;color:var(--sub);margin-bottom:10px;line-height:1.6';
-      hint.textContent='Напишіть ваше запитання або повідомлення для адміністрації';
-      var ta=mk('textarea','fif'); ta.rows=6; ta.placeholder='Введіть ваше повідомлення...';
-      ig.appendChild(ta);
-      var err=mk('div','ferr');
-      var btn=mk('button','fbtn fbtn-g'); btn.textContent='Відправити';
-      btn.onclick=function(){
-        var v=ta.value.trim();
-        if(!v){err.textContent='Введіть повідомлення';return;}
-        db.ref('chat/'+myId).push({from:'user',text:v,time:nowTime(),nick:nick,userId:myId});
-        addHist({type:'support',label:'Звернення в підтримку',detail:v.slice(0,60)+(v.length>60?'…':''),status:'pending'});
-        notifyAdmins('📩 Підтримка від #'+myId+' ('+nick+'): '+v.slice(0,150));
-        step=2; render();
-      };
-      c.appendChild(tag); c.appendChild(hint); c.appendChild(ig); c.appendChild(err); c.appendChild(btn);
-    } else {
-      var wc=mk('div','fwc');
-      wc.innerHTML='<div class="fwi">🙏</div>'
-        +'<div class="fwt">Дякуємо за звернення!</div>'
-        +'<div class="fwx">👨‍💼 Адміністрація відповість вам у найближчий час.<br><br>Очікуйте повідомлення у розділі Чат.</div>';
-      var b2=mk('button','fbtn fbtn-g'); b2.style.marginTop='14px'; b2.textContent='Перейти в чат';
-      b2.onclick=function(){closeFlow();switchPage('chat');};
-      var b3=mk('button','fbtn fbtn-s'); b3.style.marginTop='8px'; b3.textContent='На головну';
-      b3.onclick=function(){closeFlow();switchPage('home');};
-      c.appendChild(wc); c.appendChild(b2); c.appendChild(b3);
-    }
-  }
-  render();
-}
-
 // ════════════════════════════════════════════
 // ADMIN
 // ════════════════════════════════════════════
+var _adminOpenUid=null,_adminChatRef=null,_adminUserRef=null,_pendRef=null;
+
 function loadAdmin(){
   if(!isAdmin){showToast('⛔ Немає доступу');switchPage('home');return;}
-  loadAdminChat();
-  loadAdminPending();
-  loadAdminUsers();
-  loadAdminPets();
+  loadAdminChat();loadAdminPending();loadAdminUsers();loadAdminPets();
 }
-
-// ── Admin chat ──
-var _adminChatRef=null;
-var _adminOpenUid=null;
-var _adminChatUserRef=null;
-
 function loadAdminChat(){
-  var box=el('adminUserListEl');
-  if(!box) return;
-  if(_adminChatRef) _adminChatRef.off();
+  var box=el('adminUserListEl');if(!box)return;
+  if(_adminChatRef)_adminChatRef.off();
   _adminChatRef=db.ref('chat');
-  // Also listen for new notifications
-  db.ref('notifications/'+myId).on('value',function(nSnap){
-    var dot=el('chatDot'); if(nSnap&&nSnap.exists()&&dot) dot.classList.add('show');
-  });
   _adminChatRef.on('value',function(snap){
     if(!snap.exists()){box.innerHTML='<div class="pend-none">Немає повідомлень</div>';return;}
     var html='';
     snap.forEach(function(uSnap){
-      var uid=uSnap.key;
-      var msgs=[]; uSnap.forEach(function(m){msgs.push(m.val());});
+      var uid=uSnap.key,msgs=[];
+      uSnap.forEach(function(m){msgs.push(m.val());});
       var last=msgs[msgs.length-1]||{};
-      var unread=msgs.filter(function(m){return m.from==='user';}).length;
-      var hasNew=unread>0;
-      html+='<div onclick="openAdminUserChat(\''+uid+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer;transition:.15s">'
+      var hasNew=msgs.some(function(m){return m.from==='user';});
+      html+='<div onclick="openAdminChat(\''+uid+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer">'
         +'<div style="width:38px;height:38px;border-radius:11px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">👤</div>'
         +'<div style="flex:1;min-width:0">'
-        +'<div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">'
-        +uid
-        +(hasNew?'<span style="background:var(--red);color:#fff;font-size:9px;padding:2px 6px;border-radius:20px;font-weight:700">NEW</span>':'')
-        +'</div>'
-        +'<div style="font-size:11px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(last.text||'').slice(0,40)+'</div>'
-        +'</div>'
-        +'<div style="font-size:10px;color:var(--sub);flex-shrink:0">'+(last.time||'')+'</div>'
-        +'</div>';
+        +'<div style="font-size:13px;font-weight:700">'+uid+(hasNew?'<span style="background:var(--red);color:#fff;font-size:9px;padding:2px 6px;border-radius:20px;margin-left:6px">NEW</span>':'')+'</div>'
+        +'<div style="font-size:11px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(last.text||'').slice(0,35)+'</div>'
+        +'</div><div style="font-size:10px;color:var(--sub)">'+(last.time||'')+'</div></div>';
     });
     box.innerHTML=html||'<div class="pend-none">Немає повідомлень</div>';
-    // Refresh open chat if active
-    if(_adminOpenUid) openAdminUserChat(_adminOpenUid);
   });
 }
-
-function openAdminUserChat(uid){
+function openAdminChat(uid){
   _adminOpenUid=uid;
-  var card=el('adminSingleChat');
-  var listCard=el('adminChatCard');
-  if(!card) return;
-  
+  var card=el('adminSingleChat'),ul=el('adminUserListEl');
+  if(card)card.style.display='block';
+  if(ul)ul.style.display='none';
   setText('adminChatUserLabel','#'+uid);
-  card.style.display='block';
-  // Hide user list temporarily
-  var userList=el('adminUserListEl');
-  if(userList) userList.style.display='none';
-
-  var msgs=el('adminSingleMsgs');
-  if(!msgs) return;
-  
-  if(_adminChatUserRef) _adminChatUserRef.off();
-  _adminChatUserRef=db.ref('chat/'+uid);
-  _adminChatUserRef.on('value',function(snap){
+  var msgs=el('adminSingleMsgs');if(!msgs)return;
+  if(_adminUserRef)_adminUserRef.off();
+  _adminUserRef=db.ref('chat/'+uid);
+  _adminUserRef.on('value',function(snap){
     if(!snap.exists()){msgs.innerHTML='<div class="pend-none">Немає повідомлень</div>';return;}
     var html='';
     snap.forEach(function(ch){
       var m=ch.val();
       html+='<div class="acmsg '+(m.from==='user'?'fu':'fa')+'">'
-        +'<div class="acmsg-top">'
-        +'<span class="acmsg-who">'+(m.from==='user'?'👤 '+(m.nick||uid):'👨‍💼 Admin')+'</span>'
-        +'<span class="acmsg-time">'+m.time+'</span>'
-        +'</div>'
-        +'<div class="acmsg-txt">'+m.text+'</div>'
-        +'</div>';
+        +'<div class="acmsg-top"><span class="acmsg-who">'+(m.from==='user'?'👤 '+(m.nick||uid):'👨‍💼 Admin')+'</span>'
+        +'<span class="acmsg-time">'+m.time+'</span></div>'
+        +'<div class="acmsg-txt">'+m.text+'</div></div>';
     });
-    msgs.innerHTML=html;
-    msgs.scrollTop=msgs.scrollHeight;
+    msgs.innerHTML=html;msgs.scrollTop=msgs.scrollHeight;
   });
 }
-
-function closeAdminUserChat(){
+function closeAdminChat(){
   _adminOpenUid=null;
-  if(_adminChatUserRef){_adminChatUserRef.off();_adminChatUserRef=null;}
-  var card=el('adminSingleChat'); if(card) card.style.display='none';
-  var userList=el('adminUserListEl'); if(userList) userList.style.display='';
+  if(_adminUserRef){_adminUserRef.off();_adminUserRef=null;}
+  var card=el('adminSingleChat');if(card)card.style.display='none';
+  var ul=el('adminUserListEl');if(ul)ul.style.display='';
 }
-
 function adminSend(){
   var uid=_adminOpenUid;
   var text=(el('adminReplyInp')||{value:''}).value.trim();
-  if(!uid){showToast('⚠️ Відкрийте чат з юзером');return;}
+  if(!uid){showToast('⚠️ Відкрийте чат');return;}
   if(!text){showToast('⚠️ Введіть текст');return;}
   el('adminReplyInp').value='';
   db.ref('chat/'+uid).push({from:'admin',text:text,time:nowTime(),nick:'Admin'});
   showToast('✅ Надіслано');
 }
-
-// ── Admin pending ──
 function loadAdminPending(){
-  var box=el('pendListEl');
-  if(_pendingRef) _pendingRef.off();
-  _pendingRef=db.ref('pending');
-  _pendingRef.on('value',function(snap){
+  var box=el('pendListEl');if(!box)return;
+  if(_pendRef)_pendRef.off();
+  _pendRef=db.ref('pending');
+  _pendRef.on('value',function(snap){
     if(!snap.exists()){box.innerHTML='<div class="pend-none">Немає заявок</div>';return;}
-    var html=''; var count=0;
+    var html='',cnt=0;
     snap.forEach(function(ch){
-      var p=ch.val(), k=ch.key;
-      if(p.status!=='pending') return;
-      count++;
-      var extra='';
-      if(p.type==='wd') extra='<br>💰 Сума: '+p.amount+' R<br>👤 Нік: '+p.nick+'<br>🎮 Gamepass: '+p.gamepass+(p.gpAmount?'<br>📦 До видачі: '+p.gpAmount+' R':'');
-      if(p.type==='pump') extra='<br>👤 Нік: '+p.pumpNick+'<br>🔢 Кількість: '+p.count;
-      if(p.type==='shop') extra='<br>🛒 Товар: '+(p.petName||'—')+'<br>💰 Ціна: '+p.price+' R';
+      var p=ch.val(),k=ch.key;
+      if(p.status!=='pending')return;cnt++;
       html+='<div class="pend-row">'
         +'<div class="pend-top"><span class="pend-type">'+p.label+'</span><span class="pend-date">'+p.date+'</span></div>'
-        +'<div class="pend-info">👤 '+(p.userNick||'—')+' &nbsp;<span style="color:var(--gold2);font-family:monospace">#'+(p.userId||'—')+'</span>'+extra+'</div>'
-        +'<div class="pend-btns">'
-        +'<button class="pbtn-ok" onclick="resolvePend(\''+k+'\',\'done\')">✓ Виконано</button>'
-        +'<button class="pbtn-no" onclick="resolvePend(\''+k+'\',\'rejected\')">✕ Відхилити</button>'
-        +'</div></div>';
+        +'<div class="pend-info">'+( p.userNick||p.userId||'—')+' (#'+(p.userId||'—')+')<br>'+p.detail+'</div>'
+        +'<div class="pend-btns"><button class="pbtn-ok" onclick="resolvePend(\''+k+'\',\'done\')">✓ Виконано</button>'
+        +'<button class="pbtn-no" onclick="resolvePend(\''+k+'\',\'rejected\')">✕ Відхилити</button></div></div>';
     });
     box.innerHTML=html||'<div class="pend-none">Немає заявок</div>';
-    var badge=el('pendCountBadge');
-    if(badge) badge.textContent=count>0?count:'';
+    var b=el('pendCountBadge');if(b)b.textContent=cnt>0?cnt:'';
   });
 }
-var _pendingRef=null;
 function resolvePend(key,status){
   db.ref('pending/'+key).once('value',function(snap){
-    var p=snap.val(); if(!p) return;
+    var p=snap.val();if(!p)return;
     db.ref('pending/'+key).update({status:status});
-    if(p.userId&&p.id) db.ref('history/'+p.userId+'/'+p.id).update({status:status});
+    if(p.userId&&p.id)db.ref('history/'+p.userId+'/'+p.id).update({status:status});
   });
   showToast(status==='done'?'✅ Виконано':'❌ Відхилено');
 }
-
-// ── Admin balance ──
+function loadAdminUsers(){
+  var box=el('userListEl');if(!box)return;
+  db.ref('users').once('value',function(snap){
+    if(!snap.exists()){box.innerHTML='<div class="pend-none">Немає</div>';return;}
+    var html='';
+    snap.forEach(function(ch){
+      var u=ch.val(),uid=ch.key;
+      html+='<div class="urow"><div><div class="urow-nick">'+(u.nick||uid)+'</div><div class="urow-id">#'+uid+'</div></div>'
+        +'<div class="urow-bal">'+(u.balance||0)+' R</div></div>';
+    });
+    box.innerHTML=html||'<div class="pend-none">Немає</div>';
+  });
+}
 function adminAdd(){
   var uid=(el('aAddId')||{value:''}).value.trim();
   var amt=parseInt((el('aAddAmt')||{value:''}).value);
   if(!uid||isNaN(amt)||amt<=0){showToast('⚠️ Введіть ID та суму');return;}
   db.ref('users/'+uid+'/balance').once('value',function(snap){
-    var cur=snap.val()||0, nb=cur+amt;
-    db.ref('users/'+uid+'/balance').set(nb).then(function(){
+    var cur=snap.val()||0,nb=cur+amt;
+    var u={};u['users/'+uid+'/balance']=nb;u['players/'+uid+'/botBalance']=nb;
+    db.ref().update(u).then(function(){
       showToast('✅ #'+uid+': '+cur+' → '+nb+' R');
       db.ref('chat/'+uid).push({from:'admin',text:'💰 Поповнення: +'+amt+' ROBUX. Баланс: '+nb+' R',time:nowTime(),nick:'Admin'});
-      var ts=Date.now();
-      db.ref('history/'+uid+'/'+ts).set({id:ts,type:'admin_add',label:'Поповнення адміном',detail:'+'+amt+' R',date:nowDate(),status:'done',userId:uid});
-      el('aAddId').value=''; el('aAddAmt').value='';
-      loadAdminUsers();
+      var ts=Date.now();db.ref('history/'+uid+'/'+ts).set({id:ts,type:'admin_add',label:'Поповнення адміном',detail:'+'+amt+' R',date:nowDate(),status:'done',userId:uid});
+      el('aAddId').value='';el('aAddAmt').value='';loadAdminUsers();
     }).catch(function(e){showToast('❌ '+e.message);});
   });
 }
@@ -1947,36 +1147,19 @@ function adminRem(){
   var amt=parseInt((el('aRemAmt')||{value:''}).value);
   if(!uid||isNaN(amt)||amt<=0){showToast('⚠️ Введіть ID та суму');return;}
   db.ref('users/'+uid+'/balance').once('value',function(snap){
-    var cur=snap.val()||0, nb=Math.max(0,cur-amt);
-    db.ref('users/'+uid+'/balance').set(nb).then(function(){
+    var cur=snap.val()||0,nb=Math.max(0,cur-amt);
+    var u={};u['users/'+uid+'/balance']=nb;u['players/'+uid+'/botBalance']=nb;
+    db.ref().update(u).then(function(){
       showToast('✅ #'+uid+': '+cur+' → '+nb+' R');
-      el('aRemId').value=''; el('aRemAmt').value='';
-      loadAdminUsers();
+      el('aRemId').value='';el('aRemAmt').value='';loadAdminUsers();
     }).catch(function(e){showToast('❌ '+e.message);});
   });
 }
 
-// ── Admin users ──
-function loadAdminUsers(){
-  var box=el('userListEl');
-  db.ref('users').once('value',function(snap){
-    if(!snap.exists()){box.innerHTML='<div class="pend-none">Немає</div>';return;}
-    var html='';
-    snap.forEach(function(ch){
-      var u=ch.val(),uid=ch.key;
-      html+='<div class="urow">'
-        +'<div><div class="urow-nick">'+(u.nick||uid)+'</div><div class="urow-id">#'+uid+'</div></div>'
-        +'<div class="urow-bal">'+(u.balance||0)+' R</div>'
-        +'</div>';
-    });
-    box.innerHTML=html||'<div class="pend-none">Немає</div>';
-  });
-}
-
-// ── Admin pets ──
+// Admin pets
+var _petImg=null;
 function loadAdminPets(){
-  var box=el('adminPetListEl');
-  box.innerHTML='<div class="pend-none">⏳</div>';
+  var box=el('adminPetListEl');if(!box)return;
   db.ref('shop_pets').once('value',function(snap){
     if(!snap.exists()){box.innerHTML='<div class="pend-none">Немає товарів</div>';return;}
     var html='';
@@ -1984,42 +1167,38 @@ function loadAdminPets(){
       var p=ch.val(),fk=ch.key;
       var thumb=p.img?'<div class="admin-pet-thumb"><img src="'+p.img+'"></div>':'<div class="admin-pet-thumb">'+(p.emoji||'🐾')+'</div>';
       html+='<div class="admin-pet-row">'+thumb
-        +'<div style="flex:1;min-width:0"><div class="admin-pet-nm">'+p.key+'</div><div class="admin-pet-pr">'+p.price+' R · '+(p.cat||'common')+'</div></div>'
-        +'<div class="admin-pet-btns">'
-        +'<button class="apet-edit" onclick="editPet(\''+fk+'\')">✏️</button>'
-        +'<button class="apet-del" onclick="deletePet(\''+fk+'\')">🗑️</button>'
-        +'</div></div>';
+        +'<div style="flex:1;min-width:0"><div class="admin-pet-nm">'+p.key+'</div><div class="admin-pet-pr">'+p.price+' R \u00b7 '+(p.cat||'common')+'</div></div>'
+        +'<div class="admin-pet-btns"><button class="apet-edit" onclick="editPet(\''+fk+'\')">✏️</button>'
+        +'<button class="apet-del" onclick="deletePet(\''+fk+'\')">🗑️</button></div></div>';
     });
     box.innerHTML=html||'<div class="pend-none">Немає товарів</div>';
   });
 }
 function clearPetForm(){
   ['editPetFbKey','newPetName','newPetPrice','newPetEmoji'].forEach(function(id){var e=el(id);if(e)e.value='';});
-  var prev=el('newPetImgPrev'); if(prev) prev.innerHTML='📷<input type="file" accept="image/*" id="newPetImgInp" onchange="onPetImg(this)">';
-  var cat=el('newPetCat'); if(cat) cat.value='common';
-  var tag=el('newPetTag'); if(tag) tag.value='';
-  setText('adminShopTitle','➕ Новий товар');
-  _petImg=null;
+  var prev=el('newPetImgPrev');if(prev)prev.innerHTML='📷<input type="file" accept="image/*" id="newPetImgInp" onchange="onPetImg(this)">';
+  var cat=el('newPetCat');if(cat)cat.value='common';
+  var tag=el('newPetTag');if(tag)tag.value='';
+  setText('adminShopTitle','➕ Новий товар');_petImg=null;
 }
 function editPet(fk){
   db.ref('shop_pets/'+fk).once('value',function(snap){
-    var p=snap.val(); if(!p) return;
+    var p=snap.val();if(!p)return;
     var e;
-    e=el('editPetFbKey'); if(e) e.value=fk;
-    e=el('newPetName');   if(e) e.value=p.key;
-    e=el('newPetPrice');  if(e) e.value=p.price;
-    e=el('newPetEmoji');  if(e) e.value=p.emoji||'';
-    e=el('newPetCat');    if(e) e.value=p.cat||'common';
-    e=el('newPetTag');    if(e) e.value=p.tag||'';
+    e=el('editPetFbKey');if(e)e.value=fk;
+    e=el('newPetName');if(e)e.value=p.key;
+    e=el('newPetPrice');if(e)e.value=p.price;
+    e=el('newPetEmoji');if(e)e.value=p.emoji||'';
+    e=el('newPetCat');if(e)e.value=p.cat||'common';
+    e=el('newPetTag');if(e)e.value=p.tag||'';
     var prev=el('newPetImgPrev');
-    if(prev) prev.innerHTML=(p.img?'<img src="'+p.img+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">':p.emoji||'🐾')+'<input type="file" accept="image/*" id="newPetImgInp" onchange="onPetImg(this)">';
-    _petImg=null;
-    setText('adminShopTitle','✏️ '+p.key);
+    if(prev)prev.innerHTML=(p.img?'<img src="'+p.img+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px">':p.emoji||'🐾')+'<input type="file" accept="image/*" id="newPetImgInp" onchange="onPetImg(this)">';
+    _petImg=null;setText('adminShopTitle','✏️ '+p.key);
     el('adminShopCard').scrollIntoView({behavior:'smooth'});
   });
 }
 function deletePet(fk){
-  if(!confirm('Видалити товар?')) return;
+  if(!confirm('Видалити товар?'))return;
   db.ref('shop_pets/'+fk).remove().then(function(){showToast('🗑️ Видалено');loadAdminPets();}).catch(function(e){showToast('❌ '+e.message);});
 }
 function savePet(){
@@ -2039,12 +1218,12 @@ function savePet(){
       data.img=(snap.val()||{}).img||null;
       db.ref('shop_pets/'+saveKey).set(data).then(function(){showToast('✅ Збережено!');clearPetForm();loadAdminPets();}).catch(function(e){showToast('❌ '+e.message);});
     });
-  } else {
+  }else{
     db.ref('shop_pets/'+saveKey).set(data).then(function(){showToast('✅ Збережено!');clearPetForm();loadAdminPets();}).catch(function(e){showToast('❌ '+e.message);});
   }
 }
 function onPetImg(inp){
-  var file=inp.files[0]; if(!file) return;
+  var file=inp.files[0];if(!file)return;
   var r=new FileReader();
   r.onload=function(ev){
     var img=new Image();
@@ -2055,36 +1234,35 @@ function onPetImg(inp){
       cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);
       _petImg=cv.toDataURL('image/jpeg',.75);
       var prev=el('newPetImgPrev');
-      if(prev) prev.innerHTML='<img src="'+_petImg+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px"><input type="file" accept="image/*" id="newPetImgInp" onchange="onPetImg(this)">';
-    };
-    img.src=ev.target.result;
-  };
-  r.readAsDataURL(file);
+      if(prev)prev.innerHTML='<img src="'+_petImg+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px"><input type="file" accept="image/*" id="newPetImgInp" onchange="onPetImg(this)">';
+    };img.src=ev.target.result;
+  };r.readAsDataURL(file);
 }
 
 // ════════════════════════════════════════════
 // START
 // ════════════════════════════════════════════
-// Hide splash - JS approach (CSS animation can't set display:none)
+// Remove splash after animation
 var _sp=document.getElementById('splash');
 if(_sp){
   setTimeout(function(){
     _sp.style.opacity='0';
-    setTimeout(function(){
-      _sp.style.display='none';
-      _sp.style.pointerEvents='none';
-    },450);
+    setTimeout(function(){_sp.style.display='none';_sp.style.pointerEvents='none';},450);
   },2200);
 }
-var _savedTheme=localStorage.getItem('theme');
-if(_savedTheme==='light'){isDark=false;}
+// Remove splash after animation
+var _sp=document.getElementById('splash');
+if(_sp){
+  setTimeout(function(){
+    _sp.style.opacity='0';
+    setTimeout(function(){_sp.style.display='none';_sp.style.pointerEvents='none';},450);
+  },2200);
+}
+// Init theme and lang
+var _st=localStorage.getItem('theme');if(_st==='light'){isDark=false;}
 applyTheme();
-// Init lang
-var _savedLang=localStorage.getItem('lang');
-if(_savedLang) setLang(_savedLang);
-applyNick();
-updateStats();
-initFB();
+var _sl=localStorage.getItem('lang');if(_sl)setLang(_sl);
+applyNick();updateStats();initFB();
 
 </script>
 </body>
