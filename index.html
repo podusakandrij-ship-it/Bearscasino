@@ -457,237 +457,221 @@ input:focus,select:focus,textarea:focus{border-color:rgba(var(--accent-rgb),.5)}
 </head>
 <body>
 
-<!-- SPLASH SCREEN -->
+<!-- SPLASH -->
 <div id="splash-screen">
-  <div id="splash-img-wrap">
-    <img id="splash-img" src="splash.png" alt="Bears Casino">
-  </div>
+  <div id="splash-img-wrap"><img id="splash-img" src="splash.png" alt="Bears Casino"></div>
   <div id="splash-bottom">
     <div id="splash-title">BEARS CASINO</div>
-    <div id="splash-bar-wrap">
-      <div id="splash-bar"></div>
-    </div>
+    <div id="splash-bar-wrap"><div id="splash-bar"></div></div>
     <div id="splash-text">Завантаження...</div>
   </div>
 </div>
 
-<header class="header">
-  <div class="logo">BEARS <span>CASINO</span></div>
-  <div class="header-chips">
-    <div class="bal-chip"><span class="chip-icon">◆</span><span id="bal-val">0</span> BB</div>
-    <div class="dbl-chip" id="dbl-chip"><span class="chip-icon">⚓</span><span id="dbl-val">0</span></div>
-  </div>
-</header>
+<!-- APP -->
+<div id="app">
 
-<div class="container">
-
-  <!-- PET HUD (прихований, дані збережено) -->
-  <div class="pet-hud" >
-    <div class="pet-hud-img" id="p-hud-wrap"><span id="p-img">🥚</span></div>
-    <div class="pet-hud-info">
-      <div class="pet-hud-top">
-        <div id="p-rarity" class="rarity-badge" style="background:rgba(107,114,128,.2);color:#9ca3af">НЕМАЄ</div>
-        <div class="pet-hud-name" id="p-name">Обери пета</div>
-      </div>
-      <div class="xp-row"><span id="pet-bonus-lbl">БОНУС</span><span>LVL <b id="p-l">1</b> · <span id="xp-text">0 XP</span></span></div>
-      <div class="xp-bar"><div id="xp-f" class="xp-fill" style="width:0%"></div></div>
-      <div class="pet-hud-stats"><span><b id="p-m">x1.000</b></span></div>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">BEARS <span>CASINO</span></div>
+    <div class="header-chips">
+      <div class="bal-chip"><span class="chip-icon">◆</span><span id="bal-val">0</span> BB</div>
+      <div class="dbl-chip" id="dbl-chip"><span class="chip-icon">⚓</span><span id="dbl-val">0</span></div>
     </div>
-  </div>
+  </header>
 
-  <!-- ARTIFACT HUD + PICKER -->
-  <div id="artifact-hud-wrap" style="margin-bottom:10px;display:none">
-    <div id="artifact-hud" style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.35);border:1.5px solid rgba(var(--accent-rgb),.3);border-radius:var(--radius);padding:10px 13px;position:relative;overflow:hidden;cursor:pointer" onclick="toggleArtPicker()">
-      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.7"></div>
-      <div id="art-hud-icon" style="font-size:22px;flex-shrink:0">💎</div>
-      <div style="flex:1;min-width:0">
-        <div id="art-hud-name" style="font-size:12px;font-weight:800;color:var(--accent2)">Немає артефакту</div>
-        <div id="art-hud-bonus" style="font-size:10px;color:var(--muted)">Натисни щоб обрати</div>
-      </div>
-      <div style="font-size:14px;color:var(--muted)">▾</div>
-    </div>
-    <div id="art-picker" style="display:none;background:rgba(10,10,15,.97);border:1.5px solid rgba(var(--accent-rgb),.3);border-radius:var(--radius);margin-top:4px;overflow:hidden;max-height:220px;overflow-y:auto"></div>
-  </div>
+  <!-- PAGES -->
+  <div class="pages">
 
-  <!-- GAMES -->
-  <div id="v-main" class="page" style="display:block">
+    <!-- MAIN / GAMES -->
+    <div id="v-main" class="page" style="display:block">
 
-    <!-- ARTIFACT / PET HUD -->
-    <div id="artifact-hud-wrap">
-      <div id="artifact-hud" onclick="toggleArtPicker()">
-        <div id="art-hud-icon" style="font-size:22px;flex-shrink:0">💎</div>
-        <div style="flex:1;min-width:0">
-          <div id="art-hud-name" style="font-size:12px;font-weight:800;color:var(--accent2)">Обери артефакт</div>
-          <div id="art-hud-bonus" style="font-size:10px;color:var(--muted)">Натисни щоб обрати</div>
+      <!-- ARTIFACT PICKER HUD -->
+      <div id="artifact-hud-wrap">
+        <div id="artifact-hud" onclick="toggleArtPicker()">
+          <div id="art-hud-icon" style="font-size:22px;flex-shrink:0">💎</div>
+          <div style="flex:1;min-width:0">
+            <div id="art-hud-name" style="font-size:12px;font-weight:800;color:var(--accent2)">Обери артефакт</div>
+            <div id="art-hud-bonus" style="font-size:10px;color:var(--muted)">Натисни щоб обрати</div>
+          </div>
+          <span style="font-size:14px;color:var(--muted)">▾</span>
         </div>
-        <div style="font-size:14px;color:var(--muted)">▾</div>
-      </div>
-      <div id="art-picker"></div>
-    </div>
-
-    <!-- DAILY QUESTS -->
-    <div id="daily-quests-card"></div>
-
-    <div class="game-wrap">
-      <select id="g-sel" onchange="updUI()">
-        <option value="f50">⚖️ 50/50 (x1.55)</option>
-        <option value="dice">🎲 Кубик (x2.05)</option>
-        <option value="wheel">🎡 Колесо (до x1.8)</option>
-        <option value="slots">🎰 Слоти (до x5.0)</option>
-        <option value="mines">💣 Міни (до x4.0)</option>
-        <option value="bj">🃏 Блекджек (x2.0)</option>
-      </select>
-
-      <div id="ui-dice"    style="display:none;margin:14px 0"></div>
-      <div id="ui-wheel"   style="display:none;text-align:center;padding:8px 0">
-        <div style="position:relative;width:220px;height:220px;margin:0 auto 12px">
-          <canvas id="wheel-canvas" width="220" height="220"></canvas>
-          <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:22px">▼</div>
-        </div>
-        <div style="display:flex;justify-content:center;gap:10px;font-size:11px;font-weight:700;flex-wrap:wrap">
-          <span style="color:#ef4444">🔴 0x 50%</span>
-          <span style="color:#10b981">🟢 1.4x 25%</span>
-          <span style="color:#3b82f6">🔵 1.6x 20%</span>
-          <span style="color:#f59e0b">🟡 1.8x 5%</span>
-        </div>
-      </div>
-      <div id="ui-slots" style="display:none;text-align:center;padding:12px 0">
-        <div style="display:flex;justify-content:center;gap:10px;margin-bottom:14px">
-          <div class="slot-reel" id="reel-0">🍒</div>
-          <div class="slot-reel" id="reel-1">🍋</div>
-          <div class="slot-reel" id="reel-2">🍊</div>
-        </div>
-        <div style="font-size:10px;color:var(--muted);line-height:1.9;font-weight:600">
-          7×3=<b style="color:var(--accent2)">x5</b> · 💎×3=<b style="color:#a78bfa">x4</b> · ⭐×3=<b style="color:#38bdf8">x3</b> · 3 однак=<b style="color:var(--success)">x2</b> · 2=<b style="color:var(--muted)">x1.3</b>
-        </div>
-      </div>
-      <div id="ui-mines" style="display:none;padding:8px 0">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-          <div style="font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap">💣 <span id="mines-count-label">3</span></div>
-          <input type="range" id="mines-count" min="1" max="12" value="3" style="flex:1" oninput="updateMinesCount()">
-          <div style="font-size:12px;color:var(--accent);font-weight:700;white-space:nowrap">x<span id="mines-mult-label">1.75</span></div>
-        </div>
-        <div id="mines-grid" class="mines-grid"></div>
-        <div id="mines-ctrl" style="display:none;margin-top:12px">
-          <button class="btn" style="background:linear-gradient(135deg,var(--success),#059669)" onclick="minesCashout()">💰 ЗАБРАТИ · x<span id="mines-curr-mult">1.00</span></button>
-        </div>
-      </div>
-      <div id="ui-bj" style="display:none;text-align:center;padding:12px 0">
-        <div id="bj-dealer-lbl" style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">ДИЛЕР</div>
-        <div id="bj-dc" style="display:flex;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap"></div>
-        <div id="bj-you-lbl" style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">ВИ</div>
-        <div id="bj-pc" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap"></div>
-        <div id="bj-ctrl" style="display:none;gap:10px;margin-top:16px;justify-content:center">
-          <button class="btn-s" id="bj-hit" onclick="bjDo('hit')" style="background:var(--accent);color:#fff;min-width:90px;padding:12px;border-color:var(--accent)">ЩЕ</button>
-          <button class="btn-s" id="bj-stop" onclick="bjDo('stop')" style="background:var(--error);color:#fff;min-width:90px;padding:12px;border-color:var(--error)">СТОП</button>
-        </div>
+        <div id="art-picker"></div>
       </div>
 
-      <div style="height:1px;background:var(--border);margin:14px 0 12px"></div>
-      <div id="g-stat"><span style="color:var(--muted)">Зроби ставку і натисни ГРАТИ</span></div>
-      <div class="bet-row" style="margin-top:10px">
-        <input type="number" id="bet-a" value="10" step="1" inputmode="decimal" placeholder="Ставка BB">
-        <button id="btn-play" onclick="play()">ГРАТИ</button>
-      </div>
-      <div class="bet-presets">
-        <button class="bet-preset" onclick="setBet(10)">10</button>
-        <button class="bet-preset" onclick="setBet(50)">50</button>
-        <button class="bet-preset" onclick="setBet(100)">100</button>
-        <button class="bet-preset" onclick="setBet(500)">500</button>
-        <button class="bet-preset" onclick="setBet(Math.floor((s.b||0)/2))">&frac12;</button>
-        <button class="bet-preset" onclick="setBet(s.b||0)">MAX</button>
-      </div>
-    </div>
-  </div>
+      <!-- DAILY QUESTS -->
+      <div id="daily-quests-card"></div>
 
-  <!-- SHOP -->
-  <div id="v-shop" class="page" style="display:none"><div id="shop-list"></div></div>
+      <!-- GAME CARD -->
+      <div class="game-wrap">
+        <select id="g-sel" onchange="updUI()">
+          <option value="f50">⚖️ 50/50 (x1.55)</option>
+          <option value="dice">🎲 Кубик (x2.05)</option>
+          <option value="wheel">🎡 Колесо (до x1.8)</option>
+          <option value="slots">🎰 Слоти (до x5.0)</option>
+          <option value="mines">💣 Міни (до x4.0)</option>
+          <option value="bj">🃏 Блекджек (x2.0)</option>
+        </select>
 
-  <!-- INV -->
-  <div id="v-inv" class="page" >
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <h3 id="inv-heading" style="color:#fff;font-size:16px">🎒 МОЇ ПЕТИ</h3>
+        <!-- dice -->
+        <div id="ui-dice" style="display:none;margin:14px 0"></div>
+
+        <!-- wheel -->
+        <div id="ui-wheel" style="display:none;text-align:center;padding:8px 0">
+          <div style="position:relative;width:220px;height:220px;margin:0 auto 12px">
+            <canvas id="wheel-canvas" width="220" height="220"></canvas>
+            <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:22px">▼</div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:10px;font-size:11px;font-weight:700;flex-wrap:wrap">
+            <span style="color:#ef4444">🔴 0x 50%</span>
+            <span style="color:#10b981">🟢 1.4x 25%</span>
+            <span style="color:#3b82f6">🔵 1.6x 20%</span>
+            <span style="color:#f59e0b">🟡 1.8x 5%</span>
+          </div>
+        </div>
+
+        <!-- slots -->
+        <div id="ui-slots" style="display:none;text-align:center;padding:12px 0">
+          <div style="display:flex;justify-content:center;gap:10px;margin-bottom:14px">
+            <div class="slot-reel" id="reel-0">🍒</div>
+            <div class="slot-reel" id="reel-1">🍋</div>
+            <div class="slot-reel" id="reel-2">🍊</div>
+          </div>
+          <div style="font-size:10px;color:var(--muted);line-height:1.9;font-weight:600">
+            7×3=<b style="color:var(--accent2)">x5</b> · 💎×3=<b style="color:#a78bfa">x4</b> · ⭐×3=<b style="color:#38bdf8">x3</b> · 3 однак=<b style="color:var(--success)">x2</b> · 2=<b style="color:var(--muted)">x1.3</b>
+          </div>
+        </div>
+
+        <!-- mines -->
+        <div id="ui-mines" style="display:none;padding:8px 0">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <div style="font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap">💣 <span id="mines-count-label">3</span></div>
+            <input type="range" id="mines-count" min="1" max="12" value="3" style="flex:1" oninput="updateMinesCount()">
+            <div style="font-size:12px;color:var(--accent);font-weight:700;white-space:nowrap">x<span id="mines-mult-label">1.75</span></div>
+          </div>
+          <div id="mines-grid" class="mines-grid"></div>
+          <div id="mines-ctrl" style="display:none;margin-top:12px">
+            <button class="btn" style="background:linear-gradient(135deg,var(--success),#059669)" onclick="minesCashout()">💰 ЗАБРАТИ · x<span id="mines-curr-mult">1.00</span></button>
+          </div>
+        </div>
+
+        <!-- blackjack -->
+        <div id="ui-bj" style="display:none;text-align:center;padding:12px 0">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:700;letter-spacing:.5px">ДИЛЕР</div>
+          <div id="bj-dc" style="display:flex;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap"></div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:700;letter-spacing:.5px">ВИ</div>
+          <div id="bj-pc" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap"></div>
+          <div id="bj-ctrl" style="display:none;gap:10px;margin-top:16px;justify-content:center">
+            <button class="btn-s" id="bj-hit" onclick="bjDo('hit')" style="background:var(--accent);color:#fff;min-width:90px;padding:12px;border-color:var(--accent)">ЩЕ</button>
+            <button class="btn-s" id="bj-stop" onclick="bjDo('stop')" style="background:var(--error);color:#fff;min-width:90px;padding:12px;border-color:var(--error)">СТОП</button>
+          </div>
+        </div>
+
+        <!-- BET AREA -->
+        <div style="height:1px;background:var(--border);margin:14px 0 10px"></div>
+        <div id="g-stat"><span style="color:var(--muted)">Зроби ставку і натисни ГРАТИ</span></div>
+        <div class="bet-row">
+          <input type="number" id="bet-a" value="10" step="1" inputmode="decimal" placeholder="Ставка BB">
+          <button id="btn-play" onclick="play()">ГРАТИ</button>
+        </div>
+        <div class="bet-presets">
+          <button class="bet-preset" onclick="setBet(10)">10</button>
+          <button class="bet-preset" onclick="setBet(50)">50</button>
+          <button class="bet-preset" onclick="setBet(100)">100</button>
+          <button class="bet-preset" onclick="setBet(500)">500</button>
+          <button class="bet-preset" onclick="setBet(Math.floor((s.b||0)/2))">&frac12;</button>
+          <button class="bet-preset" onclick="setBet(s.b||0)">MAX</button>
+        </div>
+      </div>
+    </div><!-- /v-main -->
+
+    <!-- SHOP -->
+    <div id="v-shop" class="page" style="display:none"><div id="shop-list"></div></div>
+
+    <!-- INVENTORY -->
+    <div id="v-inv" class="page" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:16px;font-weight:800">🎒 Інвентар</div>
         <div id="inv-count" style="font-size:11px;color:var(--muted);font-weight:700"></div>
       </div>
       <div id="inv-list"></div>
     </div>
-  </div>
 
-  <!-- TOP -->
-  <div id="v-top" class="page" >
-    <div class="card">
-      <h3 id="top-heading" style="color:var(--accent2);font-size:16px;margin-bottom:14px">🏆 ЛІДЕРИ</h3>
+    <!-- TOP -->
+    <div id="v-top" class="page" style="display:none">
+      <div style="font-size:16px;font-weight:800;margin-bottom:12px;color:var(--accent2)">🏆 Лідери</div>
       <div id="leaderboard"></div>
     </div>
-  </div>
 
-  <!-- SETTINGS -->
-  <div id="v-settings" class="page" >
-    <div class="card">
-      <h3 id="sett-heading" style="color:#fff;font-size:16px;margin-bottom:16px">⚙️ Налаштування</h3>
+    <!-- PASS -->
+    <div id="v-pass" class="page" style="display:none">
+      <div class="pass-header">
+        <div class="pass-lvl-wrap">
+          <div>
+            <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.5px">BEARS PASS</div>
+            <div class="pass-lvl-big">LVL <span id="pass-cur-lvl">1</span></div>
+          </div>
+          <div style="text-align:right">
+            <div class="pass-sub">Сезон <span id="pass-season-lbl"></span></div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px"><span id="pass-xp-cur">0</span> / <span id="pass-xp-next">80</span> XP</div>
+          </div>
+        </div>
+        <div class="xp-bar"><div class="xp-fill" id="pass-xp-fill" style="width:0%"></div></div>
+      </div>
+      <div id="pass-levels"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="v-settings" class="page" style="display:none">
       <div id="settings-body"></div>
     </div>
-  </div>
 
-
-  <div id="v-pass" class="page" >
-    <div class="pass-header">
-      <div class="pass-season">🎫 SEASON 1</div>
-      <div class="pass-title">BEARS PASS</div>
-      <div class="pass-sub">Безкоштовний · Оновлюється щомісяця</div>
-      <div class="pass-lvl-row">
-        <div class="pass-lvl-txt">LVL <span id="pass-cur-lvl">1</span></div>
-        <div class="pass-lvl-xp"><span id="pass-xp-cur">0</span> / <span id="pass-xp-next">20</span> XP</div>
-      </div>
-      <div class="pass-xp-bar"><div class="pass-xp-fill" id="pass-xp-fill" style="width:0%"></div></div>
-    </div>
-    <div class="pass-list" id="pass-levels"></div>
-  </div>
-
-  <!-- ADMIN -->
-  <div id="v-admin" class="page" >
-    <div class="card">
-      <h3 id="admin-heading" style="color:var(--accent);font-size:16px;margin-bottom:14px">⚡ АДМІН</h3>
+    <!-- ADMIN -->
+    <div id="v-admin" class="page" style="display:none">
       <div id="admin-list"></div>
     </div>
-  </div>
-</div>
+
+  </div><!-- /pages -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="nav">
+    <div class="nav-tab active" onclick="tab('main',this)">
+      <span class="nav-icon">🎮</span><span class="nav-label">ГРАТИ</span>
+    </div>
+    <div class="nav-tab" onclick="tab('shop',this)">
+      <span class="nav-icon">🛍️</span><span class="nav-label">МАГАЗИН</span>
+    </div>
+    <div class="nav-tab" onclick="tab('inv',this)">
+      <span class="nav-icon">🎒</span><span class="nav-label">ПЕТИ</span>
+    </div>
+    <div class="nav-tab" onclick="tab('top',this)">
+      <span class="nav-icon">🏆</span><span class="nav-label">ТОП</span>
+    </div>
+    <div class="nav-tab" onclick="tab('pass',this)">
+      <span class="nav-icon">🎫</span><span class="nav-label">PASS</span>
+    </div>
+    <div class="nav-tab" onclick="tab('settings',this)">
+      <span class="nav-icon">⚙️</span><span class="nav-label">НАСТР.</span>
+    </div>
+    <div id="admin-tab" class="nav-tab" style="display:none" onclick="tab('admin',this)">
+      <span class="nav-icon">⚡</span><span class="nav-label">АДМІН</span>
+    </div>
+  </nav>
+
+</div><!-- /app -->
 
 <!-- CASE MODAL -->
-<div id="case-modal">
-  <h2 id="case-title" style="margin:0 0 8px;font-size:18px;letter-spacing:1px;color:var(--accent)">ВІДКРИВАЄМО...</h2>
-  <div class="case-roulette">
-    <div style="position:absolute;left:50%;top:0;width:2px;height:100%;background:var(--accent);z-index:10;box-shadow:0 0 12px var(--accent)"></div>
-    <div id="case-scroll"></div>
+<div id="case-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:100;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;width:100%;max-width:360px;text-align:center">
+    <h2 id="case-title" style="margin:0 0 16px;font-size:18px;color:var(--accent2)">ВІДКРИВАЄМО...</h2>
+    <div class="case-roulette" style="position:relative;height:90px;overflow:hidden;border-radius:12px;background:var(--surface2);border:1px solid var(--border)">
+      <div style="position:absolute;left:50%;top:0;width:2px;height:100%;background:var(--accent);z-index:10;box-shadow:0 0 12px var(--accent);transform:translateX(-50%)"></div>
+      <div id="case-scroll" style="display:flex;align-items:center;height:100%;transition:transform .05s linear"></div>
+    </div>
+    <div id="case-res" style="margin-top:20px"></div>
+    <button class="btn" style="display:none;margin-top:16px" id="case-close" onclick="closeCase()">✅ ЗАБРАТИ</button>
   </div>
-  <div id="case-res" style="margin-top:20px;text-align:center"></div>
-  <button class="btn" style="width:180px;display:none;margin-top:16px" id="case-close" onclick="closeCase()">✅ ЗАБРАТИ</button>
 </div>
 
-<nav class="nav">
-  <div class="nav-tab active" onclick="tab('main',this)">
-    <span class="nav-icon">🎮</span><span class="nav-label">ГРАТИ</span>
-  </div>
-  <div class="nav-tab" onclick="tab('shop',this)">
-    <span class="nav-icon">📦</span><span class="nav-label">МАГАЗИН</span>
-  </div>
-  <div class="nav-tab" onclick="tab('inv',this)">
-    <span class="nav-icon">🎒</span><span class="nav-label">ПЕТИ</span>
-  </div>
-  <div class="nav-tab" onclick="tab('top',this)">
-    <span class="nav-icon">🏆</span><span class="nav-label">ТОП</span>
-  </div>
-  <div class="nav-tab" onclick="tab('pass',this)">
-    <span class="nav-icon">🎫</span><span class="nav-label">PASS</span>
-  </div>
-  <div class="nav-tab" onclick="tab('settings',this)">
-    <span class="nav-icon">⚙️</span><span class="nav-label">НАСТР.</span>
-  </div>
-  <div id="admin-tab" class="nav-tab"  onclick="tab('admin',this)">
-    <span class="nav-icon">⚡</span><span class="nav-label">АДМІН</span>
-  </div>
-</nav>
 
 
 </script><script>window.addEventListener("load",function(){var s2=document.createElement("script");s2.src="petimages.js";document.body.appendChild(s2);});</script>
@@ -1570,8 +1554,15 @@ window.tab=(t,el)=>{
     document.querySelectorAll('.page').forEach(p=>{p.style.display='none';p.classList.remove('active');});
     document.querySelectorAll('.nav-tab').forEach(n=>n.classList.remove('active'));
     const pg=document.getElementById('v-'+t);
-    if(pg){pg.style.display='block';pg.classList.add('active');}
+    if(pg) pg.style.display='block';
     if(el) el.classList.add('active');
+    // Refresh content for certain tabs
+    if(t==='shop') renderShop();
+    if(t==='inv')  renderInv();
+    if(t==='top')  renderLeaderboard && renderLeaderboard();
+    if(t==='pass') renderPass();
+    if(t==='settings') renderSettings && renderSettings();
+    if(t==='admin') loadAdmin && loadAdmin();
     if(t==='shop')     renderShop();
     if(t==='inv')      renderInv();
     if(t==='top')      loadTop();
