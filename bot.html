@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Inter:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <style>
 
 
@@ -583,6 +584,29 @@ var db=firebase.database();
 var tg=window.Telegram&&window.Telegram.WebApp;
 if(tg){tg.expand();tg.ready();}
 
+// Anonymous auth — потрібно, якщо Firebase Rules вимагають auth != null.
+// Якщо auth не потрібен, це нічого не зламає.
+var _fbReady=false,_fbAuthErr=null;
+try{
+  firebase.auth().signInAnonymously().catch(function(e){
+    _fbAuthErr=e;
+    console.error('Firebase auth error:',e);
+  });
+  firebase.auth().onAuthStateChanged(function(u){_fbReady=!!u;});
+}catch(e){_fbAuthErr=e;console.error('Firebase auth init error:',e);}
+
+// Глобальний перехоплювач помилок — щоб будь-який JS-збій було видно,
+// а не "нічого не відбувається" без пояснень.
+window.addEventListener('error',function(ev){
+  console.error('Unhandled error:',ev.error||ev.message);
+  showToast('❌ Помилка: '+(ev.message||'невідома'));
+});
+window.addEventListener('unhandledrejection',function(ev){
+  console.error('Unhandled promise rejection:',ev.reason);
+  var msg=(ev.reason&&(ev.reason.message||ev.reason.code))||'невідома';
+  showToast('❌ Помилка: '+msg);
+});
+
 const ADMIN_IDS=[8216362223,2067230442];
 const RC={
   legendary:{label:'Legendary',color:'#c8922a'},
@@ -642,8 +666,8 @@ function setBalance(v){
 // FIREBASE INIT
 // ════════════════════════════════════════════
 function initFB(){
-  db.ref('users/'+myId+'/balance').on('value',function(snap){if(snap.val()!=null)setBalance(snap.val());});
-  db.ref('players/'+myId+'/botBalance').on('value',function(snap){if(snap.val()!=null)setBalance(snap.val());});
+  db.ref('users/'+myId+'/balance').on('value',function(snap){if(snap.val()!=null)setBalance(snap.val());},function(e){console.error('balance read error:',e);showToast('❌ Не вдалося завантажити баланс: '+e.message);});
+  db.ref('players/'+myId+'/botBalance').on('value',function(snap){if(snap.val()!=null)setBalance(snap.val());},function(e){console.error('botBalance read error:',e);});
   db.ref('users/'+myId).once('value',function(snap){
     var d=snap.val();
     if(d&&d.nick){nick=d.nick;applyNick();}
@@ -662,7 +686,7 @@ function initFB(){
   db.ref('shop_pets').on('value',function(snap){
     PETS=[];if(snap.exists()){snap.forEach(function(ch){var p=ch.val();p._key=ch.key;PETS.push(p);});}
     if(curPage==='shop')renderShop();
-  });
+  },function(e){console.error('shop_pets read error:',e);showToast('❌ Не вдалося завантажити товари: '+e.message);});
   db.ref('chat/'+myId).on('value',function(snap){
     var dot=el('chatDot');
     if(snap&&snap.exists()){
@@ -885,10 +909,25 @@ function pN2(){var v=_fv('f1');if(!v){_fe('ferr','Введіть нік');return
 function pSel(n){_flowData.cnt=n;renderFlow();}
 function pSubmit(){
   if(!_flowData.cnt){_fe('ferr','Оберіть кількість');return;}
+  var btn=el('fcontent').querySelector('.fbtn-g');
+  if(btn){btn.disabled=true;btn.textContent='Відправка...';}
+  _fe('ferr','');
   var item={type:'pump',label:'Прокачка петів',detail:'TG: '+_flowData.tgNick+' \u00b7 Roblox: '+_flowData.gameNick+' \u00b7 '+_flowData.cnt+' пет(и)',status:'pending',tgNick:_flowData.tgNick,gameNick:_flowData.gameNick,count:_flowData.cnt};
-  addHist(item);db.ref('pending/'+item.id).set(item);
-  db.ref('chat/'+myId).push({from:'user',text:'🐾 ПРОКАЧКА\nTG: @'+_flowData.tgNick+'\nRoblox: '+_flowData.gameNick+'\nКількість: '+_flowData.cnt+' пет(и)',time:nowTime(),nick:nick,userId:myId});
-  _flowStep=4;renderFlow();
+  item.id=Date.now();item.date=nowDate();item.userId=myId;item.userNick=nick;
+  Promise.all([
+    db.ref('pending/'+item.id).set(item),
+    db.ref('history/'+myId+'/'+item.id).set(item),
+    db.ref('chat/'+myId).push({from:'user',text:'🐾 ПРОКАЧКА\nTG: @'+_flowData.tgNick+'\nRoblox: '+_flowData.gameNick+'\nКількість: '+_flowData.cnt+' пет(и)',time:nowTime(),nick:nick,userId:myId})
+  ]).then(function(){
+    history.unshift(item);stats.ops++;stats.pumps++;updateStats();
+    db.ref('botdata/'+myId+'/stats').set(stats);
+    renderHistory();
+    _flowStep=4;renderFlow();
+  }).catch(function(e){
+    console.error('pSubmit failed:',e);
+    _fe('ferr','⚠️ Не вдалося відправити: '+(e&&e.message?e.message:'помилка з’єднання'));
+    if(btn){btn.disabled=false;btn.textContent='Відправити заявку';}
+  });
 }
 
 // WITHDRAW
@@ -945,13 +984,28 @@ function wN2(){var v=_fv('f1');if(!v){_fe('ferr','Введіть нік');return
 function wN3(){var v=_fv('f1');if(!v){_fe('ferr','Введіть назву');return;}_flowData.mapName=v;_flowStep=4;renderFlow();}
 function wN4(){var v=_fv('f1');if(!v){_fe('ferr','Введіть геймпас');return;}_flowData.gamepass=v;_flowStep=5;renderFlow();}
 function wConfirm(){
+  var btn=el('fcontent').querySelector('.fyes');
+  if(btn){btn.disabled=true;btn.textContent='Відправка...';}
   var nb=balance-_flowData.amount;
   var u={};u['users/'+myId+'/balance']=nb;u['players/'+myId+'/botBalance']=nb;
-  db.ref().update(u);setBalance(nb);
   var item={type:'wd',label:'Вивід коштів',detail:_flowData.nick+' \u00b7 '+_flowData.amount+' R',status:'pending',amount:_flowData.amount,nick:_flowData.nick,mapName:_flowData.mapName,gamepass:_flowData.gamepass,gpAmount:_flowData.gpAmt};
-  addHist(item);db.ref('pending/'+item.id).set(item);
-  db.ref('chat/'+myId).push({from:'user',text:'💸 ВИВІД\nСума: '+_flowData.amount+' R\nНік: '+_flowData.nick+'\nКарта: '+_flowData.mapName+'\nГеймпас: '+_flowData.gamepass+'\nСума GP: '+_flowData.gpAmt+' R',time:nowTime(),nick:nick,userId:myId});
-  _flowStep=6;renderFlow();
+  item.id=Date.now();item.date=nowDate();item.userId=myId;item.userNick=nick;
+  Promise.all([
+    db.ref().update(u),
+    db.ref('pending/'+item.id).set(item),
+    db.ref('history/'+myId+'/'+item.id).set(item),
+    db.ref('chat/'+myId).push({from:'user',text:'💸 ВИВІД\nСума: '+_flowData.amount+' R\nНік: '+_flowData.nick+'\nКарта: '+_flowData.mapName+'\nГеймпас: '+_flowData.gamepass+'\nСума GP: '+_flowData.gpAmt+' R',time:nowTime(),nick:nick,userId:myId})
+  ]).then(function(){
+    setBalance(nb);
+    history.unshift(item);stats.ops++;stats.wds++;updateStats();
+    db.ref('botdata/'+myId+'/stats').set(stats);
+    renderHistory();
+    _flowStep=6;renderFlow();
+  }).catch(function(e){
+    console.error('wConfirm failed:',e);
+    showToast('❌ Не вдалося відправити: '+(e&&e.message?e.message:'помилка з’єднання'));
+    if(btn){btn.disabled=false;btn.textContent='✓ Так, вірно';}
+  });
 }
 
 // SUPPORT
@@ -974,9 +1028,17 @@ function renderSupport(){
 }
 function sSubmit(){
   var v=_fv('f1');if(!v){_fe('ferr','Введіть повідомлення');return;}
-  db.ref('chat/'+myId).push({from:'user',text:v,time:nowTime(),nick:nick,userId:myId});
-  addHist({type:'support',label:'Звернення в підтримку',detail:v.slice(0,60)+(v.length>60?'…':''),status:'pending'});
-  _flowStep=2;renderFlow();
+  var btn=el('fcontent').querySelector('.fbtn-g');
+  if(btn){btn.disabled=true;btn.textContent='Відправка...';}
+  _fe('ferr','');
+  db.ref('chat/'+myId).push({from:'user',text:v,time:nowTime(),nick:nick,userId:myId}).then(function(){
+    addHist({type:'support',label:'Звернення в підтримку',detail:v.slice(0,60)+(v.length>60?'…':''),status:'pending'});
+    _flowStep=2;renderFlow();
+  }).catch(function(e){
+    console.error('sSubmit failed:',e);
+    _fe('ferr','⚠️ Не вдалося відправити: '+(e&&e.message?e.message:'помилка з’єднання'));
+    if(btn){btn.disabled=false;btn.textContent='Відправити';}
+  });
 }
 
 // SHOP FLOW
@@ -999,22 +1061,38 @@ function openShopFlow(key){
 }
 function doBuy(){
   var pet=window._shopPet;if(!pet)return;
-  if(balance<pet.price){var e=el('shopErr');if(e)e.textContent='Недостатньо коштів';return;}
+  var errEl=el('shopErr');if(errEl)errEl.textContent='';
+  if(balance<pet.price){if(errEl)errEl.textContent='Недостатньо коштів';return;}
+  var btn=el('fcontent').querySelector('.fyes');
+  if(btn){btn.disabled=true;btn.textContent='Відправка...';}
   var nb=balance-pet.price;
   var u={};u['users/'+myId+'/balance']=nb;u['players/'+myId+'/botBalance']=nb;
-  db.ref().update(u);setBalance(nb);
   var item={type:'shop',label:'Купівля товару',detail:pet.key+' \u00b7 '+pet.price+' R',status:'pending',petKey:pet._key,petName:pet.key,price:pet.price};
-  addHist(item);db.ref('pending/'+item.id).set(item);
-  db.ref('chat/'+myId).push({from:'user',text:'🛒 ЗАМОВЛЕННЯ\nТовар: '+pet.key+'\nЦіна: '+pet.price+' R',time:nowTime(),nick:nick,userId:myId});
-  var ra=RC[pet.cat]||RC.common;
-  el('fcontent').innerHTML='<div class="fwc"><div class="fwi">'+(pet.emoji||'🐾')+'</div>'
-    +'<div class="fwt">Замовлення прийнято!</div>'
-    +'<div class="fwx">Ви придбали <b style="color:var(--text)">'+pet.key+'</b>'
-    +'<br><span style="color:'+ra.color+'">'+ra.label+'</span>'
-    +'<br><br>Списано: <b style="color:var(--gold2)">'+pet.price+' R</b>'
-    +'<br>Залишок: <b style="color:var(--gold2)">'+nb+' R</b>'
-    +'<br><br>Адміністратор зв\u02bcяжеться найближчим часом.</div></div>'
-    +'<button class="fbtn fbtn-g" style="margin-top:12px" onclick="closeFlow();switchPage(\'home\')">На головну</button>';
+  item.id=Date.now();item.date=nowDate();item.userId=myId;item.userNick=nick;
+  Promise.all([
+    db.ref().update(u),
+    db.ref('pending/'+item.id).set(item),
+    db.ref('history/'+myId+'/'+item.id).set(item),
+    db.ref('chat/'+myId).push({from:'user',text:'🛒 ЗАМОВЛЕННЯ\nТовар: '+pet.key+'\nЦіна: '+pet.price+' R',time:nowTime(),nick:nick,userId:myId})
+  ]).then(function(){
+    setBalance(nb);
+    history.unshift(item);stats.ops++;updateStats();
+    db.ref('botdata/'+myId+'/stats').set(stats);
+    renderHistory();
+    var ra=RC[pet.cat]||RC.common;
+    el('fcontent').innerHTML='<div class="fwc"><div class="fwi">'+(pet.emoji||'🐾')+'</div>'
+      +'<div class="fwt">Замовлення прийнято!</div>'
+      +'<div class="fwx">Ви придбали <b style="color:var(--text)">'+pet.key+'</b>'
+      +'<br><span style="color:'+ra.color+'">'+ra.label+'</span>'
+      +'<br><br>Списано: <b style="color:var(--gold2)">'+pet.price+' R</b>'
+      +'<br>Залишок: <b style="color:var(--gold2)">'+nb+' R</b>'
+      +'<br><br>Адміністратор зв\u02bcяжеться найближчим часом.</div></div>'
+      +'<button class="fbtn fbtn-g" style="margin-top:12px" onclick="closeFlow();switchPage(\'home\')">На головну</button>';
+  }).catch(function(e){
+    console.error('doBuy failed:',e);
+    if(errEl)errEl.textContent='⚠️ Не вдалося відправити: '+(e&&e.message?e.message:'помилка з’єднання');
+    if(btn){btn.disabled=false;btn.textContent='Купити';}
+  });
 }
 
 // ════════════════════════════════════════════
