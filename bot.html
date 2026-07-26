@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>BEARS BOT</title>
-<script src="https://telegram.org/js/telegram-web-app.js" crossorigin="anonymous"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Inter:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" crossorigin="anonymous"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" crossorigin="anonymous"></script>
@@ -586,7 +586,11 @@ if(tg){tg.expand();tg.ready();}
 // Глобальний перехоплювач помилок — щоб будь-який JS-збій було видно,
 // а не "нічого не відбувається" без пояснень.
 window.addEventListener('error',function(ev){
-  console.error('Unhandled error:',ev.error||ev.message);
+  console.error('Unhandled error:',ev.error||ev.message,ev.filename,ev.lineno);
+  // "Script error." без filename — це помилка всередині стороннього скрипта
+  // (наприклад, telegram-web-app.js), браузер ховає деталі з міркувань безпеки.
+  // Показувати її користувачу немає сенсу — просто лог у консоль.
+  if(ev.message==='Script error.'&&!ev.filename)return;
   showToast('❌ Помилка: '+(ev.message||'невідома'));
 });
 window.addEventListener('unhandledrejection',function(ev){
