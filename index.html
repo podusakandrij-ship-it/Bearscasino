@@ -244,6 +244,17 @@ input:focus,select:focus{border-color:rgba(var(--accent-rgb),.5)}
 .b-sub{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3);color:#f87171}
 .b-set{background:rgba(var(--accent-rgb),.1);border-color:rgba(var(--accent-rgb),.3);color:var(--accent2)}
 
+/* SETTINGS / GLASS CARDS */
+.glass{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;backdrop-filter:blur(8px)}
+.sett-section-title{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.4px;text-transform:uppercase;margin-bottom:10px}
+.sett-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sett-list{display:flex;flex-direction:column;gap:6px}
+.sett-card{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text);cursor:pointer;transition:all .15s;user-select:none}
+.sett-card:active{transform:scale(.96)}
+.sett-grid .sett-card{flex-direction:column;text-align:center;gap:8px;padding:12px 6px}
+.sett-card.sett-active{border-color:var(--accent);background:rgba(var(--accent-rgb),.14);color:var(--accent2)}
+.sett-dot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.2);flex-shrink:0}
+
 /* GAME SPECIFIC */
 .slot-reel{width:66px;height:78px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:34px}
 #mines-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0}
@@ -1235,6 +1246,46 @@ function applyLang(lang){
 // ============================================================
 // СТАН
 // ============================================================
+// ════ BEARS PASS (дані рівнів) ════
+// Оголошено тут, ДО завантаження гравця з Firebase, бо колбек
+// завантаження гравця нижче одразу викликає renderPass()/getPassLevel(),
+// які використовують PASS_LEVELS — інакше при швидкій відповіді Firebase
+// виникала помилка "Cannot access 'PASS_LEVELS' before initialization".
+const PASS_LEVELS = [
+  {lvl:1,  xpNeeded:0,   reward:{type:'bb',   v:50,   label:'💰 50 BB'},          icon:'💰', special:false},
+  {lvl:2,  xpNeeded:80,  reward:{type:'bb',   v:75,   label:'💰 75 BB'},          icon:'💰', special:false},
+  {lvl:3,  xpNeeded:80,  reward:{type:'bb',   v:100,  label:'💰 100 BB'},         icon:'💰', special:false},
+  {lvl:4,  xpNeeded:100, reward:{type:'bb',   v:100,  label:'💰 100 BB'},         icon:'💰', special:false},
+  {lvl:5,  xpNeeded:100, reward:{type:'bb',   v:250,  label:'💰 250 BB 🎉'},      icon:'🎉', special:true},
+  {lvl:6,  xpNeeded:120, reward:{type:'bb',   v:120,  label:'💰 120 BB'},         icon:'💰', special:false},
+  {lvl:7,  xpNeeded:120, reward:{type:'bb',   v:140,  label:'💰 140 BB'},         icon:'💰', special:false},
+  {lvl:8,  xpNeeded:150, reward:{type:'case', v:1,    label:'📦 Кейс (Common)'},  icon:'📦', special:false},
+  {lvl:9,  xpNeeded:150, reward:{type:'bb',   v:160,  label:'💰 160 BB'},         icon:'💰', special:false},
+  {lvl:10, xpNeeded:200, reward:{type:'bb',   v:500,  label:'💰 500 BB 👑'},      icon:'👑', special:true},
+  {lvl:11, xpNeeded:200, reward:{type:'bb',   v:180,  label:'💰 180 BB'},         icon:'💰', special:false},
+  {lvl:12, xpNeeded:250, reward:{type:'bb',   v:200,  label:'💰 200 BB'},         icon:'💰', special:false},
+  {lvl:13, xpNeeded:250, reward:{type:'bb',   v:220,  label:'💰 220 BB'},         icon:'💰', special:false},
+  {lvl:14, xpNeeded:300, reward:{type:'case', v:1,    label:'📦 Кейс (Rare)'},    icon:'📦', special:false},
+  {lvl:15, xpNeeded:300, reward:{type:'bb',   v:1000, label:'💰 1 000 BB 💎'},    icon:'💎', special:true},
+  {lvl:16, xpNeeded:350, reward:{type:'bb',   v:240,  label:'💰 240 BB'},         icon:'💰', special:false},
+  {lvl:17, xpNeeded:350, reward:{type:'bb',   v:260,  label:'💰 260 BB'},         icon:'💰', special:false},
+  {lvl:18, xpNeeded:400, reward:{type:'bb',   v:280,  label:'💰 280 BB'},         icon:'💰', special:false},
+  {lvl:19, xpNeeded:400, reward:{type:'case', v:1,    label:'📦 Кейс (Epic)'},    icon:'📦', special:false},
+  {lvl:20, xpNeeded:500, reward:{type:'bb',   v:2000, label:'💰 2 000 BB 🏆'},    icon:'🏆', special:true},
+  {lvl:21, xpNeeded:500, reward:{type:'bb',   v:300,  label:'💰 300 BB'},         icon:'💰', special:false},
+  {lvl:22, xpNeeded:600, reward:{type:'bb',   v:320,  label:'💰 320 BB'},         icon:'💰', special:false},
+  {lvl:23, xpNeeded:600, reward:{type:'bb',   v:350,  label:'💰 350 BB'},         icon:'💰', special:false},
+  {lvl:24, xpNeeded:700, reward:{type:'case', v:2,    label:'📦📦 2 Кейси (Rare)'},icon:'📦', special:false},
+  {lvl:25, xpNeeded:700, reward:{type:'bb',   v:3000, label:'💰 3 000 BB ⭐'},    icon:'⭐', special:true},
+  {lvl:26, xpNeeded:800, reward:{type:'bb',   v:400,  label:'💰 400 BB'},         icon:'💰', special:false},
+  {lvl:27, xpNeeded:800, reward:{type:'bb',   v:450,  label:'💰 450 BB'},         icon:'💰', special:false},
+  {lvl:28, xpNeeded:900, reward:{type:'bb',   v:500,  label:'💰 500 BB'},         icon:'💰', special:false},
+  {lvl:29, xpNeeded:900, reward:{type:'case', v:1,    label:'📦 Кейс (Legendary)'},icon:'📦',special:false},
+  {lvl:30, xpNeeded:1000,reward:{type:'bb',   v:5000, label:'💰 5 000 BB 🐻'},    icon:'🐻', special:true},
+];
+const PASS_BONUS_XP = 500;
+const PASS_BONUS_BB = 250;
+
 let s={b:0,x:0,r:1,name:myName,p:null,inv:[],dbl:0,v:6.0};
 let currentShopTab='shop',currentAdminTab='stats';
 let adminInvUserId=null,adminInvUserName='';
@@ -3333,42 +3384,7 @@ setInterval(()=>{
 }, 60000);
 
 
-// ════ BEARS PASS ════
-const PASS_LEVELS = [
-  {lvl:1,  xpNeeded:0,   reward:{type:'bb',   v:50,   label:'💰 50 BB'},          icon:'💰', special:false},
-  {lvl:2,  xpNeeded:80,  reward:{type:'bb',   v:75,   label:'💰 75 BB'},          icon:'💰', special:false},
-  {lvl:3,  xpNeeded:80,  reward:{type:'bb',   v:100,  label:'💰 100 BB'},         icon:'💰', special:false},
-  {lvl:4,  xpNeeded:100, reward:{type:'bb',   v:100,  label:'💰 100 BB'},         icon:'💰', special:false},
-  {lvl:5,  xpNeeded:100, reward:{type:'bb',   v:250,  label:'💰 250 BB 🎉'},      icon:'🎉', special:true},
-  {lvl:6,  xpNeeded:120, reward:{type:'bb',   v:120,  label:'💰 120 BB'},         icon:'💰', special:false},
-  {lvl:7,  xpNeeded:120, reward:{type:'bb',   v:140,  label:'💰 140 BB'},         icon:'💰', special:false},
-  {lvl:8,  xpNeeded:150, reward:{type:'case', v:1,    label:'📦 Кейс (Common)'},  icon:'📦', special:false},
-  {lvl:9,  xpNeeded:150, reward:{type:'bb',   v:160,  label:'💰 160 BB'},         icon:'💰', special:false},
-  {lvl:10, xpNeeded:200, reward:{type:'bb',   v:500,  label:'💰 500 BB 👑'},      icon:'👑', special:true},
-  {lvl:11, xpNeeded:200, reward:{type:'bb',   v:180,  label:'💰 180 BB'},         icon:'💰', special:false},
-  {lvl:12, xpNeeded:250, reward:{type:'bb',   v:200,  label:'💰 200 BB'},         icon:'💰', special:false},
-  {lvl:13, xpNeeded:250, reward:{type:'bb',   v:220,  label:'💰 220 BB'},         icon:'💰', special:false},
-  {lvl:14, xpNeeded:300, reward:{type:'case', v:1,    label:'📦 Кейс (Rare)'},    icon:'📦', special:false},
-  {lvl:15, xpNeeded:300, reward:{type:'bb',   v:1000, label:'💰 1 000 BB 💎'},    icon:'💎', special:true},
-  {lvl:16, xpNeeded:350, reward:{type:'bb',   v:240,  label:'💰 240 BB'},         icon:'💰', special:false},
-  {lvl:17, xpNeeded:350, reward:{type:'bb',   v:260,  label:'💰 260 BB'},         icon:'💰', special:false},
-  {lvl:18, xpNeeded:400, reward:{type:'bb',   v:280,  label:'💰 280 BB'},         icon:'💰', special:false},
-  {lvl:19, xpNeeded:400, reward:{type:'case', v:1,    label:'📦 Кейс (Epic)'},    icon:'📦', special:false},
-  {lvl:20, xpNeeded:500, reward:{type:'bb',   v:2000, label:'💰 2 000 BB 🏆'},    icon:'🏆', special:true},
-  {lvl:21, xpNeeded:500, reward:{type:'bb',   v:300,  label:'💰 300 BB'},         icon:'💰', special:false},
-  {lvl:22, xpNeeded:600, reward:{type:'bb',   v:320,  label:'💰 320 BB'},         icon:'💰', special:false},
-  {lvl:23, xpNeeded:600, reward:{type:'bb',   v:350,  label:'💰 350 BB'},         icon:'💰', special:false},
-  {lvl:24, xpNeeded:700, reward:{type:'case', v:2,    label:'📦📦 2 Кейси (Rare)'},icon:'📦', special:false},
-  {lvl:25, xpNeeded:700, reward:{type:'bb',   v:3000, label:'💰 3 000 BB ⭐'},    icon:'⭐', special:true},
-  {lvl:26, xpNeeded:800, reward:{type:'bb',   v:400,  label:'💰 400 BB'},         icon:'💰', special:false},
-  {lvl:27, xpNeeded:800, reward:{type:'bb',   v:450,  label:'💰 450 BB'},         icon:'💰', special:false},
-  {lvl:28, xpNeeded:900, reward:{type:'bb',   v:500,  label:'💰 500 BB'},         icon:'💰', special:false},
-  {lvl:29, xpNeeded:900, reward:{type:'case', v:1,    label:'📦 Кейс (Legendary)'},icon:'📦',special:false},
-  {lvl:30, xpNeeded:1000,reward:{type:'bb',   v:5000, label:'💰 5 000 BB 🐻'},    icon:'🐻', special:true},
-];
-
-const PASS_BONUS_XP = 500;
-const PASS_BONUS_BB = 250;
+// ════ BEARS PASS ════ (перенесено вище — див. на початку файлу)
 
 function getPassLevel(){
   const xp = s.passXP || 0;
