@@ -4,11 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>BEARS BOT</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js" crossorigin="anonymous"></script>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Inter:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" crossorigin="anonymous"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" crossorigin="anonymous"></script>
 <style>
 
 
@@ -583,17 +582,6 @@ firebase.initializeApp({
 var db=firebase.database();
 var tg=window.Telegram&&window.Telegram.WebApp;
 if(tg){tg.expand();tg.ready();}
-
-// Anonymous auth — потрібно, якщо Firebase Rules вимагають auth != null.
-// Якщо auth не потрібен, це нічого не зламає.
-var _fbReady=false,_fbAuthErr=null;
-try{
-  firebase.auth().signInAnonymously().catch(function(e){
-    _fbAuthErr=e;
-    console.error('Firebase auth error:',e);
-  });
-  firebase.auth().onAuthStateChanged(function(u){_fbReady=!!u;});
-}catch(e){_fbAuthErr=e;console.error('Firebase auth init error:',e);}
 
 // Глобальний перехоплювач помилок — щоб будь-який JS-збій було видно,
 // а не "нічого не відбувається" без пояснень.
