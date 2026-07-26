@@ -346,6 +346,7 @@ input:focus,select:focus{border-color:rgba(var(--accent-rgb),.5)}
           <option value="slots">🎰 Слоти (до x5.0)</option>
           <option value="mines">💣 Міни (до x4.0)</option>
           <option value="bj">🃏 Блекджек (x2.0)</option>
+          <option value="upgrade">🚀 Апгрейдер (до x20)</option>
         </select>
 
         <div id="ui-dice" style="display:none;margin:14px 0"></div>
@@ -388,6 +389,18 @@ input:focus,select:focus{border-color:rgba(var(--accent-rgb),.5)}
           <div id="bj-ctrl" style="display:none;gap:10px;margin-top:16px;justify-content:center">
             <button id="bj-hit" onclick="bjDo('hit')" style="flex:1;padding:12px;border-radius:9px;border:none;background:#7c4dff;color:#fff;font-weight:800;font-size:13px;font-family:inherit;cursor:pointer">ЩЕ</button>
             <button id="bj-stop" onclick="bjDo('stop')" style="flex:1;padding:12px;border-radius:9px;border:none;background:#f87171;color:#fff;font-weight:800;font-size:13px;font-family:inherit;cursor:pointer">СТОП</button>
+          </div>
+        </div>
+        <div id="ui-upgrade" style="display:none;padding:8px 0">
+          <div id="upgrade-mult-btns" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-bottom:12px"></div>
+          <div style="text-align:center;font-size:12px;color:#6b7280;font-weight:700;margin-bottom:10px">Шанс перемоги: <span id="upgrade-chance" style="color:#4ade80;font-weight:900">63%</span></div>
+          <div style="position:relative;height:36px;border-radius:10px;overflow:hidden;background:#1a1d26;border:1px solid rgba(255,255,255,.08)">
+            <div id="upgrade-zone-win" style="position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#059669,#4ade80)"></div>
+            <div id="upgrade-zone-lose" style="position:absolute;top:0;bottom:0;right:0;background:linear-gradient(90deg,#f87171,#dc2626)"></div>
+            <div id="upgrade-marker" style="position:absolute;top:-3px;bottom:-3px;width:4px;background:#fff;box-shadow:0 0 10px #fff,0 0 3px #fff;left:0%;border-radius:2px"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;margin-top:5px">
+            <span style="color:#4ade80">ПЕРЕМОГА</span><span style="color:#f87171">ПРОГРАШ</span>
           </div>
         </div>
 
@@ -1363,15 +1376,10 @@ window.tab=(t,el)=>{
         if(lbl) lbl.style.color='#b39dff';
     }
     // Load content
-    if(t==='shop') renderShop && renderShop();
-    if(t==='inv')  renderInv && renderInv();
-    if(t==='top')  renderLeaderboard && renderLeaderboard();
-    if(t==='pass') renderPass && renderPass();
-    if(t==='settings') renderSettings && renderSettings();
-    if(t==='admin') loadAdmin && loadAdmin();
     if(t==='shop')     renderShop();
     if(t==='inv')      renderInv();
     if(t==='top')      loadTop();
+    if(t==='pass')     renderPass();
     if(t==='admin')    loadAdmin();
     if(t==='settings') renderSettings();
 };
@@ -1847,6 +1855,56 @@ function spinReel(id,final,onDone){let t=0;const iv=setInterval(()=>{document.ge
 function runSlots(cb){if(slotsSpinning)return;slotsSpinning=true;const r0=pickSlot(),r1=pickSlot(),r2=pickSlot();spinReel('reel-0',r0,()=>spinReel('reel-1',r1,()=>spinReel('reel-2',r2,()=>{slotsSpinning=false;cb(r0,r1,r2);})));}
 
 // ============================================================
+// АПГРЕЙДЕР
+// ============================================================
+const UPGRADE_MULTS=[1.5,2,3,5,10,20];
+let upgradeMult=2, upgradeSpinning=false;
+function upgradeChance(m){ return Math.max(2, Math.min(95, Math.round(95/m))); }
+function renderUpgradeMultButtons(){
+    const wrap=document.getElementById('upgrade-mult-btns');
+    if(!wrap) return;
+    wrap.innerHTML=UPGRADE_MULTS.map(m=>{
+        const active=m===upgradeMult;
+        return `<button onclick="setUpgradeMult(${m})" style="padding:8px 12px;border-radius:9px;font-size:12px;font-weight:800;font-family:inherit;cursor:pointer;border:1.5px solid ${active?'#7c4dff':'rgba(255,255,255,.08)'};background:${active?'rgba(124,77,255,.2)':'#1a1d26'};color:${active?'#b39dff':'#6b7280'}">x${m}</button>`;
+    }).join('');
+}
+function drawUpgradeBar(markerPct){
+    const chance=upgradeChance(upgradeMult);
+    const chanceEl=document.getElementById('upgrade-chance');
+    if(chanceEl) chanceEl.innerText=chance+'%';
+    const winZone=document.getElementById('upgrade-zone-win');
+    const loseZone=document.getElementById('upgrade-zone-lose');
+    if(winZone) winZone.style.width=chance+'%';
+    if(loseZone) loseZone.style.width=(100-chance)+'%';
+    const marker=document.getElementById('upgrade-marker');
+    if(marker) marker.style.left=(markerPct!==undefined?markerPct:chance/2)+'%';
+    renderUpgradeMultButtons();
+}
+window.setUpgradeMult=(m)=>{
+    if(upgradeSpinning) return;
+    upgradeMult=m;
+    drawUpgradeBar();
+};
+function spinUpgrade(onDone){
+    if(upgradeSpinning) return; upgradeSpinning=true;
+    const chance=upgradeChance(upgradeMult);
+    const win=Math.random()*100<chance;
+    const landPct=win ? Math.random()*Math.max(chance-3,1)
+                       : Math.min(99, chance+3+Math.random()*Math.max(100-chance-6,1));
+    const marker=document.getElementById('upgrade-marker');
+    const t0=performance.now(), dur=1400;
+    function frame(now){
+        const t=Math.min((now-t0)/dur,1);
+        const ease=1-Math.pow(1-t,3);
+        const pos = t<1 ? (Math.random()*100)*(1-ease) + landPct*ease : landPct;
+        if(marker) marker.style.left=pos.toFixed(2)+'%';
+        if(t<1) requestAnimationFrame(frame);
+        else { upgradeSpinning=false; onDone(win); }
+    }
+    requestAnimationFrame(frame);
+}
+
+// ============================================================
 // МІНИ
 // ============================================================
 let minesState=null;
@@ -2058,12 +2116,13 @@ window.closeCase=()=>{
 // ============================================================
 window.updUI=()=>{
     const g=document.getElementById('g-sel').value;
-    ['dice','wheel','slots','mines','bj',].forEach(id=>{
+    ['dice','wheel','slots','mines','bj','upgrade'].forEach(id=>{
         const el=document.getElementById('ui-'+id);if(el)el.style.display=(g===id)?'block':'none';
     });
     if(g==='dice')    buildDiceUI();
     if(g==='wheel')   setTimeout(()=>drawWheel(wheelAngle),50);
     if(g==='mines')   updateMinesCount();
+    if(g==='upgrade') drawUpgradeBar();
 };
 
 window.setBet=function(v){
@@ -2100,6 +2159,12 @@ window.play=()=>{
         runSlots((a,b,c)=>res(slotMult(a,b,c)>0,bt,slotMult(a,b,c),`${a} ${b} ${c}`));
     } else if(g==='mines'){startMines(bt);return;
     } else if(g==='bj') startBJ(bt);
+    else if(g==='upgrade'){
+        if(upgradeSpinning) return;
+        const chance=upgradeChance(upgradeMult);
+        document.getElementById('g-stat').innerText=L('spinning');
+        spinUpgrade(win=>res(win,bt,upgradeMult,`Шанс ${chance}% · x${upgradeMult}`));
+    }
 };
 
 function res(win,bt,m,msg){
@@ -3481,14 +3546,14 @@ function claimPass(lvl){
   }
 
   s.passClaimed.push(lvl);
-  save(); renderPass(); updateUI();
+  save(); renderPass(); ren();
 }
 
 function claimPassBonus(n){
   if((s.passClaimedBonus||0) >= n) return showToast('❌ Вже забрано!');
   s.b += PASS_BONUS_BB;
   s.passClaimedBonus = n;
-  save(); showToast('✅ +'+PASS_BONUS_BB+' BB!'); renderPass(); updateUI();
+  save(); showToast('✅ +'+PASS_BONUS_BB+' BB!'); renderPass(); ren();
 }
 
 function addPassXP(amount){
